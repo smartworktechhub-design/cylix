@@ -2,14 +2,21 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 let supabaseInstance: SupabaseClient | null = null;
 
+function createDummyClient(): SupabaseClient {
+  const dummy: any = new Proxy({}, { get: () => () => Promise.resolve({ data: [], error: null }) });
+  return dummy;
+}
+
 export function getSupabase(): SupabaseClient {
   if (!supabaseInstance) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
     if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set');
+      console.warn('Supabase env vars missing, using dummy client');
+      supabaseInstance = createDummyClient();
+    } else {
+      supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
     }
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
   }
   return supabaseInstance;
 }
