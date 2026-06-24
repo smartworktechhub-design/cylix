@@ -1,0 +1,27 @@
+(node:6036) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[browser] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+[browser] Uncaught Error: invalid border=0
+    at Providers (src/lib/providers.tsx:25:9)
+    at RootLayout (src\app\layout.tsx:31:9)
+  23 |     <WagmiProvider config={config}>
+  24 |       <QueryClientProvider client={queryClient}>
+> 25 |         <RainbowKitProvider>
+     |         ^
+  26 |           {children}
+  27 |         </RainbowKitProvider>
+  28 |       </QueryClientProvider>
+[browser] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+[browser] Uncaught Error: invalid border=0
+    at Providers (src/lib/providers.tsx:25:9)
+    at RootLayout (src\app\layout.tsx:31:9)
+  23 |     <WagmiProvider config={config}>
+  24 |       <QueryClientProvider client={queryClient}>
+> 25 |         <RainbowKitProvider>
+     |         ^
+  26 |           {children}
+  27 |         </RainbowKitProvider>
+  28 |       </QueryClientProvider>
+[browser] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+[browser] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+[browser] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
