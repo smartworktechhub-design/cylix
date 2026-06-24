@@ -14,3 +14,16 @@
 [browser] Element w3m-all-wallets-list scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information.
 [browser] Element w3m-connecting-wc-mobile scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information.
 [browser] Error: Connection request reset. Please try again.
+[browser] ⨯ unhandledRejection: Error: Proposal expired
+[browser] ⨯ unhandledRejection: Error: Proposal expired
+⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.212.231.133:3000
+- Environments: .env.local
+✓ Ready in 473ms
+
+(node:8448) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ GET / 200 in 2.1s (next.js: 1329ms, application-code: 792ms)
+ HEAD / 200 in 77ms (next.js: 12ms, application-code: 65ms)
