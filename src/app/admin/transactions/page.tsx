@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { formatCurrency, formatDate, shortenAddress } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import { ArrowLeftRight, Download, Filter, ArrowUpRight, ArrowDownLeft, Loader2 } from 'lucide-react';
 
 type FilterType = 'all' | 'deposits' | 'withdrawals';
@@ -22,7 +22,7 @@ export default function AdminTransactions() {
   const [transactions, setTransactions] = useState<any[]>([]);
 
   useEffect(() => {
-    supabase.from('transactions').select('*, users!inner(wallet)').order('created_at', { ascending: false }).then(({ data }) => {
+    getSupabase().from('transactions').select('*, users!inner(wallet)').order('created_at', { ascending: false }).then(({ data }) => {
       setTransactions((data || []).map((tx: any) => ({
         hash: tx.tx_hash ? tx.tx_hash.slice(0, 14) + '...' : 'N/A',
         user: tx.users?.wallet ? tx.users.wallet.slice(0, 10) + '...' : 'Unknown',

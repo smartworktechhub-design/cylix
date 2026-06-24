@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { formatCurrency, formatNumber, shortenAddress, formatDate, cn } from '@/lib/utils';
 import { getAdminStats } from '@/lib/db';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import { TrendingUp, TrendingDown, Users, Wallet, Gift, Package, UserPlus, Clock, ArrowUpRight, Loader2 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -18,7 +18,7 @@ export default function AdminDashboard() {
       const stats = await getAdminStats();
       setAdminStats(stats);
 
-      const { data: users } = await supabase.from('users').select('*').order('created_at', { ascending: false }).limit(5);
+      const { data: users } = await getSupabase().from('users').select('*').order('created_at', { ascending: false }).limit(5);
       setRecentUsers((users || []).map((u: any) => ({
         wallet: u.wallet,
         package: u.rank || 'N/A',

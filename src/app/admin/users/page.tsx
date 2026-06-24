@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { formatCurrency, shortenAddress, formatDate, formatNumber } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import { Search, Edit2, Ban, CheckCircle, XCircle, Users, Loader2 } from 'lucide-react';
 
 export default function AdminUsers() {
@@ -15,7 +15,7 @@ export default function AdminUsers() {
   const [allUsers, setAllUsers] = useState<any[]>([]);
 
   useEffect(() => {
-    supabase.from('users').select('*').order('created_at', { ascending: false }).then(({ data }) => {
+    getSupabase().from('users').select('*').order('created_at', { ascending: false }).then(({ data }) => {
       setAllUsers((data || []).map((u: any) => ({
         id: u.id,
         wallet: u.wallet,

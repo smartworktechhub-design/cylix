@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { formatCurrency, formatDate, shortenAddress } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import { CheckCircle, XCircle, Clock, Wallet, DollarSign, ArrowRight, Loader2 } from 'lucide-react';
 
 type TabType = 'pending' | 'approved' | 'rejected';
@@ -22,7 +22,7 @@ export default function AdminWithdrawals() {
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
 
   useEffect(() => {
-    supabase.from('withdrawals').select('*, users!inner(wallet)').order('created_at', { ascending: false }).then(({ data }) => {
+    getSupabase().from('withdrawals').select('*, users!inner(wallet)').order('created_at', { ascending: false }).then(({ data }) => {
       setWithdrawals((data || []).map((w: any) => ({
         id: w.id,
         user: w.users?.wallet ? w.users.wallet.slice(0, 10) + '...' : 'Unknown',
