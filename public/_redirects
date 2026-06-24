@@ -24,4 +24,3 @@
 /admin/transactions  /admin/transactions/  200
 /admin/settings  /admin/settings/  200
 /admin/security  /admin/security/  200
-/*  /index.html  200
