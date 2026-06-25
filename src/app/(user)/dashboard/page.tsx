@@ -3,18 +3,18 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
-import { getRecentActivity, getMatrixStats, getMatrixTree } from '@/lib/db';
+import { getMatrixStats, getMatrixTree } from '@/lib/db';
 import { SLOTS, SLOT_CONFIG } from '@/lib/constants';
 import { useAccount } from 'wagmi';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUsdtBalance } from '@/lib/usdt';
 import {
-  Loader2, Users, GitBranch, TrendingUp, Orbit, Vault as VaultIcon,
-  ArrowUpRight, Zap, Globe, Shield, Coins, Copy, CheckCheck,
-  Link as LinkIcon, Lock, Unlock, Activity, User, Wallet,
-  BarChart3, Timer, Trophy, Layers, ChevronRight, Info,
-  ExternalLink, Diamond, Sparkles, Eye, EyeOff,
+  Loader2, Users, GitBranch, TrendingUp, Orbit,
+  ArrowUpRight, Shield, Coins, Copy, CheckCheck,
+  Link as LinkIcon, Lock, Activity, User,
+  Timer, Trophy, Layers, ChevronRight,
+  ExternalLink, EyeOff, ShoppingCart,
 } from 'lucide-react';
 
 const cn = (...classes: (string | boolean | undefined | null)[]) => classes.filter(Boolean).join(' ');
@@ -40,6 +40,10 @@ const SLOT_COLORS: Record<string, string> = {
   orbit_10: '#FF5C7A', orbit_11: '#00E5FF',
 };
 
+const PLACEMENT_LABELS: Record<string, string> = {
+  root: 'Self', left: 'Direct', right: 'Spillover',
+};
+
 export default function DashboardPage() {
   const { user, slots, earnings, vault, transactions } = useAppStore();
   const { loading } = useInitData();
@@ -49,11 +53,32 @@ export default function DashboardPage() {
   const [matrixStats, setMatrixStats] = useState<any>(null);
   const [refCopied, setRefCopied] = useState(false);
   const [selectedNode, setSelectedNode] = useState<any>(null);
-  const [matrixView, setMatrixView] = useState<'explorer' | 'analytics'>('explorer');
+  const [matrixTreeNodes, setMatrixTreeNodes] = useState<any[]>([]);
+  const [matrixView, setMatrixView] = useState<'explorer' | 'activity'>('explorer');
 
   useEffect(() => {
     if (user) {
       getMatrixStats(user.id).then(setMatrixStats);
+      getMatrixTree(user.id).then(tree => {
+        if (!tree) return;
+        const levels: any[] = [];
+        for (let lvl = 1; lvl <= 11; lvl++) levels.push({ level: lvl, nodes: [] });
+        function traverse(node: any, level: number) {
+          if (!node) return;
+          const lvlIdx = Math.min(level, 11) - 1;
+          if (levels[lvlIdx]) {
+            levels[lvlIdx].nodes.push({
+              id: node.userId, wallet: node.wallet,
+              type: node.side || 'root', level,
+              position: levels[lvlIdx].nodes.length,
+            });
+          }
+          traverse(node.left, level + 1);
+          traverse(node.right, level + 1);
+        }
+        traverse(tree, 1);
+        setMatrixTreeNodes(levels);
+      });
     }
   }, [user]);
 
@@ -68,80 +93,27 @@ export default function DashboardPage() {
   const dailyYield = activeSlots.reduce((sum, s) => sum + s.dailyEarned, 0);
   const refCode = user?.referralCode || (address ? 'CXL' + address.slice(2, 6).toUpperCase() : '');
 
-  // Find current active package
   const currentActiveSlotDef = SLOTS.find(s => activeSlotIds.has(s.id));
   const currentActiveSlot = activeSlots.find(s => s.slotId === currentActiveSlotDef?.id);
-  const lastOwnedOrbit = Math.max(...[...ownedSlotIds].map(id =>
-    SLOTS.findIndex(s => s.id === id)
-  ), -1);
-  const nextSlotDef = lastOwnedOrbit >= 0 ? SLOTS[lastOwnedOrbit + 1] : SLOTS[0];
+  const lastOwnedIndex = Math.max(...[...ownedSlotIds].map(id => SLOTS.findIndex(s => s.id === id)), -1);
+  const nextSlotDef = lastOwnedIndex >= 0 ? SLOTS[lastOwnedIndex + 1] : SLOTS[0];
 
-  // Re-buy count: how many times this slot was purchased
   const rebuyCount = (slotId: string) => slots.filter(s => s.slotId === slotId).length;
   const maxRebuys = 5;
 
-  // Determine if a slot is locked (cannot buy yet)
   const isSlotLocked = (index: number) => {
-    if (index === 0) return false; // First slot always unlockable
-    const prevSlotId = SLOTS[index - 1].id;
-    return !ownedSlotIds.has(prevSlotId);
+    if (index === 0) return false;
+    return !ownedSlotIds.has(SLOTS[index - 1].id);
   };
 
-  const getNodeColor = (type: string) => {
-    switch (type) {
-      case 'root': return '#00E5FF';
-      case 'left': return '#7B61FF';
-      case 'right': return '#00FFB2';
-      default: return '#4A5568';
-    }
-  };
-
-  const [matrixTreeNodes, setMatrixTreeNodes] = useState<any[]>([]);
-  const [realMatrixTree, setRealMatrixTree] = useState<any>(null);
-
-  useEffect(() => {
-    if (user) {
-      getMatrixTree(user.id).then(tree => {
-        setRealMatrixTree(tree);
-        if (!tree) { setMatrixTreeNodes([]); return; }
-        const levels: any[] = [];
-        for (let lvl = 1; lvl <= 11; lvl++) levels.push({ level: lvl, nodes: [] });
-        function traverse(node: any, level: number) {
-          if (!node) return;
-          const lvlIdx = Math.min(level, 11) - 1;
-          if (levels[lvlIdx]) {
-            levels[lvlIdx].nodes.push({
-              id: node.userId, wallet: node.wallet, type: node.side || 'root', level, position: levels[lvlIdx].nodes.length,
-            });
-          }
-          traverse(node.left, level + 1);
-          traverse(node.right, level + 1);
-        }
-        traverse(tree, 1);
-        setMatrixTreeNodes(levels);
-      });
-    }
-  }, [user]);
-
-  const matrixTree = matrixTreeNodes.length > 0 ? matrixTreeNodes : [];
-  const maxPerLevel = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
-  const filledPositions = matrixTree.reduce((s: number, l: any) => s + l.nodes.length, 0);
-  const totalPositions = maxPerLevel.slice(0, 11).reduce((s, m) => s + m, 0);
-  const remainingPositions = totalPositions - filledPositions;
-
-  // Derive auto flow from matrix stats
-  const autoFlowStats = {
-    directs: matrixStats?.directsCount || 0,
-    spillovers: Math.max(0, (matrixStats?.total || 0) - (matrixStats?.directsCount || 0)),
-    crosslines: Math.max(0, (matrixStats?.totalSponsored || 0) - (matrixStats?.directsCount || 0)),
-    globals: 0,
-  };
+  const autoFlowStats = [
+    { label: 'Direct', value: matrixStats?.directsCount || 0, color: '#00E5FF' },
+    { label: 'Spillover', value: Math.max(0, (matrixStats?.total || 0) - (matrixStats?.directsCount || 0)), color: '#7B61FF' },
+    { label: 'Crossline', value: 0, color: '#00FFB2' },
+    { label: 'Global', value: 0, color: '#FFB800' },
+  ];
 
   const recentTxns = transactions.slice(0, 5);
-
-  const teamCount = matrixStats?.total || 0;
-  const directsCount = matrixStats?.directsCount || 0;
-  const spilloverCount = matrixStats?.spilloverCount || 0;
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -180,16 +152,14 @@ export default function DashboardPage() {
       {/* ====== HEADER ====== */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[rgba(0,229,255,0.03)] to-transparent pointer-events-none" />
-        <div className="px-4 pt-4 pb-4 relative z-10">
+        <div className="px-4 pt-4 pb-3 relative z-10">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center shadow-lg shadow-[rgba(0,229,255,0.15)]">
                 <Orbit size={20} className="text-[#050816]" />
               </div>
               <div>
-                <h1 className="text-sm font-bold text-white font-heading" style={{ fontFamily: "'Orbitron',sans-serif" }}>
-                  CYLIX MATRIX DeFi
-                </h1>
+                <h1 className="text-sm font-bold text-white font-heading" style={{ fontFamily: "'Orbitron',sans-serif" }}>CYLIX MATRIX DeFi</h1>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <Shield size={10} className="text-[#00FFB2]" />
                   <span className="text-[8px] text-[#00FFB2] font-medium tracking-wider">SMART CONTRACT SECURED</span>
@@ -206,20 +176,18 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-
-          {/* Earnings Strip */}
           <div className="grid grid-cols-3 gap-2.5">
-            <div className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)] backdrop-blur-sm" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.04), rgba(123,97,255,0.04))' }}>
+            <div className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)]" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.04), rgba(123,97,255,0.04))' }}>
               <p className="text-[8px] text-[#4A5568] uppercase tracking-wider mb-1">Total Earnings</p>
               <p className="text-lg font-bold text-white font-mono">{formatCompact(totalEarnings)}</p>
               <p className="text-[8px] text-[#00E5FF] mt-0.5">+{formatCurrency(dailyYield)}/day</p>
             </div>
-            <div className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)] backdrop-blur-sm" style={{ background: 'rgba(18,26,43,0.6)' }}>
+            <div className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)]" style={{ background: 'rgba(18,26,43,0.6)' }}>
               <p className="text-[8px] text-[#4A5568] uppercase tracking-wider mb-1">Available</p>
               <p className="text-lg font-bold text-[#00FFB2] font-mono">{formatCompact(availableBalance)}</p>
               <p className="text-[8px] text-[#4A5568] mt-0.5">{formatCurrency(user?.ascensionBalance || 0)} vault</p>
             </div>
-            <Link href="/withdrawals" className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)] flex flex-col items-center justify-center cursor-pointer hover:border-[rgba(0,229,255,0.2)] transition-all backdrop-blur-sm" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.08), rgba(123,97,255,0.08))' }}>
+            <Link href="/withdrawals" className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)] flex flex-col items-center justify-center cursor-pointer hover:border-[rgba(0,229,255,0.2)] transition-all" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.08), rgba(123,97,255,0.08))' }}>
               <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] flex items-center justify-center mb-1 shadow-md shadow-[rgba(0,229,255,0.15)]">
                 <ArrowUpRight size={16} className="text-[#050816]" />
               </div>
@@ -246,89 +214,110 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ====== 11 PACKAGES COMPACT GRID ====== */}
+      {/* ====== 11 PACKAGES ====== */}
       <div className="px-4 mb-3">
         <div className="flex items-center gap-2 mb-2">
           <Layers size={12} className="text-[#00E5FF]" />
           <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Packages</h2>
           <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.15)] to-transparent" />
         </div>
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
           {SLOTS.map((slotDef, index) => {
             const isActive = activeSlotIds.has(slotDef.id);
             const isCompleted = completedSlotIds.has(slotDef.id);
             const isOwned = isActive || isCompleted;
             const isLocked = isSlotLocked(index) && !isOwned;
             const slotColor = SLOT_COLORS[`orbit_${slotDef.orbit}`] || '#00E5FF';
-            const progressPercent = currentActiveSlot ? (currentActiveSlot.earned / currentActiveSlot.maxCap) * 100 : 0;
             const rCount = rebuyCount(slotDef.id);
-            const levelFillPercent = Math.min(((matrixStats?.levelFill?.[index] || 0) / Math.pow(2, index)) * 100, 100);
+            const progressPercent = currentActiveSlot && currentActiveSlot.slotId === slotDef.id
+              ? (currentActiveSlot.earned / currentActiveSlot.maxCap) * 100 : 0;
+            const canRebuy = isCompleted && rCount < maxRebuys;
 
-            // LOCKED display - minimal
             if (isLocked) {
               return (
                 <div key={slotDef.id}
-                  className="relative rounded-lg border border-[rgba(148,163,184,0.04)] p-2 opacity-40"
+                  className="relative rounded-xl border border-[rgba(148,163,184,0.06)] p-3 opacity-40 flex flex-col items-center text-center"
                   style={{ background: 'rgba(18,26,43,0.3)' }}>
-                  <div className="flex items-center justify-center mb-1">
-                    <Lock size={10} className="text-[#4A5568]" />
-                  </div>
-                  <p className="text-[8px] font-bold text-[#4A5568] text-center font-heading">{slotDef.name}</p>
-                  <p className="text-[9px] font-mono font-bold text-[#4A5568] text-center">{formatCurrency(slotDef.price)}</p>
+                  <Lock size={14} className="text-[#4A5568] mb-2" />
+                  <p className="text-[11px] font-bold text-[#4A5568] font-heading leading-tight">{slotDef.name}</p>
+                  <p className="text-[13px] font-mono font-bold text-[#4A5568] mt-1">{formatCurrency(slotDef.price)}</p>
                 </div>
               );
             }
 
-            // COMPLETED display
-            if (isCompleted) {
+            if (isCompleted && !canRebuy) {
               return (
                 <div key={slotDef.id}
-                  className="relative rounded-lg border border-[rgba(0,255,178,0.1)] p-2"
+                  className="relative rounded-xl border border-[rgba(0,255,178,0.08)] p-3 flex flex-col items-center text-center"
                   style={{ background: 'rgba(0,255,178,0.03)' }}>
-                  <div className="absolute top-1 right-1">
-                    <span className="text-[6px] px-1 py-0.5 rounded-full bg-[rgba(0,255,178,0.1)] text-[#00FFB2] font-bold">DONE</span>
+                  <div className="absolute top-1.5 right-1.5">
+                    <span className="text-[6px] px-1.5 py-0.5 rounded-full bg-[rgba(0,255,178,0.1)] text-[#00FFB2] font-bold">DONE</span>
                   </div>
-                  <p className="text-[8px] font-bold text-white text-center font-heading pr-6">{slotDef.name}</p>
-                  <p className="text-[9px] font-mono font-bold text-[#00FFB2] text-center">{formatCurrency(slotDef.price)}</p>
+                  <p className="text-[11px] font-bold text-white font-heading leading-tight pr-6">{slotDef.name}</p>
+                  <p className="text-[13px] font-mono font-bold text-[#00FFB2] mt-1">{formatCurrency(slotDef.price)}</p>
+                  <Link href="/slots" className="mt-2 w-full py-1.5 rounded-lg bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] text-[8px] font-bold text-center hover:shadow-lg hover:shadow-[rgba(0,229,255,0.15)] transition-all">
+                    BUY NOW
+                  </Link>
                 </div>
               );
             }
 
-            // ACTIVE display - detailed
             return (
               <div key={slotDef.id}
-                className="relative rounded-lg border border-[rgba(0,229,255,0.12)] p-2 overflow-hidden"
-                style={{ background: 'linear-gradient(180deg, rgba(0,229,255,0.06), rgba(0,229,255,0.01))' }}>
-                <div className="absolute inset-0 rounded-lg pointer-events-none" style={{ boxShadow: 'inset 0 0 20px rgba(0,229,255,0.04)' }} />
-                <div className="absolute top-1 right-1">
-                  <span className="text-[6px] px-1 py-0.5 rounded-full bg-[rgba(0,229,255,0.12)] text-[#00E5FF] font-bold">LIVE</span>
-                </div>
-                <p className="text-[8px] font-bold text-white text-center font-heading pr-6">{slotDef.name}</p>
-                <p className="text-[10px] font-mono font-bold text-white text-center">{formatCurrency(slotDef.price)}</p>
-                <div className="mt-1 flex items-center justify-center gap-1">
-                  <TrendingUp size={7} className="text-[#00E5FF]" />
-                  <span className="text-[7px] text-[#00E5FF] font-mono">3%</span>
-                </div>
-                {/* Cap Progress Bar */}
-                <div className="mt-1">
-                  <div className="flex justify-between text-[6px] text-[#4A5568]">
-                    <span>Cap</span>
-                    <span className="font-mono">{currentActiveSlot?.earned ? formatCurrency(currentActiveSlot.earned) : '---'}</span>
+                className="relative rounded-xl border overflow-hidden p-3 flex flex-col items-center text-center"
+                style={{
+                  background: isActive ? 'linear-gradient(180deg, rgba(0,229,255,0.06), transparent)' : 'rgba(18,26,43,0.4)',
+                  borderColor: isActive ? 'rgba(0,229,255,0.15)' : 'rgba(0,229,255,0.06)',
+                  boxShadow: isActive ? '0 0 20px rgba(0,229,255,0.06)' : 'none',
+                }}>
+                {isActive && (
+                  <div className="absolute top-1.5 right-1.5">
+                    <span className="text-[6px] px-1.5 py-0.5 rounded-full bg-[rgba(0,229,255,0.12)] text-[#00E5FF] font-bold">LIVE</span>
                   </div>
-                  <div className="h-1 rounded-full bg-[rgba(11,16,32,0.6)] overflow-hidden mt-0.5">
-                    <div className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${Math.min(progressPercent, 100)}%`, background: `linear-gradient(90deg, ${slotColor}, #00E5FF)` }} />
+                )}
+                <p className="text-[11px] font-bold text-white font-heading leading-tight pr-6">{slotDef.name}</p>
+                <p className="text-[13px] font-mono font-bold text-white mt-1">{formatCurrency(slotDef.price)}</p>
+
+                {isActive && currentActiveSlot?.slotId === slotDef.id && (
+                  <div className="w-full mt-2 space-y-1.5">
+                    <div className="flex items-center justify-center gap-1">
+                      <TrendingUp size={8} className="text-[#00E5FF]" />
+                      <span className="text-[7px] text-[#00E5FF] font-semibold">Daily Yield 3%</span>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[6px] text-[#4A5568]">
+                        <span>Cap</span>
+                        <span className="font-mono">{Math.min(progressPercent, 100).toFixed(0)}% / 200%</span>
+                      </div>
+                      <div className="h-1 rounded-full bg-[rgba(11,16,32,0.6)] overflow-hidden mt-0.5">
+                        <div className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${Math.min(progressPercent, 100)}%`, background: `linear-gradient(90deg, ${slotColor}, #00E5FF)` }} />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-center gap-1 text-[7px]">
+                      <span className="text-[#4A5568]">Re-Buy:</span>
+                      <span className="font-mono text-[#FFB800]">{rCount}/{maxRebuys}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-[6px] text-[#4A5568] mt-0.5">
-                    <span>{Math.min(progressPercent, 100).toFixed(0)}%</span>
-                    <span>200% max</span>
-                  </div>
-                </div>
-                {/* Re-buy Counter */}
-                <div className="mt-1 flex items-center justify-between bg-[rgba(0,229,255,0.03)] rounded px-1 py-0.5">
-                  <span className="text-[6px] text-[#4A5568]">Re-Buy</span>
-                  <span className="text-[7px] font-mono text-[#FFB800]">{rCount}/{maxRebuys}</span>
-                </div>
+                )}
+
+                {isActive && currentActiveSlot?.slotId === slotDef.id && (
+                  <Link href="/slots" className="mt-2 w-full py-1.5 rounded-lg bg-[rgba(0,229,255,0.08)] text-[#00E5FF] text-[8px] font-bold text-center border border-[rgba(0,229,255,0.1)] hover:bg-[rgba(0,229,255,0.12)] transition-all">
+                    RE-BUY
+                  </Link>
+                )}
+
+                {!isOwned && !isCompleted && (
+                  <Link href="/slots" className="mt-2 w-full py-1.5 rounded-lg bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] text-[8px] font-bold text-center hover:shadow-lg hover:shadow-[rgba(0,229,255,0.15)] transition-all">
+                    BUY NOW
+                  </Link>
+                )}
+
+                {isCompleted && canRebuy && (
+                  <Link href="/slots" className="mt-2 w-full py-1.5 rounded-lg bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] text-[8px] font-bold text-center hover:shadow-lg hover:shadow-[rgba(0,229,255,0.15)] transition-all">
+                    RE-BUY
+                  </Link>
+                )}
               </div>
             );
           })}
@@ -345,33 +334,22 @@ export default function DashboardPage() {
           <div className="flex gap-1">
             <button onClick={() => setMatrixView('explorer')}
               className={cn('px-2 py-1 rounded text-[7px] font-semibold transition-all', matrixView === 'explorer' ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF]' : 'text-[#4A5568] hover:text-white')}>Tree</button>
-            <button onClick={() => setMatrixView('analytics')}
-              className={cn('px-2 py-1 rounded text-[7px] font-semibold transition-all', matrixView === 'analytics' ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF]' : 'text-[#4A5568] hover:text-white')}>Analytics</button>
+            <button onClick={() => setMatrixView('activity')}
+              className={cn('px-2 py-1 rounded text-[7px] font-semibold transition-all', matrixView === 'activity' ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF]' : 'text-[#4A5568] hover:text-white')}>Activity</button>
           </div>
         </div>
 
         {matrixView === 'explorer' ? (
           <div className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3 overflow-x-auto" style={{ background: 'rgba(11,16,32,0.5)' }}>
-            {/* Legend */}
             <div className="flex flex-wrap gap-3 mb-3">
-              {[
-                { label: 'Current User', color: '#00E5FF', dot: true },
-                { label: 'Left Child', color: '#7B61FF' },
-                { label: 'Right Child', color: '#00FFB2' },
-                { label: 'Empty', color: '#1E2A3A' },
-              ].map(l => (
-                <div key={l.label} className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full" style={{
-                    background: l.dot ? 'conic-gradient(#00E5FF, #7B61FF)' : l.color,
-                    boxShadow: l.dot ? '0 0 6px rgba(0,229,255,0.4)' : 'none',
-                  }} />
-                  <span className="text-[7px] text-[#4A5568]">{l.label}</span>
-                </div>
-              ))}
+              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full" style={{ background: '#00E5FF', boxShadow: '0 0 6px rgba(0,229,255,0.4)' }} /><span className="text-[7px] text-[#4A5568]">Self</span></div>
+              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#00E5FF]" /><span className="text-[7px] text-[#4A5568]">Direct</span></div>
+              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#7B61FF]" /><span className="text-[7px] text-[#4A5568]">Spillover</span></div>
+              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#00FFB2]" /><span className="text-[7px] text-[#4A5568]">Crossline</span></div>
+              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#FFB800]" /><span className="text-[7px] text-[#4A5568]">Global</span></div>
             </div>
 
-            {/* Tree visualization - levels 1-11 */}
-            {filledPositions === 0 ? (
+            {matrixTreeNodes.length === 0 ? (
               <div className="text-center py-6">
                 <GitBranch size={20} className="mx-auto mb-2 text-[#4A5568]" />
                 <p className="text-[8px] text-[#4A5568]">No matrix data yet</p>
@@ -379,33 +357,29 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-1.5">
-                {matrixTree.map((level: any) => (
+                {matrixTreeNodes.map((level: any) => (
                   <div key={level.level}>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[6px] text-[#4A5568] font-mono w-4">L{level.level}</span>
                       <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.05)] to-transparent" />
+                      <span className="text-[6px] text-[#4A5568] font-mono">{level.nodes.length}</span>
                     </div>
                     <div className="flex flex-wrap gap-1 justify-center">
                       {level.nodes.slice(0, 32).map((node: any, i: number) => {
-                        const isSelf = level.level === 1 && i === 0 && node.type === 'root';
+                        const isSelf = level.level === 1 && i === 0;
                         const colors: Record<string, string> = {
-                          root: '#00E5FF', left: '#7B61FF', right: '#00FFB2',
-                        };
-                        const glows: Record<string, string> = {
-                          root: '0 0 8px rgba(0,229,255,0.3)', left: '0 0 4px rgba(123,97,255,0.15)',
-                          right: '0 0 4px rgba(0,255,178,0.15)',
+                          root: '#00E5FF', left: '#00E5FF', right: '#7B61FF',
                         };
                         return (
                           <button key={i} onClick={() => node.id && setSelectedNode(node)}
                             className="transition-all duration-200 hover:scale-110">
-                            <div className="w-5 h-5 rounded-full border flex items-center justify-center cursor-pointer"
+                            <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer"
                               style={{
-                                borderColor: colors[node.type] || '#1E2A3A',
-                                background: isSelf ? 'linear-gradient(135deg, #00E5FF, #7B61FF)' : `${(colors[node.type] || '#1E2A3A')}15`,
-                                boxShadow: glows[node.type] || 'none',
+                                borderColor: colors[node.type] || '#7B61FF',
+                                background: isSelf ? 'linear-gradient(135deg, #00E5FF, #7B61FF)' : `${(colors[node.type] || '#7B61FF')}20`,
+                                boxShadow: isSelf ? '0 0 10px rgba(0,229,255,0.3)' : 'none',
                               }}>
-                              {isSelf ? <User size={8} className="text-[#050816]" /> :
-                                <div className="w-1.5 h-1.5 rounded-full" style={{ background: colors[node.type] || '#4A5568' }} />}
+                              {isSelf ? <User size={9} className="text-[#050816]" /> : null}
                             </div>
                           </button>
                         );
@@ -416,96 +390,116 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Matrix Capacity Stats */}
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <div className="rounded-lg p-2 bg-[rgba(0,229,255,0.02)] border border-[rgba(0,229,255,0.04)]">
-                <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">Capacity</p>
-                <p className="text-[10px] font-mono font-bold text-white">{filledPositions || 0}/{totalPositions}</p>
-              </div>
-              <div className="rounded-lg p-2 bg-[rgba(0,229,255,0.02)] border border-[rgba(0,229,255,0.04)]">
-                <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">Filled</p>
-                <p className="text-[10px] font-mono font-bold text-[#00E5FF]">{filledPositions || 0}</p>
-              </div>
-              <div className="rounded-lg p-2 bg-[rgba(0,229,255,0.02)] border border-[rgba(0,229,255,0.04)]">
-                <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">Remaining</p>
-                <p className="text-[10px] font-mono font-bold text-[#FFB800]">{remainingPositions || 0}</p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* ====== MATRIX ANALYTICS ====== */
-          <div className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3" style={{ background: 'rgba(11,16,32,0.5)' }}>
-            {/* Level Progress */}
-            <div className="space-y-2 mb-3">
-              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider font-semibold">Level Fill Progress</p>
-              {Array.from({ length: 11 }).map((_, idx) => {
-                const lvl = idx + 1;
-                const level = matrixTree.find((l: any) => l.level === lvl);
-                const filled = level?.nodes?.length || 0;
-                const max = maxPerLevel[idx];
-                const pct = (filled / max) * 100;
-                return (
-                  <div key={lvl} className="flex items-center gap-2">
-                    <span className="text-[7px] text-[#4A5568] font-mono w-8">L{lvl}</span>
-                    <div className="flex-1 h-1.5 rounded-full bg-[rgba(11,16,32,0.6)] overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%`, background: pct > 50 ? 'linear-gradient(90deg, #00E5FF, #7B61FF)' : 'linear-gradient(90deg, #4A5568, #00E5FF)' }} />
-                    </div>
-                    <span className="text-[7px] text-[#4A5568] font-mono w-10 text-right">{filled}/{max}</span>
+            {/* Node Detail Panel */}
+            {selectedNode && selectedNode.id && (
+              <div className="mt-3 rounded-xl border border-[rgba(0,229,255,0.08)] p-3 relative" style={{ background: 'rgba(11,16,32,0.8)' }}>
+                <button onClick={() => setSelectedNode(null)} className="absolute top-2 right-2 text-[#4A5568] hover:text-white">
+                  <EyeOff size={12} />
+                </button>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center">
+                    <User size={10} className="text-[#050816]" />
                   </div>
-                );
-              })}
-            </div>
+                  <p className="text-[10px] font-mono font-bold text-white">{shortenAddress(selectedNode.wallet || selectedNode.id)}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[8px]">
+                  <div><span className="text-[#4A5568]">User ID:</span> <span className="text-white font-mono">{selectedNode.id?.slice(0, 10)}</span></div>
+                  <div><span className="text-[#4A5568]">Source:</span> <span className="font-semibold" style={{ color: selectedNode.type === 'root' ? '#00E5FF' : selectedNode.type === 'left' ? '#00E5FF' : '#7B61FF' }}>{PLACEMENT_LABELS[selectedNode.type] || selectedNode.type}</span></div>
+                  <div><span className="text-[#4A5568]">Level:</span> <span className="text-white">Level {selectedNode.level}</span></div>
+                  <div><span className="text-[#4A5568]">Position:</span> <span className="text-white">#{selectedNode.position + 1}</span></div>
+                </div>
+              </div>
+            )}
 
-            {/* Auto Flow Analytics */}
-            <div className="border-t border-[rgba(0,229,255,0.05)] pt-3">
-              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider font-semibold mb-2">Auto Flow Distribution</p>
+            {/* Auto Flow Placement Stats */}
+            <div className="mt-3 border-t border-[rgba(0,229,255,0.05)] pt-3">
+              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider font-semibold mb-2">Placement Sources</p>
               <div className="grid grid-cols-4 gap-2">
-                {[
-                  { label: 'Direct', value: matrixStats?.directsCount || 0, color: '#00E5FF' },
-                  { label: 'Spillover', value: Math.max(0, (matrixStats?.total || 0) - (matrixStats?.directsCount || 0)), color: '#7B61FF' },
-                  { label: 'Crossline', value: Math.max(0, (matrixStats?.totalSponsored || 0) - (matrixStats?.directsCount || 0)), color: '#00FFB2' },
-                  { label: 'Global', value: 0, color: '#FFB800' },
-                ].map(s => (
-                  <div key={s.label} className="rounded-lg p-2 text-center" style={{ background: `${s.color}06`, border: `1px solid ${s.color}12` }}>
-                    <p className="text-[9px] font-mono font-bold" style={{ color: s.color }}>{s.value}</p>
+                {autoFlowStats.map(s => (
+                  <div key={s.label} className="rounded-lg p-2 text-center" style={{ background: `${s.color}08`, border: `1px solid ${s.color}15` }}>
+                    <p className="text-xs font-mono font-bold" style={{ color: s.color }}>{s.value}</p>
                     <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">{s.label}</p>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-        )}
-
-        {/* Node Detail Panel */}
-        {selectedNode && selectedNode.id && (
-          <div className="mt-2 rounded-xl border border-[rgba(0,229,255,0.08)] p-3 relative" style={{ background: 'rgba(11,16,32,0.8)' }}>
-            <button onClick={() => setSelectedNode(null)} className="absolute top-2 right-2 text-[#4A5568] hover:text-white">
-              <EyeOff size={12} />
-            </button>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center">
-                <User size={10} className="text-[#050816]" />
+        ) : (
+          /* ====== MATRIX ACTIVITY ====== */
+          <div className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3" style={{ background: 'rgba(11,16,32,0.5)' }}>
+            <p className="text-[7px] text-[#4A5568] uppercase tracking-wider font-semibold mb-2">Matrix Activity History</p>
+            {recentTxns.length > 0 ? (
+              <div className="divide-y divide-[rgba(0,229,255,0.03)]">
+                {recentTxns.map((tx, i) => (
+                  <div key={tx.id || i} className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,229,255,0.06)' }}>
+                        <Activity size={10} className="text-[#00E5FF]" />
+                      </div>
+                      <div>
+                        <p className="text-[8px] text-white font-semibold">{tx.description || 'Matrix Activity'}</p>
+                        <p className="text-[6px] text-[#4A5568]">{tx.timestamp ? new Date(tx.timestamp).toLocaleDateString() : '--'}</p>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-mono font-bold" style={{ color: tx.amount > 0 ? '#00FFB2' : '#FF5C7A' }}>
+                      {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
+                    </span>
+                  </div>
+                ))}
               </div>
-              <p className="text-[10px] font-mono font-bold text-white">{shortenAddress(selectedNode.wallet || selectedNode.id)}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-[8px]">
-              <div className="col-span-2"><span className="text-[#4A5568]">Wallet:</span> <span className="text-white font-mono">{shortenAddress(selectedNode.wallet) || selectedNode.id}</span></div>
-              <div><span className="text-[#4A5568]">Level:</span> <span className="text-white">Level {selectedNode.level}</span></div>
-              <div>
-                <span className="text-[#4A5568]">Side:</span>
-                <span className="font-semibold ml-1" style={{ color: getNodeColor(selectedNode.type) }}>{selectedNode.type === 'root' ? 'Self' : selectedNode.type === 'left' ? 'Left' : selectedNode.type === 'right' ? 'Right' : selectedNode.type}</span>
+            ) : (
+              <div className="text-center py-4">
+                <Activity size={14} className="mx-auto mb-1 text-[#4A5568]" />
+                <p className="text-[7px] text-[#4A5568]">No matrix activity yet</p>
               </div>
-              <div className="col-span-2"><span className="text-[#4A5568]">Position:</span> <span className="text-white">#{selectedNode.position + 1}</span></div>
-            </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* ====== PACKAGE PROGRESS PANEL ====== */}
+      {/* ====== GLOBAL APEX POOL ====== */}
       <div className="px-4 mb-3">
         <div className="flex items-center gap-2 mb-2">
-          <BarChart3 size={12} className="text-[#7B61FF]" />
+          <Trophy size={12} className="text-[#FFB800]" />
+          <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Global Apex Pool</h2>
+          <div className="flex-1 h-px bg-gradient-to-r from-[rgba(255,184,0,0.15)] to-transparent" />
+        </div>
+        <div className="rounded-xl border border-[rgba(255,184,0,0.06)] p-3" style={{ background: 'linear-gradient(135deg, rgba(255,184,0,0.02), rgba(255,92,122,0.02))' }}>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Pool Balance</p>
+              <p className="text-xl font-bold font-mono text-[#FFB800]">{formatCompact(earnings.pool || 0)}</p>
+              <p className="text-[7px] text-[#4A5568] mt-0.5">Unlimited Distribution Network</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Qualified</p>
+              <p className="text-lg font-bold font-mono text-white">{matrixStats?.total || 0}</p>
+              <p className="text-[7px] text-[#4A5568] mt-0.5">Members</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-center gap-2 rounded-lg p-2" style={{ background: 'rgba(255,184,0,0.04)' }}>
+              <Timer size={12} className="text-[#FFB800]" />
+              <div>
+                <p className="text-[7px] text-[#4A5568]">Next Distribution</p>
+                <p className="text-[9px] font-mono text-white">~12h 34m</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg p-2" style={{ background: 'rgba(0,255,178,0.04)' }}>
+              <Coins size={12} className="text-[#00FFB2]" />
+              <div>
+                <p className="text-[7px] text-[#4A5568]">Per Qualifier</p>
+                <p className="text-[9px] font-mono text-[#00FFB2]">{formatCurrency(earnings.pool > 0 ? earnings.pool / Math.max(matrixStats?.total || 1, 1) : 0)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ====== PACKAGE PROGRESS ====== */}
+      <div className="px-4 mb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <TrendingUp size={12} className="text-[#7B61FF]" />
           <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Package Progress</h2>
           <div className="flex-1 h-px bg-gradient-to-r from-[rgba(123,97,255,0.15)] to-transparent" />
         </div>
@@ -514,9 +508,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Active Package</p>
-                <p className="text-sm font-bold text-white font-heading" style={{ color: SLOT_COLORS[`orbit_${currentActiveSlotDef.orbit}`] || '#00E5FF' }}>
-                  {currentActiveSlotDef.name}
-                </p>
+                <p className="text-sm font-bold text-white font-heading" style={{ color: SLOT_COLORS[`orbit_${currentActiveSlotDef.orbit}`] || '#00E5FF' }}>{currentActiveSlotDef.name}</p>
                 <p className="text-[10px] font-mono text-[#4A5568]">Orbit #{currentActiveSlotDef.orbit}</p>
               </div>
               <div className="text-right">
@@ -524,30 +516,28 @@ export default function DashboardPage() {
                 <p className="text-lg font-bold font-mono text-[#00E5FF]">{formatCurrency(currentActiveSlot.dailyEarned)}</p>
                 <p className="text-[8px] text-[#4A5568]">3% of {formatCurrency(currentActiveSlotDef.price)}</p>
               </div>
-              {/* Cap Progress */}
               <div className="col-span-2">
                 <div className="flex justify-between text-[7px] text-[#4A5568] mb-1">
                   <span>Cap Progress</span>
                   <span className="font-mono">{formatCurrency(currentActiveSlot.earned)} / {formatCurrency(currentActiveSlot.maxCap)}</span>
                 </div>
-                <div className="h-2 rounded-full bg-[rgba(11,16,32,0.6)] overflow-hidden">
+                <div className="h-2.5 rounded-full bg-[rgba(11,16,32,0.6)] overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-700"
                     style={{ width: `${Math.min((currentActiveSlot.earned / currentActiveSlot.maxCap) * 100, 100)}%`, background: 'linear-gradient(90deg, #7B61FF, #00E5FF)' }} />
                 </div>
                 <div className="flex justify-between text-[7px] mt-1">
-                  <span className="text-white font-mono">{Math.min((currentActiveSlot.earned / currentActiveSlot.maxCap) * 100, 100).toFixed(1)}%</span>
-                  <span className="text-[#7B61FF]">200% max</span>
+                  <span className="text-white font-mono font-semibold">{Math.min((currentActiveSlot.earned / currentActiveSlot.maxCap) * 100, 100).toFixed(1)}%</span>
+                  <span className="text-[#7B61FF]">/ 200% max</span>
                 </div>
               </div>
-              {/* Re-buy Progress */}
               <div className="col-span-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[7px] text-[#4A5568] uppercase tracking-wider">Re-Buy Cycles</span>
-                  <span className="text-[9px] font-mono text-[#FFB800]">{rebuyCount(currentActiveSlotDef.id)} / {maxRebuys}</span>
+                  <span className="text-[9px] font-mono text-[#FFB800]">{currentActiveSlot ? slots.filter(s => s.slotId === currentActiveSlotDef.id).length : 0} / {maxRebuys}</span>
                 </div>
                 <div className="flex gap-1 mt-1">
                   {Array.from({ length: maxRebuys }).map((_, i) => (
-                    <div key={i} className={cn('flex-1 h-1.5 rounded-full transition-all', i < rebuyCount(currentActiveSlotDef.id) ? 'bg-[#FFB800]' : 'bg-[rgba(255,184,0,0.1)]')} />
+                    <div key={i} className={cn('flex-1 h-1.5 rounded-full', i < (currentActiveSlot ? slots.filter(s => s.slotId === currentActiveSlotDef.id).length : 0) ? 'bg-[#FFB800]' : 'bg-[rgba(255,184,0,0.08)]')} />
                   ))}
                 </div>
               </div>
@@ -567,47 +557,13 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ====== GLOBAL APEX POOL ====== */}
-      <div className="px-4 mb-3">
-        <div className="flex items-center gap-2 mb-2">
-          <Trophy size={12} className="text-[#FFB800]" />
-          <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Global Apex Pool</h2>
-          <div className="flex-1 h-px bg-gradient-to-r from-[rgba(255,184,0,0.15)] to-transparent" />
-        </div>
-        <div className="rounded-xl border border-[rgba(255,184,0,0.06)] p-3" style={{ background: 'linear-gradient(135deg, rgba(255,184,0,0.02), rgba(255,92,122,0.02))' }}>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Pool Balance</p>
-              <p className="text-lg font-bold font-mono text-[#FFB800]">{formatCompact(earnings.pool || 0)}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Qualified</p>
-              <p className="text-lg font-bold font-mono text-white">{matrixStats?.total || 0} members</p>
-            </div>
-            <div>
-              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Next Distribution</p>
-              <div className="flex items-center gap-1">
-                <Timer size={10} className="text-[#FFB800]" />
-                <p className="text-[10px] font-mono text-white">~12h 34m</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Per Qualifier</p>
-              <p className="text-[10px] font-mono text-[#00FFB2]">{formatCurrency(earnings.pool > 0 ? earnings.pool / Math.max(matrixStats?.total || 1, 1) : 0)}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* ====== TRANSACTION HISTORY ====== */}
       <div className="px-4 mb-3">
         <div className="flex items-center gap-2 mb-2">
           <Activity size={12} className="text-[#00E5FF]" />
           <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Transactions</h2>
           <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.15)] to-transparent" />
-          {transactions.length > 0 && (
-            <Link href="/transactions" className="text-[7px] text-[#00E5FF] font-semibold hover:underline">View All</Link>
-          )}
+          {transactions.length > 0 && <Link href="/transactions" className="text-[7px] text-[#00E5FF] font-semibold hover:underline">View All</Link>}
         </div>
         <div className="rounded-xl border border-[rgba(0,229,255,0.06)] overflow-hidden" style={{ background: 'rgba(11,16,32,0.5)' }}>
           {recentTxns.length > 0 ? (
@@ -652,42 +608,39 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ====== STATS SUMMARY ROW ====== */}
+      {/* ====== TEAM STATS ====== */}
       <div className="px-4 mb-3">
         <div className="grid grid-cols-3 gap-2">
-          {[
-            { label: 'Team', value: teamCount, icon: Users, color: '#00E5FF' },
-            { label: 'Directs', value: directsCount, icon: Users, color: '#7B61FF' },
-            { label: 'Spillover', value: spilloverCount, icon: TrendingUp, color: '#FFB800' },
-          ].map((s, i) => {
-            const Icon = s.icon;
-            return (
-              <div key={i} className="rounded-lg p-2.5 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(18,26,43,0.4)' }}>
-                <Icon size={12} className="mx-auto mb-1" style={{ color: s.color }} />
-                <p className="text-xs font-mono font-bold text-white">{s.value}</p>
-                <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">{s.label}</p>
-              </div>
-            );
-          })}
+          <div className="rounded-lg p-2.5 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(18,26,43,0.4)' }}>
+            <Users size={12} className="mx-auto mb-1 text-[#00E5FF]" />
+            <p className="text-xs font-mono font-bold text-white">{matrixStats?.total || 0}</p>
+            <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">Team</p>
+          </div>
+          <div className="rounded-lg p-2.5 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(18,26,43,0.4)' }}>
+            <Users size={12} className="mx-auto mb-1 text-[#7B61FF]" />
+            <p className="text-xs font-mono font-bold text-white">{matrixStats?.directsCount || 0}</p>
+            <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">Directs</p>
+          </div>
+          <div className="rounded-lg p-2.5 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(18,26,43,0.4)' }}>
+            <TrendingUp size={12} className="mx-auto mb-1 text-[#FFB800]" />
+            <p className="text-xs font-mono font-bold text-white">{Math.max(0, (matrixStats?.total || 0) - (matrixStats?.directsCount || 0))}</p>
+            <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">Spillover</p>
+          </div>
         </div>
       </div>
 
-      {/* ====== FLOATING WALLET/USDT BAR ====== */}
+      {/* ====== WALLET INFO BAR ====== */}
       <div className="px-4 mb-3">
         <div className="rounded-lg p-2 border border-[rgba(0,229,255,0.04)] flex items-center justify-between" style={{ background: 'rgba(0,229,255,0.02)' }}>
           <div className="flex items-center gap-2">
             <Coins size={12} className="text-[#00E5FF]" />
-            <span className="text-[7px] text-[#4A5568] uppercase tracking-wider">Connected Wallet</span>
+            <span className="text-[7px] text-[#4A5568] uppercase tracking-wider">Wallet</span>
             <code className="text-[8px] font-mono text-[#00E5FF]">{shortenAddress(address) || 'Not Connected'}</code>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1">
-              <span className="text-[7px] text-[#4A5568]">USDT:</span>
-              <span className="text-[9px] font-mono font-bold text-white">{formatCompact(usdtBalance)}</span>
-            </div>
+            <span className="text-[9px] font-mono font-bold text-white">{formatCompact(usdtBalance)} USDT</span>
             {address && (
-              <a href={`https://bscscan.com/address/${address}`} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1 text-[#4A5568] hover:text-[#00E5FF] transition-all">
+              <a href={`https://bscscan.com/address/${address}`} target="_blank" rel="noopener noreferrer" className="text-[#4A5568] hover:text-[#00E5FF] transition-all">
                 <ExternalLink size={10} />
               </a>
             )}
@@ -696,17 +649,13 @@ export default function DashboardPage() {
       </div>
 
       {/* ====== BOTTOM NAVIGATION ====== */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[rgba(0,229,255,0.08)] backdrop-blur-xl"
-        style={{ background: 'rgba(5,8,22,0.92)' }}>
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[rgba(0,229,255,0.08)] backdrop-blur-xl" style={{ background: 'rgba(5,8,22,0.92)' }}>
         <div className="flex items-center justify-around max-w-lg mx-auto px-2 py-1.5">
           {navItems.map((item) => {
             const active = pathname === item.href || (item.href === '/dashboard' && pathname === '/');
             return (
               <Link key={item.href} href={item.href}
-                className={cn(
-                  'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative',
-                  active ? 'text-[#00E5FF]' : 'text-[#4A5568] hover:text-[#94A3B8]'
-                )}>
+                className={cn('flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative', active ? 'text-[#00E5FF]' : 'text-[#4A5568] hover:text-[#94A3B8]')}>
                 {active && <div className="absolute -top-[5px] w-8 h-0.5 rounded-full bg-[#00E5FF]" />}
                 <NavIcon id={item.icon} active={active} />
                 <span className={cn('text-[8px] font-semibold tracking-wider', active && 'text-[#00E5FF]')}>{item.label}</span>
