@@ -86,42 +86,143 @@ function generateReferralCode(): string {
   return 'CXL' + Math.random().toString(36).substring(2, 7).toUpperCase();
 }
 
-// ─── MATRIX ───
+// ─── 2x11 FORCED BINARY MATRIX WITH ZERO-DEPTH SPILLOVER ───
+
+// Find first empty position in owner's tree using BFS level-order
+async function findEmptyPosition(ownerId: string): Promise<{ parentNodeId: string | null; side: 'left' | 'right'; level: number } | null> {
+  const { data: root } = await sb().from('matrix_tree').select('id').eq('user_id', ownerId).eq('owner_id', ownerId).maybeSingle();
+  if (!root) return { parentNodeId: null, side: 'left', level: 1 }; // Tree empty, place as root
+
+  const { data: allNodes } = await sb().from('matrix_tree')
+    .select('id, parent_id, side, level')
+    .eq('owner_id', ownerId)
+    .order('level').order('position');
+  if (!allNodes) return null;
+
+  // BFS to find first empty left or right child
+  const levelBreaker = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
+  for (const node of allNodes) {
+    if (node.level >= 11) continue;
+    const hasLeft = allNodes.some((n: any) => n.parent_id === node.id && n.side === 'left');
+    const hasRight = allNodes.some((n: any) => n.parent_id === node.id && n.side === 'right');
+    if (!hasLeft) return { parentNodeId: node.id, side: 'left', level: node.level + 1 };
+    if (!hasRight) return { parentNodeId: node.id, side: 'right', level: node.level + 1 };
+  }
+
+  // Also check direct left/right under root at level 2 if BFS missed them
+  const hasLeft = allNodes.some((n: any) => n.parent_id === root.id && n.side === 'left');
+  const hasRight = allNodes.some((n: any) => n.parent_id === root.id && n.side === 'right');
+  if (!hasLeft) return { parentNodeId: root.id, side: 'left', level: 2 };
+  if (!hasRight) return { parentNodeId: root.id, side: 'right', level: 2 };
+
+  return null; // Full tree
+}
 
 export async function addToMatrix(sponsorId: string, userId: string): Promise<void> {
+  // Ensure sponsor has a root node
+  const { data: sponsorRoot } = await sb().from('matrix_tree').select('id').eq('user_id', sponsorId).eq('owner_id', sponsorId).maybeSingle();
+  if (!sponsorRoot) {
+    await sb().from('matrix_tree').insert({
+      user_id: sponsorId, owner_id: sponsorId,
+      parent_id: null, side: null, level: 1, position: 1,
+    });
+  }
+
+  // Step 1: Try sponsor's tree first (BFS spillover)
+  let placed = await findEmptyPosition(sponsorId);
+
+  // Step 2: If full, spill over to upline
+  if (!placed) {
+    let uplineId = await getDirectSponsor(sponsorId);
+    while (uplineId && !placed) {
+      placed = await findEmptyPosition(uplineId);
+      uplineId = placed ? null : await getDirectSponsor(uplineId);
+    }
+  }
+
+  if (!placed) return; // No room anywhere
+
+  const { count: posCount } = await sb().from('matrix_tree').select('*', { count: 'exact', head: true }).eq('owner_id', placed.parentNodeId ? sponsorId : sponsorId);
+  const position = (posCount || 0) + 1;
+
+  await sb().from('matrix_tree').insert({
+    user_id: userId, owner_id: sponsorId,
+    parent_id: placed.parentNodeId, side: placed.side,
+    level: placed.level, position,
+  });
+
+  // Add to matrix_11 for unilevel earnings (owner's upline chain)
   const visited = new Set<string>();
   let currentId: string | null = sponsorId;
-  let level = 1;
-  while (currentId && level <= 11 && !visited.has(currentId)) {
+  let lvl = 1;
+  while (currentId && lvl <= 11 && !visited.has(currentId)) {
     visited.add(currentId);
     await sb().from('matrix_11').insert({
-      user_id: userId, sponsor_id: currentId, level,
+      user_id: userId, sponsor_id: currentId, level: lvl,
     });
-    const { data: parent }:{ data: { sponsor_id: string | null } | null } = await sb().from('users').select('sponsor_id').eq('id', currentId).single();
-    currentId = parent?.sponsor_id || null;
-    level++;
+    const upline = await getDirectSponsor(currentId);
+    currentId = upline;
+    lvl++;
   }
+
+  const ownerId = placed.parentNodeId ? sponsorId : sponsorId;
+  await updateTeamSize(ownerId);
+}
+
+async function getDirectSponsor(userId: string): Promise<string | null> {
+  const { data } = await sb().from('users').select('sponsor_id').eq('id', userId).single();
+  return data?.sponsor_id || null;
 }
 
 async function updateTeamSize(userId: string): Promise<void> {
   const { count: directs } = await sb().from('users').select('*', { count: 'exact', head: true }).eq('sponsor_id', userId);
-  const { count: matrixCount } = await sb().from('matrix_11').select('*', { count: 'exact', head: true }).eq('sponsor_id', userId);
+  const { count: treeCount } = await sb().from('matrix_tree').select('*', { count: 'exact', head: true }).eq('owner_id', userId);
   await sb().from('users').update({
     directs: directs || 0,
-    team_size: (matrixCount || 0) + (directs || 0),
+    team_size: (treeCount || 0),
   }).eq('id', userId);
 }
 
-export async function getMatrixTree(userId: string): Promise<any[]> {
-  const { data } = await sb().from('matrix_11')
-    .select('*, users!matrix_11_user_id_fkey(wallet)')
-    .eq('sponsor_id', userId)
-    .order('level');
-  return (data || []).map((m: any) => ({
-    userId: m.user_id, wallet: m.users?.wallet || '',
-    level: m.level, totalEarnings: Number(m.total_earnings),
-    directs: 0, children: [],
-  }));
+export async function getMatrixTree(userId: string): Promise<any> {
+  const { data: nodes } = await sb().from('matrix_tree')
+    .select('*, users!matrix_tree_user_id_fkey(wallet)')
+    .eq('owner_id', userId)
+    .order('level').order('position');
+  if (!nodes || nodes.length === 0) return null;
+
+  const map = new Map<string, any>();
+  nodes.forEach((n: any) => {
+    map.set(n.id, {
+      id: n.id, userId: n.user_id, wallet: n.users?.wallet || '',
+      level: n.level, side: n.side, parentId: n.parent_id,
+      left: null, right: null,
+    });
+  });
+
+  let root: any = null;
+  nodes.forEach((n: any) => {
+    const node = map.get(n.id);
+    if (!n.parent_id) { root = node; return; }
+    const parent = map.get(n.parent_id);
+    if (parent) {
+      if (n.side === 'left') parent.left = node;
+      else parent.right = node;
+    }
+  });
+
+  function countDescendants(node: any): number {
+    if (!node) return 0;
+    return 1 + countDescendants(node.left) + countDescendants(node.right);
+  }
+
+  function fillChildren(node: any): any {
+    if (!node) return null;
+    return {
+      ...node, left: fillChildren(node.left), right: fillChildren(node.right),
+    };
+  }
+
+  return fillChildren(root);
 }
 
 export async function getUserMatrixLevel(userId: string): Promise<any[]> {
@@ -133,6 +234,31 @@ export async function getUserMatrixLevel(userId: string): Promise<any[]> {
     sponsorId: m.sponsor_id, sponsorWallet: m.users?.wallet || '',
     level: m.level, totalEarnings: Number(m.total_earnings),
   }));
+}
+
+export async function getMatrixStats(userId: string): Promise<any> {
+  const { data: treeNodes } = await sb().from('matrix_tree').select('user_id, level, side').eq('owner_id', userId);
+  if (!treeNodes) return { total: 0, levels: [], spilloverCount: 0, directsCount: 0 };
+
+  const { count: directs } = await sb().from('users').select('*', { count: 'exact', head: true }).eq('sponsor_id', userId);
+  const levelCounts: number[] = [];
+  for (let i = 1; i <= 11; i++) levelCounts.push(treeNodes.filter((n: any) => n.level === i).length);
+
+  const maxPositions = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
+  const levelFill = levelCounts.map((c, i) => ({
+    level: i + 1, filled: c, total: maxPositions[i], percent: (c / maxPositions[i]) * 100,
+  }));
+
+  const totalSponsored = treeNodes.filter((n: any) => n.level === 1).length;
+  const spilloverCount = Math.max(0, totalSponsored - 2);
+
+  return {
+    total: treeNodes.length,
+    totalSponsored,
+    spilloverCount,
+    directsCount: directs || 0,
+    levelFill,
+  };
 }
 
 export async function processMatrixCommission(purchaserId: string, amount: number): Promise<void> {

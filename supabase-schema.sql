@@ -56,6 +56,18 @@ CREATE TABLE matrix_11 (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 2x11 Forced Binary Tree (for spillover placement)
+CREATE TABLE matrix_tree (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) NOT NULL,
+  owner_id UUID REFERENCES users(id) NOT NULL,
+  parent_id UUID REFERENCES matrix_tree(id),
+  side TEXT CHECK (side IN ('left', 'right')),
+  level INTEGER NOT NULL CHECK (level BETWEEN 1 AND 11),
+  position INTEGER NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Matrix Level Earnings Breakdown
 CREATE TABLE matrix_earnings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -158,6 +170,8 @@ CREATE TABLE notifications (
 CREATE INDEX idx_user_slots_user ON user_slots(user_id);
 CREATE INDEX idx_matrix_11_user ON matrix_11(user_id);
 CREATE INDEX idx_matrix_11_sponsor ON matrix_11(sponsor_id);
+CREATE INDEX idx_matrix_tree_owner ON matrix_tree(owner_id);
+CREATE INDEX idx_matrix_tree_user ON matrix_tree(user_id);
 CREATE INDEX idx_transactions_user ON transactions(user_id);
 CREATE INDEX idx_withdrawals_user ON withdrawals(user_id);
 CREATE INDEX idx_earnings_user ON earnings(user_id);
