@@ -331,9 +331,11 @@ export async function getUserSlots(userId: string): Promise<UserSlot[]> {
 }
 
 export async function processSlotEarnings(userId: string): Promise<void> {
+  const canProcess = await checkDailyProcess(userId);
+  if (!canProcess) return;
   const { data: activeSlots } = await sb().from('user_slots')
     .select('*').eq('user_id', userId).eq('status', 'active');
-  if (!activeSlots) return;
+  if (!activeSlots || activeSlots.length === 0) return;
   for (const s of activeSlots) {
     const currentEarned = Number(s.earned);
     const dailyAmount = Number(s.daily_earned);
@@ -389,6 +391,7 @@ export async function processSlotEarnings(userId: string): Promise<void> {
       }
     }
   }
+  await updateLastDailyProcess(userId);
 }
 
 export async function getAscensionVault(userId: string): Promise<AscensionVault> {
@@ -530,6 +533,40 @@ async function claimApexPoolForUser(userId: string, distId: string): Promise<voi
   await sb().from('users').update({
     total_earned: sb().rpc('increment', { x: amount }),
   }).eq('id', userId);
+}
+
+// ─── DAILY PROCESSING (CRON / ON-LOGIN TRIGGER) ───
+
+export async function checkDailyProcess(userId: string): Promise<boolean> {
+  const { data } = await sb().from('users').select('last_daily_process').eq('id', userId).single();
+  if (!data?.last_daily_process) return true;
+  const elapsed = Date.now() - new Date(data.last_daily_process).getTime();
+  return elapsed >= 24 * 60 * 60 * 1000;
+}
+
+export async function updateLastDailyProcess(userId: string): Promise<void> {
+  await sb().from('users').update({ last_daily_process: new Date().toISOString() }).eq('id', userId);
+}
+
+export async function processAllDailyEarnings(): Promise<{ processed: number }> {
+  const { data: users } = await sb().from('users').select('id').eq('is_active', true);
+  if (!users) return { processed: 0 };
+  let count = 0;
+  for (const u of users) {
+    await processSlotEarnings(u.id);
+    await updateLastDailyProcess(u.id);
+    await checkAutoUpgrade(u.id);
+    count++;
+  }
+  return { processed: count };
+}
+
+export async function checkApexPoolDistribution(): Promise<boolean> {
+  const { data: last } = await sb().from('apex_pool_distributions')
+    .select('distributed_at').order('distributed_at', { ascending: false }).limit(1).maybeSingle();
+  if (!last) return true;
+  const elapsed = Date.now() - new Date(last.distributed_at).getTime();
+  return elapsed >= 24 * 60 * 60 * 1000;
 }
 
 // ─── EARNINGS ───

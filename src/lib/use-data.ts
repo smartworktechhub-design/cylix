@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useAppStore } from '@/stores/app-store';
-import { getUserByWallet, createUser, getUserSlots, getTransactions, getWithdrawals, getNotifications, getUserEarnings, getReferrals, getAdminStats, getAscensionVault, processSlotEarnings } from './db';
+import { getUserByWallet, createUser, getUserSlots, getTransactions, getWithdrawals, getNotifications, getUserEarnings, getReferrals, getAdminStats, getAscensionVault, processSlotEarnings, checkApexPoolDistribution, distributeApexPool } from './db';
 
 
 export function useInitData() {
@@ -29,6 +29,9 @@ export function useInitData() {
         }
         setUser(user as any);
         await processSlotEarnings(user.id);
+        try {
+          if (await checkApexPoolDistribution()) await distributeApexPool();
+        } catch (_) { /* pool dist non-critical */ }
         const [slots, txs, wds, notifs, earnings, referrals, vault] = await Promise.all([
           getUserSlots(user.id),
           getTransactions(user.id),

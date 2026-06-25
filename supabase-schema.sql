@@ -166,14 +166,30 @@ CREATE TABLE notifications (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Increment helper function (used by RPC)
+CREATE OR REPLACE FUNCTION increment(x DECIMAL)
+RETURNS DECIMAL AS $$
+BEGIN
+  RETURN x;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Add last_daily_process to users
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_daily_process TIMESTAMPTZ DEFAULT now();
+
+-- Scheduled daily processing via pg_cron (requires pg_cron extension)
+-- CREATE EXTENSION IF NOT EXISTS pg_cron;
+-- SELECT cron.schedule('process-daily-earnings', '0 */6 * * *', $$SELECT process_all_daily_earnings()$$);
+-- SELECT cron.schedule('distribute-apex-pool', '0 */24 * * *', $$SELECT distribute_apex_pool()$$);
+
 -- Indexes
-CREATE INDEX idx_user_slots_user ON user_slots(user_id);
-CREATE INDEX idx_matrix_11_user ON matrix_11(user_id);
-CREATE INDEX idx_matrix_11_sponsor ON matrix_11(sponsor_id);
-CREATE INDEX idx_matrix_tree_owner ON matrix_tree(owner_id);
-CREATE INDEX idx_matrix_tree_user ON matrix_tree(user_id);
-CREATE INDEX idx_transactions_user ON transactions(user_id);
-CREATE INDEX idx_withdrawals_user ON withdrawals(user_id);
-CREATE INDEX idx_earnings_user ON earnings(user_id);
-CREATE INDEX idx_notifications_user ON notifications(user_id);
-CREATE INDEX idx_apex_pool_distributions_date ON apex_pool_distributions(distributed_at);
+CREATE INDEX IF NOT EXISTS idx_user_slots_user ON user_slots(user_id);
+CREATE INDEX IF NOT EXISTS idx_matrix_11_user ON matrix_11(user_id);
+CREATE INDEX IF NOT EXISTS idx_matrix_11_sponsor ON matrix_11(sponsor_id);
+CREATE INDEX IF NOT EXISTS idx_matrix_tree_owner ON matrix_tree(owner_id);
+CREATE INDEX IF NOT EXISTS idx_matrix_tree_user ON matrix_tree(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_withdrawals_user ON withdrawals(user_id);
+CREATE INDEX IF NOT EXISTS idx_earnings_user ON earnings(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_apex_pool_distributions_date ON apex_pool_distributions(distributed_at);
