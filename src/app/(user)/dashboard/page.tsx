@@ -98,9 +98,6 @@ export default function DashboardPage() {
   const lastOwnedIndex = Math.max(...[...ownedSlotIds].map(id => SLOTS.findIndex(s => s.id === id)), -1);
   const nextSlotDef = lastOwnedIndex >= 0 ? SLOTS[lastOwnedIndex + 1] : SLOTS[0];
 
-  const rebuyCount = (slotId: string) => slots.filter(s => s.slotId === slotId).length;
-  const maxRebuys = 5;
-
   const isSlotLocked = (index: number) => {
     if (index === 0) return false;
     return !ownedSlotIds.has(SLOTS[index - 1].id);
@@ -228,10 +225,8 @@ export default function DashboardPage() {
             const isOwned = isActive || isCompleted;
             const isLocked = isSlotLocked(index) && !isOwned;
             const slotColor = SLOT_COLORS[`orbit_${slotDef.orbit}`] || '#00E5FF';
-            const rCount = rebuyCount(slotDef.id);
             const progressPercent = currentActiveSlot && currentActiveSlot.slotId === slotDef.id
               ? (currentActiveSlot.earned / currentActiveSlot.maxCap) * 100 : 0;
-            const canRebuy = isCompleted && rCount < maxRebuys;
 
             if (isLocked) {
               return (
@@ -245,7 +240,7 @@ export default function DashboardPage() {
               );
             }
 
-            if (isCompleted && !canRebuy) {
+            if (isCompleted) {
               return (
                 <div key={slotDef.id}
                   className="relative rounded-xl border border-[rgba(0,255,178,0.08)] p-3 flex flex-col items-center text-center"
@@ -255,9 +250,6 @@ export default function DashboardPage() {
                   </div>
                   <p className="text-[11px] font-bold text-white font-heading leading-tight pr-6">{slotDef.name}</p>
                   <p className="text-[13px] font-mono font-bold text-[#00FFB2] mt-1">{formatCurrency(slotDef.price)}</p>
-                  <Link href="/slots" className="mt-2 w-full py-1.5 rounded-lg bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] text-[8px] font-bold text-center hover:shadow-lg hover:shadow-[rgba(0,229,255,0.15)] transition-all">
-                    BUY NOW
-                  </Link>
                 </div>
               );
             }
@@ -294,28 +286,12 @@ export default function DashboardPage() {
                           style={{ width: `${Math.min(progressPercent, 100)}%`, background: `linear-gradient(90deg, ${slotColor}, #00E5FF)` }} />
                       </div>
                     </div>
-                    <div className="flex items-center justify-center gap-1 text-[7px]">
-                      <span className="text-[#4A5568]">Re-Buy:</span>
-                      <span className="font-mono text-[#FFB800]">{rCount}/{maxRebuys}</span>
-                    </div>
                   </div>
-                )}
-
-                {isActive && currentActiveSlot?.slotId === slotDef.id && (
-                  <Link href="/slots" className="mt-2 w-full py-1.5 rounded-lg bg-[rgba(0,229,255,0.08)] text-[#00E5FF] text-[8px] font-bold text-center border border-[rgba(0,229,255,0.1)] hover:bg-[rgba(0,229,255,0.12)] transition-all">
-                    RE-BUY
-                  </Link>
                 )}
 
                 {!isOwned && !isCompleted && (
                   <Link href="/slots" className="mt-2 w-full py-1.5 rounded-lg bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] text-[8px] font-bold text-center hover:shadow-lg hover:shadow-[rgba(0,229,255,0.15)] transition-all">
                     BUY NOW
-                  </Link>
-                )}
-
-                {isCompleted && canRebuy && (
-                  <Link href="/slots" className="mt-2 w-full py-1.5 rounded-lg bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] text-[8px] font-bold text-center hover:shadow-lg hover:shadow-[rgba(0,229,255,0.15)] transition-all">
-                    RE-BUY
                   </Link>
                 )}
               </div>
@@ -530,17 +506,7 @@ export default function DashboardPage() {
                   <span className="text-[#7B61FF]">/ 200% max</span>
                 </div>
               </div>
-              <div className="col-span-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[7px] text-[#4A5568] uppercase tracking-wider">Re-Buy Cycles</span>
-                  <span className="text-[9px] font-mono text-[#FFB800]">{currentActiveSlot ? slots.filter(s => s.slotId === currentActiveSlotDef.id).length : 0} / {maxRebuys}</span>
-                </div>
-                <div className="flex gap-1 mt-1">
-                  {Array.from({ length: maxRebuys }).map((_, i) => (
-                    <div key={i} className={cn('flex-1 h-1.5 rounded-full', i < (currentActiveSlot ? slots.filter(s => s.slotId === currentActiveSlotDef.id).length : 0) ? 'bg-[#FFB800]' : 'bg-[rgba(255,184,0,0.08)]')} />
-                  ))}
-                </div>
-              </div>
+
             </div>
           ) : nextSlotDef ? (
             <div className="text-center py-3">

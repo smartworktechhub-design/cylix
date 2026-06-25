@@ -304,6 +304,14 @@ export async function purchaseSlot(userId: string, slotId: string): Promise<User
   const { data: existing } = await sb().from('user_slots')
     .select('id, status').eq('user_id', userId).eq('slot_id', slotId).eq('status', 'active').maybeSingle();
   if (existing) return null;
+  // Enforce sequential unlock: must own all previous slots
+  const slotIndex = SLOTS.findIndex(s => s.id === slotId);
+  if (slotIndex > 0) {
+    const prevSlotId = SLOTS[slotIndex - 1].id;
+    const { data: prev } = await sb().from('user_slots')
+      .select('id').eq('user_id', userId).eq('slot_id', prevSlotId).maybeSingle();
+    if (!prev) return null;
+  }
   const { data, error } = await sb().from('user_slots').insert({
     user_id: userId, slot_id: slot.id, slot_name: slot.name,
     slot_orbit: slot.orbit, invested: slot.price,

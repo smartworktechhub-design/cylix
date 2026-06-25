@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Loader2, Orbit, TrendingUp, Shield, Sparkles,
   Copy, CheckCheck, ExternalLink, Coins, Wallet, CheckCircle2, XCircle, Clock,
+  Lock, LockKeyhole,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -107,6 +108,12 @@ export default function SlotsPage() {
     );
   }
 
+  const isSlotLocked = (index: number) => {
+    if (index === 0) return false;
+    const prevSlotId = SLOTS[index - 1].id;
+    return !activeSlotIds.has(prevSlotId) && !slots.some(s => s.slotId === prevSlotId);
+  };
+
   const statusModal = () => {
     if (purchaseStatus === 'idle') return null;
     return (
@@ -155,12 +162,27 @@ export default function SlotsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-        {SLOTS.map((slot) => {
+        {SLOTS.map((slot, index) => {
           const isOwned = activeSlotIds.has(slot.id);
+          const locked = isSlotLocked(index);
           const dailyYield = slot.price * (SLOT_CONFIG.dailyYieldPercent / 100);
           const maxCap = slot.price * SLOT_CONFIG.maxCapMultiplier;
-          const matrixPoolValue = slot.price * 0.26;
           const isBuying = pendingSlot === slot.id && (purchaseStatus === 'approve' || purchaseStatus === 'confirm');
+
+          if (locked) {
+            return (
+              <Card key={slot.id} className="relative flex flex-col opacity-50">
+                <CardContent className="p-5 flex flex-col flex-1 items-center text-center">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{ background: 'rgba(148,163,184,0.08)' }}>
+                    <LockKeyhole size={22} className="text-[#4A5568]" />
+                  </div>
+                  <h3 className="text-lg font-bold text-[#4A5568] mb-1 font-heading">{slot.name}</h3>
+                  <p className="text-2xl font-bold font-mono text-[#4A5568] mb-2">{formatCurrency(slot.price)}</p>
+                  <p className="text-[10px] text-[#4A5568]">Buy {SLOTS[index - 1].name} first to unlock</p>
+                </CardContent>
+              </Card>
+            );
+          }
 
           return (
             <Card key={slot.id} hover className={`relative flex flex-col ${isOwned ? 'border-[#00E5FF] shadow-[0_0_20px_rgba(0,229,255,0.1)]' : ''}`}>
@@ -186,10 +208,6 @@ export default function SlotsPage() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-[#94A3B8] flex items-center gap-1.5"><Shield size={14} /> Max Cap (200%)</span>
                     <span className="font-mono font-medium text-white">{formatCurrency(maxCap)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-[#94A3B8] flex items-center gap-1.5"><Orbit size={14} /> Matrix Pool (26%)</span>
-                    <span className="font-mono font-medium text-[#7B61FF]">{formatCurrency(matrixPoolValue)}</span>
                   </div>
                 </div>
                 {!address ? (
