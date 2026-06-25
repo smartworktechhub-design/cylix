@@ -6,8 +6,9 @@ import { useInitData } from '@/lib/use-data';
 import { purchaseSlot } from '@/lib/db';
 import { SLOTS, SLOT_CONFIG, TREASURY_WALLET, USDT_ADDRESS, USDT_DECIMALS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
-import { useAccount } from 'wagmi';
+import { useAccount, useSwitchChain } from 'wagmi';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { bsc } from 'wagmi/chains';
 import { parseUnits } from 'viem';
 import { useUsdtBalance, USDT_ABI } from '@/lib/usdt';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,11 +31,13 @@ export default function SlotsPage() {
   const { user, slots } = useAppStore();
   const { loading } = useInitData();
   const { address } = useAccount();
+  const { switchChainAsync } = useSwitchChain();
   const { balance: usdtBalance, refetch: refetchBalance } = useUsdtBalance(address);
   const { writeContract, isPending: isTxPending, data: txHash } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isTxConfirmed, isError: isTxError } = useWaitForTransactionReceipt({ hash: txHash });
   const [pendingSlot, setPendingSlot] = useState<string | null>(null);
   const [purchaseStatus, setPurchaseStatus] = useState<'idle' | 'approve' | 'confirm' | 'success' | 'error'>('idle');
+  const [purchaseError, setPurchaseError] = useState<string>('');
   const [depositCopied, setDepositCopied] = useState(false);
 
   const activeSlotIds = new Set(slots.filter((s) => s.status === 'active').map((s) => s.slotId));
@@ -75,17 +78,25 @@ export default function SlotsPage() {
     }
   }, [isTxError]);
 
-  const handlePurchase = (slotDef: typeof SLOTS[0]) => {
+  const handlePurchase = async (slotDef: typeof SLOTS[0]) => {
     if (!address) return;
     setPendingSlot(slotDef.id);
     setPurchaseStatus('approve');
-    const value = parseUnits(slotDef.price.toString(), USDT_DECIMALS);
-    writeContract({
-      address: USDT_ADDRESS,
-      abi: USDT_ABI,
-      functionName: 'transfer',
-      args: [TREASURY_WALLET, value],
-    });
+    setPurchaseError('');
+    try {
+      await switchChainAsync({ chainId: bsc.id });
+      const value = parseUnits(slotDef.price.toString(), USDT_DECIMALS);
+      await writeContract({
+        address: USDT_ADDRESS,
+        abi: USDT_ABI,
+        functionName: 'transfer',
+        args: [TREASURY_WALLET, value],
+      });
+    } catch (err: any) {
+      setPurchaseError(err?.message || err?.shortMessage || 'Transaction rejected');
+      setPurchaseStatus('error');
+      setPendingSlot(null);
+    }
   };
 
   if (loading) {
@@ -112,7 +123,7 @@ export default function SlotsPage() {
               <><CheckCircle2 size={40} className="text-[#00FFB2] mx-auto mb-3" /><p className="text-white font-semibold">Slot Activated!</p><p className="text-xs text-[#94A3B8] mt-1">Your slot is now live and earning.</p></>
             )}
             {purchaseStatus === 'error' && (
-              <><XCircle size={40} className="text-[#FF5C7A] mx-auto mb-3" /><p className="text-white font-semibold">Transaction Failed</p><p className="text-xs text-[#94A3B8] mt-1">Please try again or check BSCScan.</p></>
+              <><XCircle size={40} className="text-[#FF5C7A] mx-auto mb-3" /><p className="text-white font-semibold">Transaction Failed</p><p className="text-xs text-[#94A3B8] mt-1">{purchaseError || 'Please try again or check BSCScan.'}</p></>
             )}
             {(purchaseStatus === 'success' || purchaseStatus === 'error') && (
               <button onClick={() => setPurchaseStatus('idle')} className="mt-4 w-full py-2 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] text-sm font-semibold">Close</button>
