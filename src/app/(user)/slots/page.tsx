@@ -41,16 +41,22 @@ export default function SlotsPage() {
 
   // When tx confirmed, activate slot in DB
   useEffect(() => {
-    if (isTxConfirmed && pendingSlot && user) {
-      purchaseSlot(user.id, pendingSlot).then((result) => {
-        if (result) {
-          setPurchaseStatus('success');
-          refetchBalance();
-        } else {
-          setPurchaseStatus('error');
-        }
+    if (isTxConfirmed && pendingSlot) {
+      if (user) {
+        purchaseSlot(user.id, pendingSlot).then((result) => {
+          if (result) {
+            setPurchaseStatus('success');
+            refetchBalance();
+          } else {
+            setPurchaseStatus('error');
+          }
+          setPendingSlot(null);
+        });
+      } else {
+        setPurchaseStatus('success');
         setPendingSlot(null);
-      });
+        refetchBalance();
+      }
     }
   }, [isTxConfirmed, pendingSlot, user, refetchBalance]);
 
@@ -70,7 +76,7 @@ export default function SlotsPage() {
   }, [isTxError]);
 
   const handlePurchase = (slotDef: typeof SLOTS[0]) => {
-    if (!address || !user) return;
+    if (!address) return;
     setPendingSlot(slotDef.id);
     setPurchaseStatus('approve');
     const value = parseUnits(slotDef.price.toString(), USDT_DECIMALS);
@@ -175,7 +181,7 @@ export default function SlotsPage() {
                     <span className="font-mono font-medium text-[#7B61FF]">{formatCurrency(matrixPoolValue)}</span>
                   </div>
                 </div>
-                {!user ? (
+                {!address ? (
                   <Link href="/" className="w-full">
                     <Button variant="primary" className="w-full"><Wallet size={14} /> Connect Wallet</Button>
                   </Link>
