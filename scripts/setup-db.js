@@ -1,93 +1,53 @@
-// Run: node scripts/setup-db.js
-require('dotenv').config({ path: '.env.local' });
-const { createClient } = require('@supabase/supabase-js');
+/** 
+ * Run supabase-schema.sql via Supabase Management API.
+ * 
+ * Steps:
+ * 1. Go to https://supabase.com/dashboard/account/tokens
+ * 2. Create a new token with scope "all"
+ * 3. Paste it when prompted
+ */
+const fs = require('fs');
+const path = require('path');
+const readline = require('readline');
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const PROJECT_REF = 'pksquptfamittagmkozt';
 
-const sql = `
-CREATE TABLE IF NOT EXISTS users (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  wallet VARCHAR(42) UNIQUE NOT NULL,
-  referral_code VARCHAR(20) UNIQUE NOT NULL,
-  referred_by UUID REFERENCES users(id),
-  rank VARCHAR(50) DEFAULT 'Starter',
-  total_invested DECIMAL(18,2) DEFAULT 0,
-  total_earned DECIMAL(18,2) DEFAULT 0,
-  team_size INT DEFAULT 0,
-  is_active BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-CREATE TABLE IF NOT EXISTS packages (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES users(id) NOT NULL,
-  package_name VARCHAR(100) NOT NULL,
-  level INT NOT NULL,
-  invested DECIMAL(18,2) NOT NULL,
-  earned DECIMAL(18,2) DEFAULT 0,
-  cap DECIMAL(18,2) NOT NULL,
-  status VARCHAR(20) DEFAULT 'active',
-  activated_at TIMESTAMPTZ DEFAULT NOW(),
-  expires_at TIMESTAMPTZ
-);
-CREATE TABLE IF NOT EXISTS transactions (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES users(id) NOT NULL,
-  type VARCHAR(50) NOT NULL,
-  amount DECIMAL(18,2) NOT NULL,
-  status VARCHAR(20) DEFAULT 'pending',
-  tx_hash VARCHAR(100),
-  description TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-CREATE TABLE IF NOT EXISTS earnings (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES users(id) NOT NULL,
-  type VARCHAR(50) NOT NULL,
-  amount DECIMAL(18,2) NOT NULL,
-  source VARCHAR(100),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-CREATE TABLE IF NOT EXISTS matrix (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES users(id) NOT NULL,
-  parent_id UUID REFERENCES matrix(id),
-  placement VARCHAR(10) NOT NULL,
-  side VARCHAR(10),
-  level INT DEFAULT 0,
-  left_volume DECIMAL(18,2) DEFAULT 0,
-  right_volume DECIMAL(18,2) DEFAULT 0
-);
-CREATE TABLE IF NOT EXISTS withdrawals (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES users(id) NOT NULL,
-  amount DECIMAL(18,2) NOT NULL,
-  wallet VARCHAR(42) NOT NULL,
-  status VARCHAR(20) DEFAULT 'pending',
-  tx_hash VARCHAR(100),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  processed_at TIMESTAMPTZ
-);
-CREATE TABLE IF NOT EXISTS notifications (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES users(id) NOT NULL,
-  type VARCHAR(50) NOT NULL,
-  title VARCHAR(255) NOT NULL,
-  message TEXT,
-  is_read BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-`;
+async function run() {
+  const pat = await new Promise(res => rl.question('Paste your Supabase Personal Access Token (PAT): ', res));
+  rl.close();
+  if (!pat.trim()) { console.log('No token. Exiting.'); return; }
 
-async function setup() {
-  const { error } = await supabase.rpc('exec_sql', { query: sql });
-  if (error) {
-    console.log('RPC not available, try pasting supabase-schema.sql into SQL Editor directly');
-    console.log('Error:', error.message);
-  } else {
-    console.log('Tables created successfully!');
+  const sql = fs.readFileSync(path.join(__dirname, '..', 'supabase-schema.sql'), 'utf-8');
+  // Split into individual statements
+  const statements = sql.split(';').map(s => s.trim()).filter(s => s.length > 0 && !s.startsWith('--'));
+
+  console.log(`\nRunning ${statements.length} statements on project ${PROJECT_REF}...\n`);
+
+  for (let i = 0; i < statements.length; i++) {
+    const stmt = statements[i];
+    process.stdout.write(`[${i + 1}/${statements.length}] ${stmt.replace(/\n/g, ' ').slice(0, 65)}... `);
+    try {
+      const res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${pat.trim()}`,
+        },
+        body: JSON.stringify({ query: stmt + ';' }),
+      });
+      if (res.ok) {
+        console.log('✅');
+      } else {
+        const txt = await res.text();
+        if (txt.includes('already exists')) console.log('⚠️ already exists');
+        else console.log(`❌ ${res.status}: ${txt.slice(0, 100)}`);
+      }
+    } catch (err) {
+      console.log(`❌ ${err.message}`);
+    }
   }
+  console.log('\n✅ Done! Refresh your app now.\n');
 }
-setup();
+run();
