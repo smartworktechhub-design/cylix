@@ -100,6 +100,7 @@ export default function DashboardPage() {
 
   const isSlotLocked = (index: number) => {
     if (index === 0) return false;
+    if (lastOwnedIndex >= index) return false;
     return !ownedSlotIds.has(SLOTS[index - 1].id);
   };
 
@@ -224,6 +225,7 @@ export default function DashboardPage() {
             const isCompleted = completedSlotIds.has(slotDef.id);
             const isOwned = isActive || isCompleted;
             const isLocked = isSlotLocked(index) && !isOwned;
+            const isCleared = !isOwned && !isLocked && lastOwnedIndex >= index;
             const slotColor = SLOT_COLORS[`orbit_${slotDef.orbit}`] || '#00E5FF';
             const progressPercent = currentActiveSlot && currentActiveSlot.slotId === slotDef.id
               ? (currentActiveSlot.earned / currentActiveSlot.maxCap) * 100 : 0;
@@ -250,6 +252,20 @@ export default function DashboardPage() {
                   </div>
                   <p className="text-[11px] font-bold text-white font-heading leading-tight pr-6">{slotDef.name}</p>
                   <p className="text-[13px] font-mono font-bold text-[#00FFB2] mt-1">{formatCurrency(slotDef.price)}</p>
+                </div>
+              );
+            }
+
+            if (isCleared) {
+              return (
+                <div key={slotDef.id}
+                  className="relative rounded-xl border border-[rgba(0,229,255,0.06)] p-3 opacity-50 flex flex-col items-center text-center"
+                  style={{ background: 'rgba(18,26,43,0.3)' }}>
+                  <div className="absolute top-1.5 right-1.5">
+                    <span className="text-[6px] px-1.5 py-0.5 rounded-full bg-[rgba(0,229,255,0.08)] text-[#00E5FF] font-bold">CLEARED</span>
+                  </div>
+                  <p className="text-[11px] font-bold text-white font-heading leading-tight pr-6">{slotDef.name}</p>
+                  <p className="text-[13px] font-mono font-bold text-[#4A5568] mt-1">{formatCurrency(slotDef.price)}</p>
                 </div>
               );
             }
@@ -289,7 +305,7 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {!isOwned && !isCompleted && (
+                {!isOwned && !isCleared && (
                   <Link href="/slots" className="mt-2 w-full py-1.5 rounded-lg bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] text-[8px] font-bold text-center hover:shadow-lg hover:shadow-[rgba(0,229,255,0.15)] transition-all">
                     BUY NOW
                   </Link>

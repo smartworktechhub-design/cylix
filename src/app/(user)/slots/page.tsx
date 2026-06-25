@@ -42,6 +42,8 @@ export default function SlotsPage() {
   const [depositCopied, setDepositCopied] = useState(false);
 
   const activeSlotIds = new Set(slots.filter((s) => s.status === 'active').map((s) => s.slotId));
+  const ownedSlotIds = new Set(slots.map((s) => s.slotId));
+  const maxOwnedIndex = Math.max(...[...ownedSlotIds].map(id => SLOTS.findIndex(s => s.id === id)), -1);
 
   // When tx confirmed, activate slot in DB
   useEffect(() => {
@@ -110,8 +112,8 @@ export default function SlotsPage() {
 
   const isSlotLocked = (index: number) => {
     if (index === 0) return false;
-    const prevSlotId = SLOTS[index - 1].id;
-    return !activeSlotIds.has(prevSlotId) && !slots.some(s => s.slotId === prevSlotId);
+    if (maxOwnedIndex >= index) return false;
+    return !ownedSlotIds.has(SLOTS[index - 1].id);
   };
 
   const statusModal = () => {
@@ -169,9 +171,26 @@ export default function SlotsPage() {
           const maxCap = slot.price * SLOT_CONFIG.maxCapMultiplier;
           const isBuying = pendingSlot === slot.id && (purchaseStatus === 'approve' || purchaseStatus === 'confirm');
 
+          const isCleared = !isOwned && !locked && maxOwnedIndex >= index;
+
+          if (isCleared) {
+            return (
+              <Card key={slot.id} className="relative flex flex-col opacity-60">
+                <CardContent className="p-5 flex flex-col flex-1 items-center text-center">
+                  <div className="absolute top-2 right-2">
+                    <Badge variant="success" className="px-2 py-0.5 text-[10px]">Cleared</Badge>
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-1 font-heading">{slot.name}</h3>
+                  <p className="text-2xl font-bold font-mono text-[#00FFB2] mb-2">{formatCurrency(slot.price)}</p>
+                  <p className="text-[10px] text-[#4A5568]">Already progressed past this slot</p>
+                </CardContent>
+              </Card>
+            );
+          }
+
           if (locked) {
             return (
-              <Card key={slot.id} className="relative flex flex-col opacity-50">
+              <Card key={slot.id} className="relative flex flex-col opacity-40">
                 <CardContent className="p-5 flex flex-col flex-1 items-center text-center">
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{ background: 'rgba(148,163,184,0.08)' }}>
                     <LockKeyhole size={22} className="text-[#4A5568]" />
