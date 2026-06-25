@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
-import { getRecentActivity, getMatrixStats } from '@/lib/db';
+import { getRecentActivity, getMatrixStats, getMatrixTree } from '@/lib/db';
 import { SLOTS, SLOT_CONFIG } from '@/lib/constants';
 import { useAccount } from 'wagmi';
 import Link from 'next/link';
@@ -52,7 +52,9 @@ export default function DashboardPage() {
   const [matrixView, setMatrixView] = useState<'explorer' | 'analytics'>('explorer');
 
   useEffect(() => {
-    if (user) getMatrixStats(user.id).then(setMatrixStats);
+    if (user) {
+      getMatrixStats(user.id).then(setMatrixStats);
+    }
   }, [user]);
 
   const activeSlots = slots.filter(s => s.status === 'active');
@@ -85,51 +87,62 @@ export default function DashboardPage() {
     return !ownedSlotIds.has(prevSlotId);
   };
 
-  // Matrix node colors
   const getNodeColor = (type: string) => {
     switch (type) {
-      case 'direct': return '#00E5FF';
-      case 'spillover': return '#7B61FF';
-      case 'crossline': return '#00FFB2';
-      case 'global': return '#FFB800';
+      case 'root': return '#00E5FF';
+      case 'left': return '#7B61FF';
+      case 'right': return '#00FFB2';
       default: return '#4A5568';
     }
   };
 
-  // Generate mock matrix tree data for visualization
-  const generateMatrixTree = () => {
-    const levels = [];
-    for (let lvl = 1; lvl <= 11; lvl++) {
-      const nodeCount = Math.pow(2, lvl - 1);
-      const nodes = [];
-      for (let i = 0; i < Math.min(nodeCount, 64); i++) {
-        const isCurrentUser = lvl === 1 && i === 0;
-        const isFilled = Math.random() > 0.4;
-        const types = ['direct', 'spillover', 'crossline', 'global'];
-        const type = isCurrentUser ? 'self' : isFilled ? types[Math.floor(Math.random() * types.length)] : 'empty';
-        nodes.push({
-          id: isCurrentUser ? user?.id || 'You' : `0x${Math.random().toString(16).slice(2, 8)}`,
-          package: isFilled ? SLOTS[Math.floor(Math.random() * SLOTS.length)].name : '',
-          type,
-          level: lvl,
-          position: i,
-        });
-      }
-      levels.push({ level: lvl, nodes });
-    }
-    return levels;
-  };
-  const matrixTree = generateMatrixTree();
+  const [matrixTreeNodes, setMatrixTreeNodes] = useState<any[]>([]);
+  const [realMatrixTree, setRealMatrixTree] = useState<any>(null);
 
-  const filledPositions = matrixTree.reduce((s, l) => s + l.nodes.filter(n => n.type !== 'empty').length, 0);
-  const totalPositions = matrixTree.reduce((s, l) => s + l.nodes.length, 0);
+  useEffect(() => {
+    if (user) {
+      getMatrixTree(user.id).then(tree => {
+        setRealMatrixTree(tree);
+        if (!tree) { setMatrixTreeNodes([]); return; }
+        const levels: any[] = [];
+        for (let lvl = 1; lvl <= 11; lvl++) levels.push({ level: lvl, nodes: [] });
+        function traverse(node: any, level: number) {
+          if (!node) return;
+          const lvlIdx = Math.min(level, 11) - 1;
+          if (levels[lvlIdx]) {
+            levels[lvlIdx].nodes.push({
+              id: node.userId, wallet: node.wallet, type: node.side || 'root', level, position: levels[lvlIdx].nodes.length,
+            });
+          }
+          traverse(node.left, level + 1);
+          traverse(node.right, level + 1);
+        }
+        traverse(tree, 1);
+        // Fill empty positions
+        levels.forEach(l => {
+          const maxNodes = Math.pow(2, l.level - 1);
+          while (l.nodes.length < Math.min(maxNodes, 32)) {
+            l.nodes.push({ id: '', type: 'empty', level: l.level, position: l.nodes.length });
+          }
+        });
+        setMatrixTreeNodes(levels);
+      });
+    }
+  }, [user]);
+
+  const matrixTree = matrixTreeNodes.length > 0 ? matrixTreeNodes : [];
+  const hasMatrixData = matrixTree.some(l => l.nodes.some((n: any) => n.type !== 'empty'));
+
+  const filledPositions = matrixTree.reduce((s: number, l: any) => s + l.nodes.filter((n: any) => n.type !== 'empty').length, 0);
+  const totalPositions = matrixTree.reduce((s: number, l: any) => s + l.nodes.length, 0);
   const remainingPositions = totalPositions - filledPositions;
 
+  // Derive auto flow from matrix stats
   const autoFlowStats = {
-    directs: matrixTree.reduce((s, l) => s + l.nodes.filter(n => n.type === 'direct').length, 0),
-    spillovers: matrixTree.reduce((s, l) => s + l.nodes.filter(n => n.type === 'spillover').length, 0),
-    crosslines: matrixTree.reduce((s, l) => s + l.nodes.filter(n => n.type === 'crossline').length, 0),
-    globals: matrixTree.reduce((s, l) => s + l.nodes.filter(n => n.type === 'global').length, 0),
+    directs: matrixStats?.directsCount || 0,
+    spillovers: Math.max(0, (matrixStats?.total || 0) - (matrixStats?.directsCount || 0)),
+    crosslines: Math.max(0, (matrixStats?.totalSponsored || 0) - (matrixStats?.directsCount || 0)),
+    globals: 0,
   };
 
   const recentTxns = transactions.slice(0, 5);
@@ -351,10 +364,8 @@ export default function DashboardPage() {
             <div className="flex flex-wrap gap-3 mb-3">
               {[
                 { label: 'Current User', color: '#00E5FF', dot: true },
-                { label: 'Direct', color: '#00E5FF' },
-                { label: 'Spillover', color: '#7B61FF' },
-                { label: 'Crossline', color: '#00FFB2' },
-                { label: 'Global', color: '#FFB800' },
+                { label: 'Left Child', color: '#7B61FF' },
+                { label: 'Right Child', color: '#00FFB2' },
                 { label: 'Empty', color: '#1E2A3A' },
               ].map(l => (
                 <div key={l.label} className="flex items-center gap-1">
@@ -369,38 +380,36 @@ export default function DashboardPage() {
 
             {/* Tree visualization - levels 1-11 */}
             <div className="space-y-1.5">
-              {matrixTree.map((level) => (
+              {matrixTree.map((level: any) => (
                 <div key={level.level}>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[6px] text-[#4A5568] font-mono w-4">L{level.level}</span>
                     <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.05)] to-transparent" />
                   </div>
                   <div className="flex flex-wrap gap-1 justify-center">
-                    {level.nodes.slice(0, 32).map((node, i) => {
-                      const isSelf = node.type === 'self';
+                    {level.nodes.slice(0, 32).map((node: any, i: number) => {
+                      const isSelf = level.level === 1 && i === 0 && node.type === 'root';
                       const colors: Record<string, string> = {
-                        self: '#00E5FF', direct: '#00E5FF', spillover: '#7B61FF',
-                        crossline: '#00FFB2', global: '#FFB800', empty: '#1E2A3A',
+                        root: '#00E5FF', left: '#7B61FF', right: '#00FFB2', empty: '#1E2A3A',
                       };
                       const glows: Record<string, string> = {
-                        self: '0 0 8px rgba(0,229,255,0.3)', direct: '0 0 4px rgba(0,229,255,0.15)',
-                        spillover: '0 0 4px rgba(123,97,255,0.15)', crossline: '0 0 4px rgba(0,255,178,0.15)',
-                        global: '0 0 4px rgba(255,184,0,0.15)',
+                        root: '0 0 8px rgba(0,229,255,0.3)', left: '0 0 4px rgba(123,97,255,0.15)',
+                        right: '0 0 4px rgba(0,255,178,0.15)',
                       };
                       return (
-                        <button key={i} onClick={() => node.type !== 'empty' && setSelectedNode(node)}
+                        <button key={i} onClick={() => node.type !== 'empty' && node.id && setSelectedNode(node)}
                           className="relative transition-all duration-200 hover:scale-110"
-                          style={{ opacity: node.type === 'empty' ? 0.3 : 1 }}>
+                          style={{ opacity: node.type === 'empty' || !node.id ? 0.3 : 1 }}>
                           <div className="w-5 h-5 rounded-full border flex items-center justify-center cursor-pointer"
                             style={{
                               borderColor: colors[node.type] || '#1E2A3A',
-                              background: isSelf ? 'linear-gradient(135deg, #00E5FF, #7B61FF)' : `${colors[node.type]}15`,
+                              background: isSelf ? 'linear-gradient(135deg, #00E5FF, #7B61FF)' : `${(colors[node.type] || '#1E2A3A')}15`,
                               boxShadow: glows[node.type] || 'none',
                             }}>
                             {isSelf ? (
                               <User size={8} className="text-[#050816]" />
-                            ) : node.type !== 'empty' ? (
-                              <div className="w-1.5 h-1.5 rounded-full" style={{ background: colors[node.type] }} />
+                            ) : node.type !== 'empty' && node.id ? (
+                              <div className="w-1.5 h-1.5 rounded-full" style={{ background: colors[node.type] || '#4A5568' }} />
                             ) : null}
                           </div>
                         </button>
@@ -433,10 +442,10 @@ export default function DashboardPage() {
             {/* Level Progress */}
             <div className="space-y-2 mb-3">
               <p className="text-[7px] text-[#4A5568] uppercase tracking-wider font-semibold">Level Fill Progress</p>
-              {matrixTree.slice(0, 11).map((level) => {
-                const filled = level.nodes.filter(n => n.type !== 'empty').length;
+              {matrixTree.slice(0, 11).map((level: any) => {
+                const filled = level.nodes.filter((n: any) => n.type !== 'empty' && n.id).length;
                 const total = level.nodes.length;
-                const pct = (filled / total) * 100;
+                const pct = total > 0 ? (filled / total) * 100 : 0;
                 return (
                   <div key={level.level} className="flex items-center gap-2">
                     <span className="text-[7px] text-[#4A5568] font-mono w-8">L{level.level}</span>
@@ -455,10 +464,10 @@ export default function DashboardPage() {
               <p className="text-[7px] text-[#4A5568] uppercase tracking-wider font-semibold mb-2">Auto Flow Distribution</p>
               <div className="grid grid-cols-4 gap-2">
                 {[
-                  { label: 'Direct', value: autoFlowStats.directs, color: '#00E5FF' },
-                  { label: 'Spillover', value: autoFlowStats.spillovers, color: '#7B61FF' },
-                  { label: 'Crossline', value: autoFlowStats.crosslines, color: '#00FFB2' },
-                  { label: 'Global', value: autoFlowStats.globals, color: '#FFB800' },
+                  { label: 'Direct', value: matrixStats?.directsCount || 0, color: '#00E5FF' },
+                  { label: 'Spillover', value: Math.max(0, (matrixStats?.total || 0) - (matrixStats?.directsCount || 0)), color: '#7B61FF' },
+                  { label: 'Crossline', value: Math.max(0, (matrixStats?.totalSponsored || 0) - (matrixStats?.directsCount || 0)), color: '#00FFB2' },
+                  { label: 'Global', value: 0, color: '#FFB800' },
                 ].map(s => (
                   <div key={s.label} className="rounded-lg p-2 text-center" style={{ background: `${s.color}06`, border: `1px solid ${s.color}12` }}>
                     <p className="text-[9px] font-mono font-bold" style={{ color: s.color }}>{s.value}</p>
@@ -471,7 +480,7 @@ export default function DashboardPage() {
         )}
 
         {/* Node Detail Panel */}
-        {selectedNode && (
+        {selectedNode && selectedNode.id && (
           <div className="mt-2 rounded-xl border border-[rgba(0,229,255,0.08)] p-3 relative" style={{ background: 'rgba(11,16,32,0.8)' }}>
             <button onClick={() => setSelectedNode(null)} className="absolute top-2 right-2 text-[#4A5568] hover:text-white">
               <EyeOff size={12} />
@@ -480,16 +489,16 @@ export default function DashboardPage() {
               <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center">
                 <User size={10} className="text-[#050816]" />
               </div>
-              <p className="text-[10px] font-mono font-bold text-white">{shortenAddress(selectedNode.id)}</p>
+              <p className="text-[10px] font-mono font-bold text-white">{shortenAddress(selectedNode.wallet || selectedNode.id)}</p>
             </div>
             <div className="grid grid-cols-2 gap-2 text-[8px]">
-              <div><span className="text-[#4A5568]">Package:</span> <span className="text-white">{selectedNode.package || '--'}</span></div>
+              <div className="col-span-2"><span className="text-[#4A5568]">Wallet:</span> <span className="text-white font-mono">{shortenAddress(selectedNode.wallet) || selectedNode.id}</span></div>
               <div><span className="text-[#4A5568]">Level:</span> <span className="text-white">Level {selectedNode.level}</span></div>
               <div>
-                <span className="text-[#4A5568]">Source:</span>
-                <span className="font-semibold ml-1" style={{ color: getNodeColor(selectedNode.type) }}>{selectedNode.type.charAt(0).toUpperCase() + selectedNode.type.slice(1)}</span>
+                <span className="text-[#4A5568]">Side:</span>
+                <span className="font-semibold ml-1" style={{ color: getNodeColor(selectedNode.type) }}>{selectedNode.type === 'root' ? 'Self' : selectedNode.type === 'left' ? 'Left' : selectedNode.type === 'right' ? 'Right' : selectedNode.type}</span>
               </div>
-              <div><span className="text-[#4A5568]">Position:</span> <span className="text-white">#{selectedNode.position + 1}</span></div>
+              <div className="col-span-2"><span className="text-[#4A5568]">Position:</span> <span className="text-white">#{selectedNode.position + 1}</span></div>
             </div>
           </div>
         )}
@@ -571,7 +580,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Pool Balance</p>
-              <p className="text-lg font-bold font-mono text-[#FFB800]">{formatCompact(earnings.pool || 125000)}</p>
+              <p className="text-lg font-bold font-mono text-[#FFB800]">{formatCompact(earnings.pool || 0)}</p>
             </div>
             <div className="text-right">
               <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Qualified</p>
@@ -586,7 +595,7 @@ export default function DashboardPage() {
             </div>
             <div className="text-right">
               <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Per Qualifier</p>
-              <p className="text-[10px] font-mono text-[#00FFB2]">{formatCurrency(earnings.pool > 0 ? earnings.pool / Math.max(matrixStats?.total || 1, 1) : 42.50)}</p>
+              <p className="text-[10px] font-mono text-[#00FFB2]">{formatCurrency(earnings.pool > 0 ? earnings.pool / Math.max(matrixStats?.total || 1, 1) : 0)}</p>
             </div>
           </div>
         </div>
