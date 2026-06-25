@@ -1,19 +1,28 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAccount } from 'wagmi';
 import { useAppStore } from '@/stores/app-store';
-import { getUserByWallet, getUserSlots, getTransactions, getWithdrawals, getNotifications, getUserEarnings, getReferrals, getAdminStats, getAscensionVault, processSlotEarnings } from './db';
+import { getUserByWallet, createUser, getUserSlots, getTransactions, getWithdrawals, getNotifications, getUserEarnings, getReferrals, getAdminStats, getAscensionVault, processSlotEarnings } from './db';
 
-const DEMO_WALLET = '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18';
 
 export function useInitData() {
   const { setUser, setSlots, setEarnings, setVault, setTransactions, setWithdrawals, setNotifications, setReferrals, setActivities, setAdminStats } = useAppStore();
+  const { address, isConnected } = useAccount();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
+      if (!isConnected || !address) {
+        setLoading(false);
+        return;
+      }
       try {
-        const user = await getUserByWallet(DEMO_WALLET);
+        const refCode = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref') : null;
+        let user = await getUserByWallet(address);
+        if (!user) {
+          user = await createUser(address, refCode || undefined);
+        }
         if (!user) {
           setLoading(false);
           return;
@@ -46,7 +55,7 @@ export function useInitData() {
       }
     }
     load();
-  }, []);
+  }, [address, isConnected]);
 
   return { loading };
 }

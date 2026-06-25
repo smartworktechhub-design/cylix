@@ -14,6 +14,10 @@ export default function HomePage() {
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
+    const ref = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref') : null;
+    if (ref) setReferralCode(ref.toUpperCase());
+  }, []);
+  useEffect(() => {
     if (isConnected && mounted) router.push('/dashboard');
   }, [isConnected, mounted, router]);
 
@@ -114,7 +118,7 @@ export default function HomePage() {
             { label: 'Total Invested', value: '$2.4M+' },
             { label: 'Active Users', value: '2,483' },
             { label: 'Daily Payouts', value: '$18.5K' },
-            { label: 'Packages', value: '8 Orbits' },
+            { label: 'Slots', value: '11 Orbits' },
           ].map((s) => (
             <div key={s.label} className="rounded-2xl bg-[rgba(18,26,43,0.6)] border border-[rgba(0,229,255,0.08)] p-5 text-center">
               <p className="text-2xl font-bold font-mono text-gradient">{s.value}</p>

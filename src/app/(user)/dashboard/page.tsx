@@ -6,13 +6,12 @@ import { useInitData } from '@/lib/use-data';
 import { getRecentActivity, getMatrixStats } from '@/lib/db';
 import { SLOTS } from '@/lib/constants';
 import { useAccount } from 'wagmi';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Loader2, Copy, CheckCheck, Wallet, Users, GitBranch,
-  TrendingUp, Orbit, Vault as VaultIcon, Activity, ArrowUpRight,
-  DollarSign, Zap, Globe, Shield, Gem, Coins, Menu,
+  Loader2, Users, GitBranch,
+  TrendingUp, Orbit, Vault as VaultIcon, ArrowUpRight,
+  Zap, Globe, Shield, Coins,
 } from 'lucide-react';
 import { useUsdtBalance } from '@/lib/usdt';
 
@@ -40,7 +39,6 @@ export default function DashboardPage() {
   const { loading } = useInitData();
   const { isConnected, address } = useAccount();
   const pathname = usePathname();
-  const [copied, setCopied] = useState(false);
   const [matrixStats, setMatrixStats] = useState<any>(null);
 
   useEffect(() => {
@@ -59,10 +57,6 @@ export default function DashboardPage() {
   const directsCount = matrixStats?.directsCount || 0;
   const spilloverCount = matrixStats?.spilloverCount || 0;
   const { balance: usdtBalance } = useUsdtBalance(address);
-
-  const copyAddr = () => {
-    if (user?.wallet) { navigator.clipboard.writeText(user.wallet); setCopied(true); setTimeout(() => setCopied(false), 2000); }
-  };
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -97,41 +91,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen" style={{ background: '#050816' }}>
-      {/* ====== TOP SECTION ====== */}
-      <div className="sticky top-0 z-30 backdrop-blur-xl border-b border-[rgba(0,229,255,0.06)]" style={{ background: 'rgba(5,8,22,0.85)' }}>
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center shadow-lg shadow-[rgba(0,229,255,0.2)]">
-              <span className="text-[#050816] font-black text-sm" style={{ fontFamily: "'Orbitron',sans-serif" }}>C</span>
-            </div>
-            <div>
-              <h1 className="text-sm font-bold text-white tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>CYLIX</h1>
-              <p className="text-[8px] text-[#00E5FF] tracking-[0.2em] uppercase font-medium">Matrix DeFi</p>
-            </div>
-          </div>
-          <ConnectButton.Custom>
-            {({ openConnectModal, mounted, account, chain }) => (
-              !mounted ? (
-                <div className="w-32 h-9 rounded-xl bg-[rgba(148,163,184,0.05]" />
-              ) : !account ? (
-                <button onClick={openConnectModal}
-                  className="h-9 px-4 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] text-xs font-semibold flex items-center gap-2 shadow-lg shadow-[rgba(0,229,255,0.15)]">
-                  <Wallet size={14} /> Connect
-                </button>
-              ) : (
-                <div className="flex items-center gap-2 px-3 h-9 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.08)]">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#00FFB2]" />
-                  <span className="text-xs text-white font-mono">{shortenAddress(account.address)}</span>
-                  <button onClick={copyAddr} className="ml-1">
-                    {copied ? <CheckCheck size={12} className="text-[#00FFB2]" /> : <Copy size={12} className="text-[#4A5568]" />}
-                  </button>
-                </div>
-              )
-            )}
-          </ConnectButton.Custom>
-        </div>
-      </div>
-
       {/* ====== EARNINGS + WITHDRAW STRIP ====== */}
       <div className="px-4 pt-4 pb-3">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
