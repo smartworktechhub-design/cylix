@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import type { User, UserPackage, Earnings, Transaction, Withdrawal, Notification, Referral, Activity, AdminStats } from '@/types';
+import type { User, UserSlot, Earnings, Transaction, Withdrawal, Notification, Referral, Activity, AdminStats, AscensionVault } from '@/types';
 
 interface AppState {
   user: User | null;
-  packages: UserPackage[];
+  slots: UserSlot[];
   earnings: Earnings;
+  vault: AscensionVault | null;
   transactions: Transaction[];
   withdrawals: Withdrawal[];
   notifications: Notification[];
@@ -13,8 +14,9 @@ interface AppState {
   adminStats: AdminStats | null;
   sidebarOpen: boolean;
   setUser: (user: User | null) => void;
-  setPackages: (packages: UserPackage[]) => void;
+  setSlots: (slots: UserSlot[]) => void;
   setEarnings: (earnings: Earnings) => void;
+  setVault: (vault: AscensionVault | null) => void;
   addTransaction: (tx: Transaction) => void;
   setTransactions: (txs: Transaction[]) => void;
   setWithdrawals: (wds: Withdrawal[]) => void;
@@ -29,8 +31,9 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set) => ({
   user: null,
-  packages: [],
-  earnings: { daily: 0, total: 0, matrix: 0, pool: 0, referral: 0 },
+  slots: [],
+  earnings: { daily: 0, total: 0, matrix: 0, pool: 0, referral: 0, ascension: 0 },
+  vault: null,
   transactions: [],
   withdrawals: [],
   notifications: [],
@@ -40,8 +43,9 @@ export const useAppStore = create<AppState>((set) => ({
   sidebarOpen: true,
 
   setUser: (user) => set({ user }),
-  setPackages: (packages) => set({ packages }),
+  setSlots: (slots) => set({ slots }),
   setEarnings: (earnings) => set({ earnings }),
+  setVault: (vault) => set({ vault }),
   addTransaction: (tx) => set((s) => ({ transactions: [tx, ...s.transactions] })),
   setTransactions: (transactions) => set({ transactions }),
   setWithdrawals: (withdrawals) => set({ withdrawals }),

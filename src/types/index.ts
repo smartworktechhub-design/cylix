@@ -1,51 +1,45 @@
-export interface Package {
+export interface SlotDef {
   id: string;
   name: string;
+  orbit: number;
   price: number;
-  dailyReturn: number;
-  totalReturn: number;
-  duration: number;
-  cap: number;
-  level: number;
-  isActive: boolean;
+  dailyYield: number;
+  maxCap: number;
   icon: string;
   color: string;
 }
 
-export interface UserPackage {
+export interface UserSlot {
   id: string;
-  packageId: string;
-  packageName: string;
-  level: number;
+  userId: string;
+  slotId: string;
+  slotName: string;
+  slotOrbit: number;
   invested: number;
   earned: number;
   dailyEarned: number;
-  cap: number;
-  capProgress: number;
+  maxCap: number;
+  progress: number;
   status: 'active' | 'completed' | 'pending';
   activatedAt: string;
-  expiresAt: string;
+  completedAt?: string;
 }
 
-export interface Earnings {
-  daily: number;
-  total: number;
-  matrix: number;
-  pool: number;
-  referral: number;
-}
-
-export interface MatrixNode {
-  id: string;
-  userId: string;
-  placement: string;
-  side: 'left' | 'right';
+export interface MatrixLevelConfig {
   level: number;
-  children: {
-    left: MatrixNode | null;
-    right: MatrixNode | null;
-  };
-  volume: number;
+  percent: number;
+  directsRequired: number;
+}
+
+export interface MatrixNode11 {
+  userId: string;
+  wallet: string;
+  sponsorId?: string;
+  level: number;
+  totalEarnings: number;
+  levelEarnings: { [level: number]: number };
+  directs: number;
+  children: MatrixNode11[];
 }
 
 export interface Referral {
@@ -57,14 +51,23 @@ export interface Referral {
   teamSize: number;
 }
 
+export interface Earnings {
+  daily: number;
+  total: number;
+  matrix: number;
+  pool: number;
+  referral: number;
+  ascension: number;
+}
+
 export interface Transaction {
   id: string;
-  type: 'purchase' | 'withdraw' | 'referral' | 'earnings' | 'upgrade';
+  type: 'slot_purchase' | 'withdraw' | 'referral' | 'daily_earning' | 'matrix_earning' | 'pool_earning' | 'ascension_credit' | 'upgrade' | 'recycle';
   amount: number;
   status: 'completed' | 'pending' | 'failed';
   timestamp: string;
-  hash?: string;
   description: string;
+  hash?: string;
 }
 
 export interface Withdrawal {
@@ -79,7 +82,7 @@ export interface Withdrawal {
 
 export interface Notification {
   id: string;
-  type: 'system' | 'earnings' | 'announcement' | 'withdrawal';
+  type: 'system' | 'earnings' | 'slot' | 'pool' | 'announcement' | 'withdrawal';
   title: string;
   message: string;
   read: boolean;
@@ -94,9 +97,11 @@ export interface User {
   totalInvested: number;
   totalEarned: number;
   referralCode: string;
+  sponsorId?: string;
+  directs: number;
   teamSize: number;
   isActive: boolean;
-  activePackage: UserPackage | null;
+  ascensionBalance: number;
 }
 
 export interface LeaderboardEntry {
@@ -106,13 +111,29 @@ export interface LeaderboardEntry {
   rank: number;
 }
 
-export interface ApexPoolCycle {
-  cycle: number;
-  prize: number;
-  qualified: boolean;
-  participants: number;
-  status: 'active' | 'completed' | 'upcoming';
-  endsAt: string;
+export interface ApexPoolState {
+  totalBlocks: number;
+  currentBlockValue: number;
+  totalPoolFund: number;
+  lastDistribution: string;
+  qualifiedCount: number;
+  distributePerPerson: number;
+}
+
+export interface ApexPoolBlock {
+  id: string;
+  blockNumber: number;
+  value: number;
+  completedAt: string;
+  distributed: boolean;
+}
+
+export interface AscensionVault {
+  balance: number;
+  autoUpgrade: boolean;
+  nextSlot: string;
+  nextSlotCost: number;
+  progress: number;
 }
 
 export interface SupportTicket {
@@ -126,7 +147,7 @@ export interface SupportTicket {
 
 export interface Activity {
   id: string;
-  type: 'purchase' | 'earnings' | 'referral' | 'upgrade' | 'withdrawal';
+  type: 'slot_purchase' | 'daily_earning' | 'matrix_earning' | 'pool_earning' | 'referral' | 'upgrade' | 'recycle' | 'withdrawal' | 'ascension_credit';
   description: string;
   amount: number;
   timestamp: string;
@@ -136,8 +157,10 @@ export interface AdminStats {
   totalUsers: number;
   totalRevenue: number;
   totalWithdrawals: number;
-  activePackages: number;
+  activeSlots: number;
   newUsersToday: number;
   pendingWithdrawals: number;
   growthRate: number;
+  poolFund: number;
+  totalBlocks: number;
 }

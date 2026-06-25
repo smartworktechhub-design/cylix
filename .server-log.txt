@@ -169,3 +169,72 @@
  GET / 200 in 32ms (next.js: 12ms, application-code: 20ms)
  GET / 200 in 43ms (next.js: 7ms, application-code: 36ms)
  GET / 200 in 37ms (next.js: 7ms, application-code: 30ms)
+[browser] Cannot update a component (`ConnectModal`) while rendering a different component (`Hydrate`). To locate the bad setState() call inside `Hydrate`, follow the stack trace as described in https://react.dev/link/setstate-in-render 
+    at Set.forEach (<anonymous>) (<anonymous>)
+[browser] Element w3m-connecting-wc-mobile scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information.
+[browser] Element w3m-connecting-wc-web scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information.
+[browser] Error: Connection request reset. Please try again.
+[browser] Element w3m-all-wallets-list scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information.
+[browser] Element w3m-connecting-wc-qrcode scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information.
+ GET /dashboard/ 200 in 135ms (next.js: 72ms, application-code: 63ms)
+ GET /support/ 200 in 87ms (next.js: 64ms, application-code: 23ms)
+ GET /dashboard/ 200 in 29ms (next.js: 8ms, application-code: 20ms)
+ GET /profile/ 200 in 122ms (next.js: 61ms, application-code: 61ms)
+ GET /profile/ 200 in 764ms (next.js: 7ms, application-code: 757ms)
+ GET /support/ 200 in 23ms (next.js: 5ms, application-code: 18ms)
+ GET /dashboard/ 200 in 46ms (next.js: 7ms, application-code: 39ms)
+ GET / 200 in 26ms (next.js: 5ms, application-code: 22ms)
+[browser] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+ HEAD / 200 in 53ms (next.js: 5ms, application-code: 48ms)
+ GET /dashboard/ 200 in 21ms (next.js: 6ms, application-code: 16ms)
+ GET / 200 in 40ms (next.js: 5ms, application-code: 34ms)
+ GET /dashboard/ 200 in 69ms (next.js: 16ms, application-code: 53ms)
+[browser] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+ HEAD /dashboard/ 200 in 92ms (next.js: 5ms, application-code: 87ms)
+ GET /profile/ 200 in 43ms (next.js: 8ms, application-code: 35ms)
+ GET / 200 in 65ms (next.js: 8ms, application-code: 57ms)
+ GET /dashboard/ 200 in 70ms (next.js: 22ms, application-code: 48ms)
+[browser] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+ HEAD /dashboard/ 200 in 58ms (next.js: 7ms, application-code: 51ms)
+ GET /dashboard/ 200 in 59ms (next.js: 4ms, application-code: 55ms)
+[browser] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+ HEAD /dashboard/ 200 in 66ms (next.js: 4ms, application-code: 62ms)
+[browser] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+ HEAD /profile/ 200 in 61ms (next.js: 6ms, application-code: 55ms)
+ GET /dashboard/ 200 in 22ms (next.js: 5ms, application-code: 17ms)
+ GET / 200 in 24ms (next.js: 7ms, application-code: 18ms)
+ GET /dashboard/ 200 in 33ms (next.js: 7ms, application-code: 26ms)
+ GET /dashboard/ 200 in 52ms (next.js: 5ms, application-code: 47ms)
+[browser] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+ HEAD /dashboard/ 200 in 58ms (next.js: 6ms, application-code: 52ms)
+ GET / 200 in 33ms (next.js: 5ms, application-code: 29ms)
+[browser] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+ HEAD / 200 in 51ms (next.js: 6ms, application-code: 46ms)
+[browser] Uncaught Error: invalid border=0
+    at Providers (src/lib/providers.tsx:25:9)
+    at RootLayout (src\app\layout.tsx:31:9)
+  23 |     <WagmiProvider config={config}>
+  24 |       <QueryClientProvider client={queryClient}>
+> 25 |         <RainbowKitProvider>
+     |         ^
+  26 |           {children}
+  27 |         </RainbowKitProvider>
+  28 |       </QueryClientProvider>
+ GET /dashboard/ 200 in 52ms (next.js: 6ms, application-code: 46ms)
+[browser] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+ HEAD /dashboard/ 200 in 78ms (next.js: 4ms, application-code: 74ms)
+[browser] Uncaught Error: invalid border=0
+    at Providers (src/lib/providers.tsx:25:9)
+    at RootLayout (src\app\layout.tsx:31:9)
+  23 |     <WagmiProvider config={config}>
+  24 |       <QueryClientProvider client={queryClient}>
+> 25 |         <RainbowKitProvider>
+     |         ^
+  26 |           {children}
+  27 |         </RainbowKitProvider>
+  28 |       </QueryClientProvider>
+ GET /dashboard/ 200 in 99ms (next.js: 8ms, application-code: 91ms)
+ HEAD /dashboard/ 200 in 77ms (next.js: 5ms, application-code: 71ms)
+[browser] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+ GET /dashboard/ 200 in 115ms (next.js: 24ms, application-code: 91ms)
+ HEAD /dashboard/ 200 in 67ms (next.js: 7ms, application-code: 60ms)

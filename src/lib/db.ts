@@ -1,35 +1,51 @@
 import { getSupabase } from './supabase';
-import type { User, UserPackage, Transaction, Withdrawal, Notification, Referral, Earnings } from '@/types';
+import { SLOTS, MATRIX_LEVELS, APEX_POOL, SLOT_CONFIG } from './constants';
+import type { User, UserSlot, Transaction, Withdrawal, Notification, Earnings, Referral, AdminStats, ApexPoolState, AscensionVault } from '@/types';
+
+function sb() { return getSupabase(); }
 
 function mapUser(u: any): User {
   return {
-    id: u.id, wallet: u.wallet, rank: u.rank, referralCode: u.referral_code,
+    id: u.id, wallet: u.wallet, rank: u.rank,
+    referralCode: u.referral_code, sponsorId: u.sponsor_id,
+    directs: u.directs || 0, teamSize: u.team_size || 0,
     joinedAt: u.created_at, totalInvested: Number(u.total_invested),
-    totalEarned: Number(u.total_earned), teamSize: u.team_size, isActive: u.is_active,
-    activePackage: null,
+    totalEarned: Number(u.total_earned), isActive: u.is_active,
+    ascensionBalance: Number(u.ascension_balance),
   };
 }
 
-function mapPackage(p: any): UserPackage {
+function mapSlot(s: any): UserSlot {
   return {
-    id: p.id, packageId: p.id, packageName: p.package_name, level: p.level,
-    invested: Number(p.invested), earned: Number(p.earned), dailyEarned: 0,
-    cap: Number(p.cap), capProgress: p.cap > 0 ? (Number(p.earned) / Number(p.cap)) * 100 : 0,
-    status: p.status, activatedAt: p.activated_at, expiresAt: p.expires_at,
+    id: s.id, userId: s.user_id, slotId: s.slot_id,
+    slotName: s.slot_name, slotOrbit: s.slot_orbit,
+    invested: Number(s.invested), earned: Number(s.earned),
+    dailyEarned: Number(s.daily_earned), maxCap: Number(s.max_cap),
+    progress: Number(s.progress), status: s.status,
+    activatedAt: s.activated_at, completedAt: s.completed_at,
   };
 }
 
 function mapTransaction(t: any): Transaction {
+  const typeMap: Record<string, Transaction['type']> = {
+    slot_purchase: 'slot_purchase', withdraw: 'withdraw', referral: 'referral',
+    daily_earning: 'daily_earning', matrix_earning: 'matrix_earning',
+    pool_earning: 'pool_earning', ascension_credit: 'ascension_credit',
+    upgrade: 'upgrade', recycle: 'recycle',
+  };
   return {
-    id: t.id, type: t.type, amount: Number(t.amount), status: t.status,
-    timestamp: t.created_at, hash: t.tx_hash, description: t.description || '',
+    id: t.id, type: typeMap[t.type] || 'slot_purchase',
+    amount: Number(t.amount), status: t.status,
+    timestamp: t.created_at, hash: t.tx_hash,
+    description: t.description || '',
   };
 }
 
 function mapWithdrawal(w: any): Withdrawal {
   return {
-    id: w.id, amount: Number(w.amount), wallet: w.wallet, status: w.status,
-    timestamp: w.created_at, processedAt: w.processed_at, txHash: w.tx_hash,
+    id: w.id, amount: Number(w.amount), wallet: w.wallet,
+    status: w.status, timestamp: w.created_at,
+    processedAt: w.processed_at, txHash: w.tx_hash,
   };
 }
 
@@ -40,41 +56,361 @@ function mapNotification(n: any): Notification {
   };
 }
 
-function sb() { return getSupabase(); }
+// ─── USER ───
 
 export async function getUserByWallet(wallet: string): Promise<User | null> {
   const { data } = await sb().from('users').select('*').eq('wallet', wallet).single();
   return data ? mapUser(data) : null;
 }
 
-export async function getUserById(id: string): Promise<User | null> {
-  const { data } = await sb().from('users').select('*').eq('id', id).single();
-  return data ? mapUser(data) : null;
+export async function createUser(wallet: string, sponsorCode?: string): Promise<User | null> {
+  const code = generateReferralCode();
+  let sponsorId: string | null = null;
+  if (sponsorCode) {
+    const { data: sponsor } = await sb().from('users').select('id').eq('referral_code', sponsorCode).single();
+    if (sponsor) sponsorId = sponsor.id;
+  }
+  const { data, error } = await sb().from('users').insert({
+    wallet, referral_code: code, sponsor_id: sponsorId,
+  }).select().single();
+  if (error || !data) return null;
+  const user = mapUser(data);
+  if (sponsorId) {
+    await addToMatrix(sponsorId, user.id);
+    await updateTeamSize(sponsorId);
+  }
+  return user;
 }
 
-export async function getUserPackages(userId: string): Promise<UserPackage[]> {
-  const { data } = await sb().from('packages').select('*').eq('user_id', userId).order('activated_at', { ascending: false });
-  return (data || []).map(mapPackage);
+function generateReferralCode(): string {
+  return 'CXL' + Math.random().toString(36).substring(2, 7).toUpperCase();
 }
 
-export async function getTransactions(userId: string): Promise<Transaction[]> {
-  const { data } = await sb().from('transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false });
-  return (data || []).map(mapTransaction);
+// ─── MATRIX ───
+
+export async function addToMatrix(sponsorId: string, userId: string): Promise<void> {
+  const visited = new Set<string>();
+  let currentId: string | null = sponsorId;
+  let level = 1;
+  while (currentId && level <= 11 && !visited.has(currentId)) {
+    visited.add(currentId);
+    await sb().from('matrix_11').insert({
+      user_id: userId, sponsor_id: currentId, level,
+    });
+    const { data: parent }:{ data: { sponsor_id: string | null } | null } = await sb().from('users').select('sponsor_id').eq('id', currentId).single();
+    currentId = parent?.sponsor_id || null;
+    level++;
+  }
 }
 
-export async function getWithdrawals(userId: string): Promise<Withdrawal[]> {
-  const { data } = await sb().from('withdrawals').select('*').eq('user_id', userId).order('created_at', { ascending: false });
-  return (data || []).map(mapWithdrawal);
+async function updateTeamSize(userId: string): Promise<void> {
+  const { count: directs } = await sb().from('users').select('*', { count: 'exact', head: true }).eq('sponsor_id', userId);
+  const { count: matrixCount } = await sb().from('matrix_11').select('*', { count: 'exact', head: true }).eq('sponsor_id', userId);
+  await sb().from('users').update({
+    directs: directs || 0,
+    team_size: (matrixCount || 0) + (directs || 0),
+  }).eq('id', userId);
 }
 
-export async function getNotifications(userId: string): Promise<Notification[]> {
-  const { data } = await sb().from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false });
-  return (data || []).map(mapNotification);
+export async function getMatrixTree(userId: string): Promise<any[]> {
+  const { data } = await sb().from('matrix_11')
+    .select('*, users!matrix_11_user_id_fkey(wallet)')
+    .eq('sponsor_id', userId)
+    .order('level');
+  return (data || []).map((m: any) => ({
+    userId: m.user_id, wallet: m.users?.wallet || '',
+    level: m.level, totalEarnings: Number(m.total_earnings),
+    directs: 0, children: [],
+  }));
 }
+
+export async function getUserMatrixLevel(userId: string): Promise<any[]> {
+  const { data } = await sb().from('matrix_11')
+    .select('*, users!matrix_11_sponsor_id_fkey(wallet)')
+    .eq('user_id', userId)
+    .order('level');
+  return (data || []).map((m: any) => ({
+    sponsorId: m.sponsor_id, sponsorWallet: m.users?.wallet || '',
+    level: m.level, totalEarnings: Number(m.total_earnings),
+  }));
+}
+
+export async function processMatrixCommission(purchaserId: string, amount: number): Promise<void> {
+  const { data: levels } = await sb().from('matrix_11')
+    .select('id, sponsor_id, level')
+    .eq('user_id', purchaserId);
+  if (!levels) return;
+  for (const m of levels) {
+    if (!m.sponsor_id) continue;
+    const config = MATRIX_LEVELS.find(l => l.level === m.level);
+    if (!config) continue;
+    if (config.directsRequired > 0) {
+      const { data: sponsor } = await sb().from('users').select('directs').eq('id', m.sponsor_id).single();
+      if (!sponsor || (sponsor.directs || 0) < config.directsRequired) continue;
+    }
+    const commission = (amount * config.percent) / 100;
+    await sb().from('matrix_earnings').insert({
+      matrix_id: m.id, earned_from: purchaserId,
+      level: m.level, amount: commission,
+    });
+    await sb().from('matrix_11').update({
+      total_earnings: sb().rpc('increment', { x: commission }),
+    }).eq('id', m.id);
+    await sb().from('earnings').insert({
+      user_id: m.sponsor_id, type: 'matrix', amount: commission,
+      source: `Level ${m.level} commission from slot purchase`,
+    });
+    await sb().from('transactions').insert({
+      user_id: m.sponsor_id, type: 'matrix_earning',
+      amount: commission, description: `Level ${m.level} matrix commission`,
+    });
+    await sb().from('users').update({
+      total_earned: sb().rpc('increment', { x: commission }),
+    }).eq('id', m.sponsor_id);
+  }
+}
+
+// ─── SLOTS ───
+
+export async function purchaseSlot(userId: string, slotId: string): Promise<UserSlot | null> {
+  const slot = SLOTS.find(s => s.id === slotId);
+  if (!slot) return null;
+  const { data: existing } = await sb().from('user_slots')
+    .select('id, status').eq('user_id', userId).eq('slot_id', slotId).eq('status', 'active').maybeSingle();
+  if (existing) return null;
+  const { data, error } = await sb().from('user_slots').insert({
+    user_id: userId, slot_id: slot.id, slot_name: slot.name,
+    slot_orbit: slot.orbit, invested: slot.price,
+    earned: 0, daily_earned: slot.dailyYield, max_cap: slot.maxCap,
+    progress: 0, status: 'active',
+  }).select().single();
+  if (error || !data) return null;
+  await sb().from('transactions').insert({
+    user_id: userId, type: 'slot_purchase', amount: slot.price,
+    description: `Purchased ${slot.name} slot`,
+  });
+  await sb().from('users').update({
+    total_invested: sb().rpc('increment', { x: slot.price }),
+    is_active: true,
+  }).eq('id', userId);
+  await processMatrixCommission(userId, slot.price);
+  await processApexPoolContribution(slot.price);
+  return mapSlot(data);
+}
+
+export async function getUserSlots(userId: string): Promise<UserSlot[]> {
+  const { data } = await sb().from('user_slots')
+    .select('*').eq('user_id', userId).order('activated_at', { ascending: false });
+  return (data || []).map(mapSlot);
+}
+
+export async function processSlotEarnings(userId: string): Promise<void> {
+  const { data: activeSlots } = await sb().from('user_slots')
+    .select('*').eq('user_id', userId).eq('status', 'active');
+  if (!activeSlots) return;
+  for (const s of activeSlots) {
+    const currentEarned = Number(s.earned);
+    const dailyAmount = Number(s.daily_earned);
+    const maxCap = Number(s.max_cap);
+    if (currentEarned + dailyAmount > maxCap) continue;
+    const newEarned = currentEarned + dailyAmount;
+    const walletShare = (dailyAmount * SLOT_CONFIG.walletSplitPercent) / 100;
+    const ascensionShare = (dailyAmount * SLOT_CONFIG.ascensionSplitPercent) / 100;
+    await sb().from('user_slots').update({
+      earned: newEarned,
+      progress: (newEarned / maxCap) * 100,
+      last_earning_at: new Date().toISOString(),
+    }).eq('id', s.id);
+    if (ascensionShare > 0) {
+      await sb().from('users').update({
+        ascension_balance: sb().rpc('increment', { x: ascensionShare }),
+      }).eq('id', userId);
+      await sb().from('earnings').insert({
+        user_id: userId, type: 'ascension', amount: ascensionShare,
+        source: `50% ascension from ${s.slot_name}`,
+      });
+      await sb().from('transactions').insert({
+        user_id: userId, type: 'ascension_credit',
+        amount: ascensionShare,
+        description: `50% ascension from ${s.slot_name} daily yield`,
+      });
+    }
+    if (walletShare > 0) {
+      await sb().from('users').update({
+        total_earned: sb().rpc('increment', { x: walletShare }),
+      }).eq('id', userId);
+      await sb().from('earnings').insert({
+        user_id: userId, type: 'daily', amount: walletShare,
+        source: `Daily yield from ${s.slot_name}`,
+      });
+      await sb().from('transactions').insert({
+        user_id: userId, type: 'daily_earning', amount: walletShare,
+        description: `Daily yield from ${s.slot_name}`,
+      });
+    }
+    if (newEarned >= maxCap) {
+      await sb().from('user_slots').update({
+        status: 'completed', completed_at: new Date().toISOString(),
+      }).eq('id', s.id);
+      await sb().from('notifications').insert({
+        user_id: userId, type: 'slot', title: 'Slot Completed!',
+        message: `${s.slot_name} reached 200% cap. Check Upgrade Vault.`,
+      });
+      if (s.slot_orbit === 11) {
+        await processOrbit11Recycle(userId, s.id, newEarned);
+      } else {
+        await checkAutoUpgrade(userId);
+      }
+    }
+  }
+}
+
+export async function getAscensionVault(userId: string): Promise<AscensionVault> {
+  const { data: user } = await sb().from('users').select('ascension_balance').eq('id', userId).single();
+  const balance = Number(user?.ascension_balance || 0);
+  const nextSlot = SLOTS.find(s => s.price > 0 && s.price <= balance * 2);
+  const { data: owned } = await sb().from('user_slots').select('slot_orbit').eq('user_id', userId).order('slot_orbit', { ascending: false });
+  const maxOrbit = owned?.length ? Math.max(...owned.map((o: any) => o.slot_orbit)) : 0;
+  const nextAvailable = SLOTS.find(s => s.orbit === maxOrbit + 1);
+  return {
+    balance,
+    autoUpgrade: true,
+    nextSlot: nextAvailable?.id || 'orbit-11',
+    nextSlotCost: nextAvailable?.price || 100000,
+    progress: nextAvailable ? (balance / nextAvailable.price) * 100 : 100,
+  };
+}
+
+async function checkAutoUpgrade(userId: string): Promise<void> {
+  const { data: user } = await sb().from('users').select('ascension_balance').eq('id', userId).single();
+  if (!user) return;
+  const balance = Number(user.ascension_balance);
+  const { data: owned } = await sb().from('user_slots').select('slot_orbit').eq('user_id', userId).order('slot_orbit', { ascending: false });
+  const maxOrbit = owned?.length ? Math.max(...owned.map((o: any) => o.slot_orbit)) : 0;
+  const nextAvailable = SLOTS.find(s => s.orbit === maxOrbit + 1);
+  if (!nextAvailable || balance < nextAvailable.price) return;
+  await purchaseSlot(userId, nextAvailable.id);
+  await sb().from('users').update({
+    ascension_balance: balance - nextAvailable.price,
+  }).eq('id', userId);
+  await sb().from('transactions').insert({
+    user_id: userId, type: 'upgrade', amount: nextAvailable.price,
+    description: `Auto-upgraded to ${nextAvailable.name} via ascension vault`,
+  });
+}
+
+async function processOrbit11Recycle(userId: string, slotId: string, earned: number): Promise<void> {
+  const halfCycle = earned / 2;
+  await sb().from('users').update({
+    total_earned: sb().rpc('increment', { x: halfCycle }),
+  }).eq('id', userId);
+  await sb().from('user_slots').insert({
+    user_id: userId, slot_id: 'orbit-11', slot_name: 'Infinity Core',
+    slot_orbit: 11, invested: 0, earned: 0, daily_earned: 3000,
+    max_cap: 200000, progress: 0, status: 'active',
+  });
+  await sb().from('transactions').insert({
+    user_id: userId, type: 'recycle', amount: halfCycle,
+    description: 'Orbit 11 re-cycle: 50% wallet + 50% re-buy',
+  });
+  await sb().from('transactions').insert({
+    user_id: userId, type: 'slot_purchase', amount: halfCycle,
+    description: 'Auto re-buy Orbit 11 from re-cycle',
+  });
+}
+
+// ─── APEX POOL ───
+
+async function processApexPoolContribution(amount: number): Promise<void> {
+  const contribution = (amount * APEX_POOL.poolPercent) / 100;
+  const { data: pendingBlock } = await sb().from('apex_pool_blocks')
+    .select('*').eq('completed', false).order('block_number', { ascending: false }).limit(1).maybeSingle();
+  if (pendingBlock) {
+    const newValue = Number(pendingBlock.value) + contribution;
+    if (newValue >= APEX_POOL.blockValue) {
+      await sb().from('apex_pool_blocks').update({
+        value: newValue, completed: true, completed_at: new Date().toISOString(),
+      }).eq('id', pendingBlock.id);
+    } else {
+      await sb().from('apex_pool_blocks').update({ value: newValue }).eq('id', pendingBlock.id);
+    }
+  } else {
+    const { count } = await sb().from('apex_pool_blocks').select('*', { count: 'exact', head: true });
+    await sb().from('apex_pool_blocks').insert({
+      block_number: (count || 0) + 1, value: contribution, completed: false,
+    });
+  }
+}
+
+export async function getApexPoolState(): Promise<ApexPoolState> {
+  const { data: completed } = await sb().from('apex_pool_blocks').select('*').eq('completed', true);
+  const { data: pendingBlock } = await sb().from('apex_pool_blocks')
+    .select('value').eq('completed', false).order('block_number', { ascending: false }).limit(1).maybeSingle();
+  const totalBlocks = completed?.length || 0;
+  const totalPoolFund = totalBlocks * APEX_POOL.blockValue;
+  const { data: lastDist } = await sb().from('apex_pool_distributions')
+    .select('*').order('distributed_at', { ascending: false }).limit(1).maybeSingle();
+  return {
+    totalBlocks,
+    currentBlockValue: Number(pendingBlock?.value || 0),
+    totalPoolFund,
+    lastDistribution: lastDist?.distributed_at || '',
+    qualifiedCount: 0,
+    distributePerPerson: 0,
+  };
+}
+
+export async function distributeApexPool(): Promise<void> {
+  const { data: blocks } = await sb().from('apex_pool_blocks')
+    .select('*').eq('distributed', false).eq('completed', true);
+  if (!blocks || blocks.length === 0) return;
+  const totalFund = blocks.length * APEX_POOL.blockValue;
+  const safetyReserve = (totalFund * APEX_POOL.safetyReservePercent) / 100;
+  const distributable = totalFund - safetyReserve;
+  const { count: activeUsers } = await sb().from('user_slots')
+    .select('*', { count: 'exact', head: true }).eq('status', 'active');
+  const qualifiedCount = activeUsers || 0;
+  const perPerson = qualifiedCount > 0 ? distributable / qualifiedCount : 0;
+  const { data: dist } = await sb().from('apex_pool_distributions').insert({
+    total_fund: totalFund, qualified_count: qualifiedCount,
+    per_person: perPerson, safety_reserve: safetyReserve,
+  }).select().single();
+  if (dist && perPerson > 0) {
+    const { data: qualifiers } = await sb().from('user_slots')
+      .select('user_id').eq('status', 'active');
+    for (const q of qualifiers || []) {
+      await sb().from('apex_pool_qualifiers').insert({
+        distribution_id: dist.id, user_id: q.user_id, amount: perPerson, claimed: false,
+      });
+      await claimApexPoolForUser(q.user_id, dist.id);
+    }
+  }
+  await sb().from('apex_pool_blocks').update({ distributed: true }).in('id', blocks.map(b => b.id));
+}
+
+async function claimApexPoolForUser(userId: string, distId: string): Promise<void> {
+  const { data: q } = await sb().from('apex_pool_qualifiers')
+    .select('amount').eq('distribution_id', distId).eq('user_id', userId).single();
+  if (!q) return;
+  const amount = Number(q.amount);
+  await sb().from('apex_pool_qualifiers').update({ claimed: true }).eq('distribution_id', distId).eq('user_id', userId);
+  await sb().from('earnings').insert({
+    user_id: userId, type: 'pool', amount, source: 'Apex Pool distribution',
+  });
+  await sb().from('transactions').insert({
+    user_id: userId, type: 'pool_earning', amount,
+    description: 'Apex Pool daily distribution',
+  });
+  await sb().from('users').update({
+    total_earned: sb().rpc('increment', { x: amount }),
+  }).eq('id', userId);
+}
+
+// ─── EARNINGS ───
 
 export async function getUserEarnings(userId: string): Promise<Earnings> {
   const { data } = await sb().from('earnings').select('type, amount').eq('user_id', userId);
-  const result: Earnings = { daily: 0, total: 0, matrix: 0, pool: 0, referral: 0 };
+  const result: Earnings = { daily: 0, total: 0, matrix: 0, pool: 0, referral: 0, ascension: 0 };
   (data || []).forEach((e: any) => {
     const amt = Number(e.amount);
     result.total += amt;
@@ -82,32 +418,132 @@ export async function getUserEarnings(userId: string): Promise<Earnings> {
     else if (e.type === 'matrix') result.matrix += amt;
     else if (e.type === 'pool') result.pool += amt;
     else if (e.type === 'referral') result.referral += amt;
+    else if (e.type === 'ascension') result.ascension += amt;
   });
   return result;
 }
 
+// ─── REFERRALS ───
+
 export async function getReferrals(userId: string): Promise<Referral[]> {
-  const { data } = await sb().from('users').select('id, wallet, created_at, total_earned, team_size').eq('referred_by', userId);
+  const { data } = await sb().from('users')
+    .select('id, wallet, created_at, total_earned, team_size')
+    .eq('sponsor_id', userId);
   return (data || []).map((u: any) => ({
     id: u.id, wallet: u.wallet, level: 1, joinedAt: u.created_at,
     earnings: Number(u.total_earned), teamSize: u.team_size,
   }));
 }
 
+// ─── TRANSACTIONS ───
+
+export async function getTransactions(userId: string): Promise<Transaction[]> {
+  const { data } = await sb().from('transactions')
+    .select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  return (data || []).map(mapTransaction);
+}
+
+// ─── WITHDRAWALS ───
+
+export async function getWithdrawals(userId: string): Promise<Withdrawal[]> {
+  const { data } = await sb().from('withdrawals')
+    .select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  return (data || []).map(mapWithdrawal);
+}
+
+export async function requestWithdrawal(userId: string, amount: number, wallet: string): Promise<boolean> {
+  if (amount < 10) return false;
+  const { error } = await sb().from('withdrawals').insert({
+    user_id: userId, amount, wallet, status: 'pending',
+  });
+  if (error) return false;
+  await sb().from('notifications').insert({
+    user_id: userId, type: 'withdrawal', title: 'Withdrawal Requested',
+    message: `$${amount} withdrawal request submitted.`,
+  });
+  return true;
+}
+
+// ─── NOTIFICATIONS ───
+
+export async function getNotifications(userId: string): Promise<Notification[]> {
+  const { data } = await sb().from('notifications')
+    .select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  return (data || []).map(mapNotification);
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  await sb().from('notifications').update({ is_read: true }).eq('id', id);
+}
+
+// ─── LEADERBOARD ───
+
 export async function getLeaderboard(limit = 10): Promise<any[]> {
-  const { data } = await sb().from('users').select('wallet, total_earned, team_size').order('total_earned', { ascending: false }).limit(limit);
+  const { data } = await sb().from('users')
+    .select('wallet, total_earned, team_size')
+    .order('total_earned', { ascending: false }).limit(limit);
   return (data || []).map((u: any, i: number) => ({
-    wallet: u.wallet, earnings: Number(u.total_earned), teamSize: u.team_size, rank: i + 1,
+    wallet: u.wallet, earnings: Number(u.total_earned),
+    teamSize: u.team_size, rank: i + 1,
   }));
 }
 
-export async function getAdminStats(): Promise<any> {
+// ─── ADMIN ───
+
+export async function getAdminStats(): Promise<AdminStats> {
   const { count: totalUsers } = await sb().from('users').select('*', { count: 'exact', head: true });
-  const { data: pkgData } = await sb().from('packages').select('invested').eq('status', 'active');
+  const { data: slotData } = await sb().from('user_slots').select('invested').eq('status', 'active');
   const { data: wdData } = await sb().from('withdrawals').select('amount, status');
-  const activePackages = pkgData?.length || 0;
-  const totalRevenue = pkgData?.reduce((s: number, p: any) => s + Number(p.invested), 0) || 0;
+  const { data: poolData } = await sb().from('apex_pool_blocks').select('*').eq('completed', true);
+  const activeSlots = slotData?.length || 0;
+  const totalRevenue = slotData?.reduce((s: number, p: any) => s + Number(p.invested), 0) || 0;
   const pendingWithdrawals = wdData?.filter((w: any) => w.status === 'pending').length || 0;
   const totalWithdrawals = wdData?.reduce((s: number, w: any) => s + Number(w.amount), 0) || 0;
-  return { totalUsers: totalUsers || 0, totalRevenue, activePackages, pendingWithdrawals, totalWithdrawals, newUsersToday: 0, growthRate: 12.5 };
+  return {
+    totalUsers: totalUsers || 0, totalRevenue, activeSlots,
+    pendingWithdrawals, totalWithdrawals, newUsersToday: 0, growthRate: 0,
+    poolFund: (poolData?.length || 0) * 1000,
+    totalBlocks: poolData?.length || 0,
+  };
 }
+
+export async function getAllUsers(): Promise<any[]> {
+  const { data } = await sb().from('users').select('*').order('created_at', { ascending: false });
+  return (data || []).map(mapUser);
+}
+
+export async function getAllWithdrawals(): Promise<Withdrawal[]> {
+  const { data } = await sb().from('withdrawals').select('*').order('created_at', { ascending: false });
+  return (data || []).map(mapWithdrawal);
+}
+
+export async function getAllTransactions(): Promise<Transaction[]> {
+  const { data } = await sb().from('transactions').select('*').order('created_at', { ascending: false });
+  return (data || []).map(mapTransaction);
+}
+
+export async function approveWithdrawal(id: string): Promise<boolean> {
+  const { error } = await sb().from('withdrawals').update({
+    status: 'approved', processed_at: new Date().toISOString(),
+  }).eq('id', id);
+  return !error;
+}
+
+export async function rejectWithdrawal(id: string): Promise<boolean> {
+  const { error } = await sb().from('withdrawals').update({ status: 'rejected' }).eq('id', id);
+  return !error;
+}
+
+// ─── ACTIVITY ───
+
+export async function getRecentActivity(userId: string): Promise<any[]> {
+  const { data } = await sb().from('transactions')
+    .select('id, type, amount, description, created_at')
+    .eq('user_id', userId).order('created_at', { ascending: false }).limit(10);
+  return (data || []).map((t: any) => ({
+    id: t.id, type: t.type, description: t.description || '',
+    amount: Number(t.amount), timestamp: t.created_at,
+  }));
+}
+
+export { sb as getDb };

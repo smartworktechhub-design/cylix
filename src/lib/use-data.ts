@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useAppStore } from '@/stores/app-store';
-import { getUserByWallet, getUserPackages, getTransactions, getWithdrawals, getNotifications, getUserEarnings, getReferrals, getAdminStats } from './db';
-import type { User, Earnings, Activity } from '@/types';
+import { getUserByWallet, getUserSlots, getTransactions, getWithdrawals, getNotifications, getUserEarnings, getReferrals, getAdminStats, getAscensionVault, processSlotEarnings } from './db';
 
 const DEMO_WALLET = '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18';
 
 export function useInitData() {
-  const { setUser, setPackages, setEarnings, setTransactions, setWithdrawals, setNotifications, setReferrals, setActivities, setAdminStats } = useAppStore();
+  const { setUser, setSlots, setEarnings, setVault, setTransactions, setWithdrawals, setNotifications, setReferrals, setActivities, setAdminStats } = useAppStore();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,16 +19,19 @@ export function useInitData() {
           return;
         }
         setUser(user as any);
-        const [pkgs, txs, wds, notifs, earnings, referrals] = await Promise.all([
-          getUserPackages(user.id),
+        await processSlotEarnings(user.id);
+        const [slots, txs, wds, notifs, earnings, referrals, vault] = await Promise.all([
+          getUserSlots(user.id),
           getTransactions(user.id),
           getWithdrawals(user.id),
           getNotifications(user.id),
           getUserEarnings(user.id),
           getReferrals(user.id),
+          getAscensionVault(user.id),
         ]);
-        setPackages(pkgs as any);
+        setSlots(slots as any);
         setEarnings(earnings);
+        setVault(vault);
         setTransactions(txs as any);
         setWithdrawals(wds as any);
         setNotifications(notifs as any);

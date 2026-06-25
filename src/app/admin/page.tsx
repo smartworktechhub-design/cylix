@@ -3,33 +3,54 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
-import { formatCurrency, formatNumber, shortenAddress, formatDate, cn } from '@/lib/utils';
+import { formatCurrency, formatNumber, shortenAddress, formatDate } from '@/lib/utils';
 import { getAdminStats } from '@/lib/db';
 import { getSupabase } from '@/lib/supabase';
-import { TrendingUp, TrendingDown, Users, Wallet, Gift, Package, UserPlus, Clock, ArrowUpRight, Loader2 } from 'lucide-react';
+import { TrendingUp, Users, Wallet, Package, Clock, Database, Box, ArrowUpRight, Loader2 } from 'lucide-react';
+import type { AdminStats } from '@/types';
+
+interface RecentUser {
+  wallet: string;
+  invested: number;
+  joined: string;
+  status: 'active' | 'inactive';
+  referral: string;
+}
+
+interface StatCard {
+  label: string;
+  value: number;
+  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+  color: string;
+  isCurrency?: boolean;
+}
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
-  const [adminStats, setAdminStats] = useState<any>(null);
-  const [recentUsers, setRecentUsers] = useState<any[]>([]);
+  const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
+  const [recentUsers, setRecentUsers] = useState<RecentUser[]>([]);
 
   useEffect(() => {
+    let mounted = true;
     async function load() {
       const stats = await getAdminStats();
+      if (!mounted) return;
       setAdminStats(stats);
 
       const { data: users } = await getSupabase().from('users').select('*').order('created_at', { ascending: false }).limit(5);
-      setRecentUsers((users || []).map((u: any) => ({
-        wallet: u.wallet,
-        package: u.rank || 'N/A',
-        invested: Number(u.total_invested),
-        joined: u.created_at,
+      if (!mounted) return;
+      setRecentUsers((users || []).map((u: Record<string, unknown>) => ({
+        wallet: String(u.wallet || ''),
+        invested: Number(u.total_invested || 0),
+        joined: String(u.created_at || ''),
         status: u.is_active ? 'active' as const : 'inactive' as const,
+        referral: String(u.referral_code || ''),
       })));
 
       setLoading(false);
     }
     load();
+    return () => { mounted = false; };
   }, []);
 
   if (loading) {
@@ -40,23 +61,24 @@ export default function AdminDashboard() {
     );
   }
 
-  const stats = [
-    { label: 'Total Users', value: adminStats?.totalUsers || 0, change: `+${adminStats?.growthRate || 0}%`, icon: Users, trend: 'up' },
-    { label: 'Revenue', value: adminStats?.totalRevenue || 0, change: '+12.5%', icon: Wallet, trend: 'up', isCurrency: true },
-    { label: 'Withdrawals', value: adminStats?.totalWithdrawals || 0, change: '+5.2%', icon: Gift, trend: 'up', isCurrency: true },
-    { label: 'Active Packages', value: adminStats?.activePackages || 0, change: '+3.1%', icon: Package, trend: 'up' },
-    { label: 'New Users Today', value: adminStats?.newUsersToday || 0, change: '+18.7%', icon: UserPlus, trend: 'up' },
-    { label: 'Pending Withdrawals', value: adminStats?.pendingWithdrawals || 0, change: '-2.4%', icon: Clock, trend: 'down' },
+  const stats: StatCard[] = [
+    { label: 'Total Users', value: adminStats?.totalUsers || 0, icon: Users, color: '#00E5FF' },
+    { label: 'Total Revenue', value: adminStats?.totalRevenue || 0, icon: Wallet, color: '#00FFB2', isCurrency: true },
+    { label: 'Active Slots', value: adminStats?.activeSlots || 0, icon: Package, color: '#7B61FF' },
+    { label: 'Pending Withdrawals', value: adminStats?.pendingWithdrawals || 0, icon: Clock, color: '#FFB800' },
+    { label: 'Apex Pool Fund', value: adminStats?.poolFund || 0, icon: Database, color: '#00E5FF', isCurrency: true },
+    { label: 'Total Blocks', value: adminStats?.totalBlocks || 0, icon: Box, color: '#FF5C7A' },
   ];
 
   const revenueData = [34, 45, 38, 52, 48, 55, 62, 58, 65, 70, 68, 75];
 
-  const packageDistribution = [
-    { name: 'Basic', count: 823, percentage: 44 },
-    { name: 'Starter', count: 512, percentage: 28 },
-    { name: 'Premium', count: 356, percentage: 19 },
-    { name: 'Elite', count: 156, percentage: 9 },
+  const slotDistribution = [
+    { name: 'Orbit 1-4', count: 823, percentage: 44 },
+    { name: 'Orbit 5-7', count: 512, percentage: 28 },
+    { name: 'Orbit 8-10', count: 356, percentage: 19 },
+    { name: 'Orbit 11', count: 156, percentage: 9 },
   ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -69,11 +91,11 @@ export default function AdminDashboard() {
           <Card key={stat.label} className="p-4">
             <div className="flex items-start justify-between mb-3">
               <div className="w-10 h-10 rounded-xl bg-[rgba(0,229,255,0.1)] flex items-center justify-center">
-                <stat.icon size={20} className="text-[#00E5FF]" />
+                <stat.icon size={20} style={{ color: stat.color }} />
               </div>
-              <Badge variant={stat.trend === 'up' ? 'success' : 'danger'} className="text-xs">
-                {stat.trend === 'up' ? <TrendingUp size={12} className="mr-1" /> : <TrendingDown size={12} className="mr-1" />}
-                {stat.change}
+              <Badge variant="success" className="text-xs flex items-center gap-1">
+                <TrendingUp size={12} />
+                Active
               </Badge>
             </div>
             <p className="text-[#94A3B8] text-xs mb-1">{stat.label}</p>
@@ -90,7 +112,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-white font-semibold font-heading">Revenue Trend</h3>
-                <p className="text-[#94A3B8] text-sm">Monthly revenue performance</p>
+                <p className="text-[#94A3B8] text-sm">Monthly slot revenue performance</p>
               </div>
               <Badge variant="success" className="flex items-center gap-1">
                 <ArrowUpRight size={12} />
@@ -127,20 +149,20 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <h3 className="text-white font-semibold font-heading">Package Distribution</h3>
-            <p className="text-[#94A3B8] text-sm">Active investment packages</p>
+            <h3 className="text-white font-semibold font-heading">Slot Distribution</h3>
+            <p className="text-[#94A3B8] text-sm">Active slots by orbit tier</p>
           </CardHeader>
           <CardContent className="space-y-4">
-            {packageDistribution.map((pkg) => (
-              <div key={pkg.name}>
+            {slotDistribution.map((s) => (
+              <div key={s.name}>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-sm text-white">{pkg.name}</span>
-                  <span className="text-xs text-[#94A3B8] font-mono">{formatNumber(pkg.count)}</span>
+                  <span className="text-sm text-white">{s.name}</span>
+                  <span className="text-xs text-[#94A3B8] font-mono">{formatNumber(s.count)}</span>
                 </div>
                 <div className="h-2 rounded-full bg-[rgba(148,163,184,0.1)] overflow-hidden">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] transition-all duration-700"
-                    style={{ width: `${pkg.percentage}%` }}
+                    style={{ width: `${s.percentage}%` }}
                   />
                 </div>
               </div>
@@ -148,7 +170,7 @@ export default function AdminDashboard() {
             <div className="pt-3 border-t border-[rgba(0,229,255,0.08)]">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-[#94A3B8]">Total Active</span>
-                <span className="text-white font-mono font-semibold">{formatNumber(1847)}</span>
+                <span className="text-white font-mono font-semibold">{formatNumber(adminStats?.activeSlots || 0)}</span>
               </div>
             </div>
           </CardContent>
@@ -165,7 +187,7 @@ export default function AdminDashboard() {
             <TableHead>
               <TableRow>
                 <TableHeader>Wallet</TableHeader>
-                <TableHeader>Package</TableHeader>
+                <TableHeader>Referral Code</TableHeader>
                 <TableHeader>Invested</TableHeader>
                 <TableHeader>Joined</TableHeader>
                 <TableHeader>Status</TableHeader>
@@ -175,7 +197,7 @@ export default function AdminDashboard() {
               {recentUsers.map((user) => (
                 <TableRow key={user.wallet}>
                   <TableCell className="font-mono text-[#00E5FF]">{shortenAddress(user.wallet)}</TableCell>
-                  <TableCell>{user.package}</TableCell>
+                  <TableCell className="font-mono text-xs text-[#7B61FF]">{user.referral}</TableCell>
                   <TableCell className="font-mono">{formatCurrency(user.invested)}</TableCell>
                   <TableCell className="text-[#94A3B8]">{formatDate(user.joined)}</TableCell>
                   <TableCell>
