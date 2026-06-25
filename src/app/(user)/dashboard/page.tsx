@@ -12,7 +12,7 @@ import { usePathname } from 'next/navigation';
 import {
   Loader2, Copy, CheckCheck, Wallet, Users, GitBranch,
   TrendingUp, Orbit, Vault as VaultIcon, Activity, ArrowUpRight,
-  DollarSign, Zap, Globe, Shield, Gem, Coins,
+  DollarSign, Zap, Globe, Shield, Gem, Coins, Menu,
 } from 'lucide-react';
 import { useUsdtBalance } from '@/lib/usdt';
 
