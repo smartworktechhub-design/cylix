@@ -11,7 +11,7 @@ import { usePathname } from 'next/navigation';
 import {
   Loader2, Users, GitBranch,
   TrendingUp, Orbit, Vault as VaultIcon, ArrowUpRight,
-  Zap, Globe, Shield, Coins,
+  Zap, Globe, Shield, Coins, Copy, CheckCheck, Link as LinkIcon,
 } from 'lucide-react';
 import { useUsdtBalance } from '@/lib/usdt';
 
@@ -40,6 +40,7 @@ export default function DashboardPage() {
   const { isConnected, address } = useAccount();
   const pathname = usePathname();
   const [matrixStats, setMatrixStats] = useState<any>(null);
+  const [refCopied, setRefCopied] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -123,6 +124,24 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* ====== 11 SLOT MATRIX SYSTEM ====== */}
+      {/* ====== REFERRAL CODE ====== */}
+      {user && (
+        <div className="px-4 pb-1">
+          <div className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)] flex items-center justify-between gap-3" style={{ background: 'rgba(0,229,255,0.03)' }}>
+            <div className="flex items-center gap-2 min-w-0">
+              <LinkIcon size={14} className="text-[#00E5FF] shrink-0" />
+              <span className="text-[9px] text-[#4A5568] uppercase tracking-wider shrink-0">Referral</span>
+              <code className="text-xs font-mono font-bold text-[#00E5FF] truncate">{user.referralCode}</code>
+            </div>
+            <button onClick={() => { const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/?ref=${user.referralCode}`; navigator.clipboard.writeText(link); setRefCopied(true); setTimeout(() => setRefCopied(false), 2000); }}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[rgba(0,229,255,0.08)] hover:bg-[rgba(0,229,255,0.12)] transition-all text-[10px] text-[#00E5FF] font-semibold shrink-0">
+              {refCopied ? <><CheckCheck size={12} /> Copied</> : <><Copy size={12} /> Copy Link</>}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ====== 11 SLOT MATRIX SYSTEM ====== */}
       <div className="px-4 pt-2 pb-2">
