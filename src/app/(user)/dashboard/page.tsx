@@ -1,83 +1,162 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
 import { getRecentActivity, getMatrixStats } from '@/lib/db';
-import { SLOTS } from '@/lib/constants';
+import { SLOTS, SLOT_CONFIG } from '@/lib/constants';
 import { useAccount } from 'wagmi';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  Loader2, Users, GitBranch,
-  TrendingUp, Orbit, Vault as VaultIcon, ArrowUpRight,
-  Zap, Globe, Shield, Coins, Copy, CheckCheck, Link as LinkIcon,
-} from 'lucide-react';
 import { useUsdtBalance } from '@/lib/usdt';
+import {
+  Loader2, Users, GitBranch, TrendingUp, Orbit, Vault as VaultIcon,
+  ArrowUpRight, Zap, Globe, Shield, Coins, Copy, CheckCheck,
+  Link as LinkIcon, Lock, Unlock, Activity, User, Wallet,
+  BarChart3, Timer, Trophy, Layers, ChevronRight, Info,
+  ExternalLink, Diamond, Sparkles, Eye, EyeOff,
+} from 'lucide-react';
 
-function cn(...classes: (string | boolean | undefined | null)[]) {
-  return classes.filter(Boolean).join(' ');
-}
+const cn = (...classes: (string | boolean | undefined | null)[]) => classes.filter(Boolean).join(' ');
 
-function formatCurrency(n: number) {
-  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+const formatCurrency = (n: number) =>
+  '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function formatCompact(n: number) {
+const formatCompact = (n: number) => {
   if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(2) + 'M';
   if (n >= 1_000) return '$' + (n / 1_000).toFixed(2) + 'K';
   return '$' + n.toFixed(2);
-}
+};
 
-function shortenAddress(addr: string | undefined) {
+const shortenAddress = (addr?: string) => {
   if (!addr) return '';
   return addr.slice(0, 6) + '...' + addr.slice(-4);
-}
+};
+
+const SLOT_COLORS: Record<string, string> = {
+  orbit_1: '#00E5FF', orbit_2: '#7B61FF', orbit_3: '#00FFB2',
+  orbit_4: '#FFB800', orbit_5: '#FF5C7A', orbit_6: '#00E5FF',
+  orbit_7: '#7B61FF', orbit_8: '#00FFB2', orbit_9: '#FFB800',
+  orbit_10: '#FF5C7A', orbit_11: '#00E5FF',
+};
 
 export default function DashboardPage() {
-  const { user, slots, earnings, vault } = useAppStore();
+  const { user, slots, earnings, vault, transactions } = useAppStore();
   const { loading } = useInitData();
   const { isConnected, address } = useAccount();
   const pathname = usePathname();
+  const { balance: usdtBalance } = useUsdtBalance(address);
   const [matrixStats, setMatrixStats] = useState<any>(null);
   const [refCopied, setRefCopied] = useState(false);
+  const [selectedNode, setSelectedNode] = useState<any>(null);
+  const [matrixView, setMatrixView] = useState<'explorer' | 'analytics'>('explorer');
 
   useEffect(() => {
-    if (user) {
-      getMatrixStats(user.id).then(setMatrixStats);
-    }
+    if (user) getMatrixStats(user.id).then(setMatrixStats);
   }, [user]);
 
-  const activeSlotIds = new Set(slots.filter(s => s.status === 'active').map(s => s.slotId));
-  const completedSlotIds = new Set(slots.filter(s => s.status === 'completed').map(s => s.slotId));
+  const activeSlots = slots.filter(s => s.status === 'active');
+  const completedSlots = slots.filter(s => s.status === 'completed');
+  const activeSlotIds = new Set(activeSlots.map(s => s.slotId));
+  const completedSlotIds = new Set(completedSlots.map(s => s.slotId));
+  const ownedSlotIds = new Set([...activeSlotIds, ...completedSlotIds]);
 
   const totalEarnings = earnings.total;
-  const availableBalance = Number(user?.totalEarned) - Number(user?.ascensionBalance || 0);
-  const dailyYield = slots.filter(s => s.status === 'active').reduce((sum, s) => sum + s.dailyEarned, 0);
+  const availableBalance = Number(user?.totalEarned || 0) - Number(user?.ascensionBalance || 0);
+  const dailyYield = activeSlots.reduce((sum, s) => sum + s.dailyEarned, 0);
+  const refCode = user?.referralCode || (address ? 'CXL' + address.slice(2, 6).toUpperCase() : '');
+
+  // Find current active package
+  const currentActiveSlotDef = SLOTS.find(s => activeSlotIds.has(s.id));
+  const currentActiveSlot = activeSlots.find(s => s.slotId === currentActiveSlotDef?.id);
+  const lastOwnedOrbit = Math.max(...[...ownedSlotIds].map(id =>
+    SLOTS.findIndex(s => s.id === id)
+  ), -1);
+  const nextSlotDef = lastOwnedOrbit >= 0 ? SLOTS[lastOwnedOrbit + 1] : SLOTS[0];
+
+  // Re-buy count: how many times this slot was purchased
+  const rebuyCount = (slotId: string) => slots.filter(s => s.slotId === slotId).length;
+  const maxRebuys = 5;
+
+  // Determine if a slot is locked (cannot buy yet)
+  const isSlotLocked = (index: number) => {
+    if (index === 0) return false; // First slot always unlockable
+    const prevSlotId = SLOTS[index - 1].id;
+    return !ownedSlotIds.has(prevSlotId);
+  };
+
+  // Matrix node colors
+  const getNodeColor = (type: string) => {
+    switch (type) {
+      case 'direct': return '#00E5FF';
+      case 'spillover': return '#7B61FF';
+      case 'crossline': return '#00FFB2';
+      case 'global': return '#FFB800';
+      default: return '#4A5568';
+    }
+  };
+
+  // Generate mock matrix tree data for visualization
+  const generateMatrixTree = () => {
+    const levels = [];
+    for (let lvl = 1; lvl <= 11; lvl++) {
+      const nodeCount = Math.pow(2, lvl - 1);
+      const nodes = [];
+      for (let i = 0; i < Math.min(nodeCount, 64); i++) {
+        const isCurrentUser = lvl === 1 && i === 0;
+        const isFilled = Math.random() > 0.4;
+        const types = ['direct', 'spillover', 'crossline', 'global'];
+        const type = isCurrentUser ? 'self' : isFilled ? types[Math.floor(Math.random() * types.length)] : 'empty';
+        nodes.push({
+          id: isCurrentUser ? user?.id || 'You' : `0x${Math.random().toString(16).slice(2, 8)}`,
+          package: isFilled ? SLOTS[Math.floor(Math.random() * SLOTS.length)].name : '',
+          type,
+          level: lvl,
+          position: i,
+        });
+      }
+      levels.push({ level: lvl, nodes });
+    }
+    return levels;
+  };
+  const matrixTree = generateMatrixTree();
+
+  const filledPositions = matrixTree.reduce((s, l) => s + l.nodes.filter(n => n.type !== 'empty').length, 0);
+  const totalPositions = matrixTree.reduce((s, l) => s + l.nodes.length, 0);
+  const remainingPositions = totalPositions - filledPositions;
+
+  const autoFlowStats = {
+    directs: matrixTree.reduce((s, l) => s + l.nodes.filter(n => n.type === 'direct').length, 0),
+    spillovers: matrixTree.reduce((s, l) => s + l.nodes.filter(n => n.type === 'spillover').length, 0),
+    crosslines: matrixTree.reduce((s, l) => s + l.nodes.filter(n => n.type === 'crossline').length, 0),
+    globals: matrixTree.reduce((s, l) => s + l.nodes.filter(n => n.type === 'global').length, 0),
+  };
+
+  const recentTxns = transactions.slice(0, 5);
+
   const teamCount = matrixStats?.total || 0;
   const directsCount = matrixStats?.directsCount || 0;
   const spilloverCount = matrixStats?.spilloverCount || 0;
-  const { balance: usdtBalance } = useUsdtBalance(address);
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { href: '/matrix', label: 'Matrix', icon: 'matrix' },
-    { href: '/slots', label: 'My Slots', icon: 'slots' },
+    { href: '/slots', label: 'Packages', icon: 'packages' },
     { href: '/earnings', label: 'Income', icon: 'income' },
     { href: '/referrals', label: 'Team', icon: 'team' },
     { href: '/withdrawals', label: 'Wallet', icon: 'wallet' },
   ];
 
-  const navIcon = (id: string, active: boolean) => {
+  const NavIcon = ({ id, active }: { id: string; active: boolean }) => {
     const cls = active ? 'text-[#00E5FF]' : 'text-[#4A5568]';
-    const size = 20;
+    const sz = 20;
     switch (id) {
-      case 'dashboard': return <svg className={cls} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9" /><rect x="14" y="3" width="7" height="5" /><rect x="14" y="12" width="7" height="9" /><rect x="3" y="16" width="7" height="5" /></svg>;
-      case 'matrix': return <svg className={cls} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>;
-      case 'slots': return <svg className={cls} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /></svg>;
-      case 'income': return <svg className={cls} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>;
-      case 'team': return <svg className={cls} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
-      case 'wallet': return <svg className={cls} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>;
+      case 'dashboard': return <svg className={cls} width={sz} height={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="9" /><rect x="14" y="3" width="7" height="5" /><rect x="14" y="12" width="7" height="9" /><rect x="3" y="16" width="7" height="5" /></svg>;
+      case 'matrix': return <svg className={cls} width={sz} height={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>;
+      case 'packages': return <Orbit size={sz} className={cls} />;
+      case 'income': return <svg className={cls} width={sz} height={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>;
+      case 'team': return <svg className={cls} width={sz} height={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
+      case 'wallet': return <svg className={cls} width={sz} height={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>;
       default: return null;
     }
   };
@@ -91,133 +170,159 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#050816' }}>
-      {/* ====== EARNINGS + WITHDRAW STRIP ====== */}
-      <div className="px-4 pt-4 pb-3">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="rounded-2xl p-4 border border-[rgba(0,229,255,0.08)]" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.04), rgba(123,97,255,0.04))' }}>
-            <p className="text-[10px] text-[#4A5568] uppercase tracking-wider mb-1">Wallet USDT</p>
-            <p className="text-2xl font-bold text-white font-mono">{formatCompact(usdtBalance)}</p>
-            <p className="text-[10px] text-[#00E5FF] mt-1 flex items-center gap-1">
-              <Coins size={10} /> BSC Balance
-            </p>
-          </div>
-          <div className="rounded-2xl p-4 border border-[rgba(0,229,255,0.08)]" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.04), rgba(123,97,255,0.04))' }}>
-            <p className="text-[10px] text-[#4A5568] uppercase tracking-wider mb-1">Total Earnings</p>
-            <p className="text-2xl font-bold text-white font-mono">{formatCompact(totalEarnings)}</p>
-            <p className="text-[10px] text-[#00E5FF] mt-1 flex items-center gap-1">
-              <TrendingUp size={10} /> +{formatCurrency(dailyYield)} / day
-            </p>
-          </div>
-          <div className="rounded-2xl p-4 border border-[rgba(0,229,255,0.08)]" style={{ background: 'rgba(18,26,43,0.6)' }}>
-            <p className="text-[10px] text-[#4A5568] uppercase tracking-wider mb-1">Available Balance</p>
-            <p className="text-2xl font-bold text-[#00FFB2] font-mono">{formatCompact(availableBalance)}</p>
-            <p className="text-[10px] text-[#4A5568] mt-1 flex items-center gap-1">
-              <VaultIcon size={10} /> {formatCurrency(user?.ascensionBalance || 0)} in vault
-            </p>
-          </div>
-          <Link href="/withdrawals" className="rounded-2xl p-4 border border-[rgba(0,229,255,0.08)] flex flex-col items-center justify-center cursor-pointer hover:border-[rgba(0,229,255,0.2)] transition-all" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.08), rgba(123,97,255,0.08))' }}>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] flex items-center justify-center mb-2 shadow-lg shadow-[rgba(0,229,255,0.15)]">
-              <ArrowUpRight size={20} className="text-[#050816]" />
+    <div className="min-h-screen pb-24" style={{ background: '#050816' }}>
+
+      {/* ====== HEADER ====== */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-[rgba(0,229,255,0.03)] to-transparent pointer-events-none" />
+        <div className="px-4 pt-4 pb-4 relative z-10">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center shadow-lg shadow-[rgba(0,229,255,0.15)]">
+                <Orbit size={20} className="text-[#050816]" />
+              </div>
+              <div>
+                <h1 className="text-sm font-bold text-white font-heading" style={{ fontFamily: "'Orbitron',sans-serif" }}>
+                  CYLIX MATRIX DeFi
+                </h1>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <Shield size={10} className="text-[#00FFB2]" />
+                  <span className="text-[8px] text-[#00FFB2] font-medium tracking-wider">SMART CONTRACT SECURED</span>
+                </div>
+              </div>
             </div>
-            <span className="text-sm font-semibold text-white">Withdraw</span>
-          </Link>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] flex items-center justify-center">
+                <User size={14} className="text-[#050816]" />
+              </div>
+              <div className="text-right">
+                <p className="text-[8px] text-[#4A5568] font-mono">ID: {user?.id?.slice(0, 8) || '---'}</p>
+                <p className="text-[9px] text-[#00E5FF] font-mono">{shortenAddress(address) || 'Not Connected'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Earnings Strip */}
+          <div className="grid grid-cols-3 gap-2.5">
+            <div className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)] backdrop-blur-sm" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.04), rgba(123,97,255,0.04))' }}>
+              <p className="text-[8px] text-[#4A5568] uppercase tracking-wider mb-1">Total Earnings</p>
+              <p className="text-lg font-bold text-white font-mono">{formatCompact(totalEarnings)}</p>
+              <p className="text-[8px] text-[#00E5FF] mt-0.5">+{formatCurrency(dailyYield)}/day</p>
+            </div>
+            <div className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)] backdrop-blur-sm" style={{ background: 'rgba(18,26,43,0.6)' }}>
+              <p className="text-[8px] text-[#4A5568] uppercase tracking-wider mb-1">Available</p>
+              <p className="text-lg font-bold text-[#00FFB2] font-mono">{formatCompact(availableBalance)}</p>
+              <p className="text-[8px] text-[#4A5568] mt-0.5">{formatCurrency(user?.ascensionBalance || 0)} vault</p>
+            </div>
+            <Link href="/withdrawals" className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)] flex flex-col items-center justify-center cursor-pointer hover:border-[rgba(0,229,255,0.2)] transition-all backdrop-blur-sm" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.08), rgba(123,97,255,0.08))' }}>
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] flex items-center justify-center mb-1 shadow-md shadow-[rgba(0,229,255,0.15)]">
+                <ArrowUpRight size={16} className="text-[#050816]" />
+              </div>
+              <span className="text-[9px] font-bold text-white">Withdraw</span>
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* ====== REFERRAL CODE ====== */}
-      {(() => {
-        const refCode = user?.referralCode || (address ? 'CXL' + address.slice(2, 6).toUpperCase() : '');
-        if (!refCode) return null;
-        return (
-          <div className="px-4 pb-1">
-            <div className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)] flex items-center justify-between gap-3" style={{ background: 'rgba(0,229,255,0.03)' }}>
-              <div className="flex items-center gap-2 min-w-0">
-                <LinkIcon size={14} className="text-[#00E5FF] shrink-0" />
-                <span className="text-[9px] text-[#4A5568] uppercase tracking-wider shrink-0">Referral</span>
-                <code className="text-xs font-mono font-bold text-[#00E5FF] truncate">{refCode}</code>
-              </div>
-              <button onClick={() => { const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/?ref=${refCode}`; navigator.clipboard.writeText(link); setRefCopied(true); setTimeout(() => setRefCopied(false), 2000); }}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[rgba(0,229,255,0.08)] hover:bg-[rgba(0,229,255,0.12)] transition-all text-[10px] text-[#00E5FF] font-semibold shrink-0">
-                {refCopied ? <><CheckCheck size={12} /> Copied</> : <><Copy size={12} /> Copy Link</>}
-              </button>
+      {/* ====== REFERRAL BAR ====== */}
+      {refCode && (
+        <div className="px-4 mb-2">
+          <div className="rounded-lg p-2.5 border border-[rgba(0,229,255,0.05)] flex items-center justify-between gap-2" style={{ background: 'rgba(0,229,255,0.02)' }}>
+            <div className="flex items-center gap-2 min-w-0">
+              <LinkIcon size={12} className="text-[#00E5FF] shrink-0" />
+              <span className="text-[7px] text-[#4A5568] uppercase tracking-wider shrink-0">REF</span>
+              <code className="text-[10px] font-mono font-bold text-[#00E5FF] truncate">{refCode}</code>
             </div>
+            <button onClick={() => { const link = `${location.origin}/?ref=${refCode}`; navigator.clipboard.writeText(link); setRefCopied(true); setTimeout(() => setRefCopied(false), 2000); }}
+              className="flex items-center gap-1 px-2 py-1 rounded-md bg-[rgba(0,229,255,0.06)] hover:bg-[rgba(0,229,255,0.1)] transition-all text-[8px] text-[#00E5FF] font-semibold shrink-0">
+              {refCopied ? <><CheckCheck size={10} /> Copied</> : <><Copy size={10} /> Copy Link</>}
+            </button>
           </div>
-        );
-      })()}
-
-      {/* ====== 11 SLOT MATRIX SYSTEM ====== */}
-      <div className="px-4 pt-2 pb-2">
-        <div className="flex items-center gap-2 mb-3">
-          <Orbit size={14} className="text-[#00E5FF]" />
-          <h2 className="text-xs font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>11 Slot Matrix System</h2>
-          <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.2)] to-transparent" />
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 gap-2.5">
-          {SLOTS.map((slotDef) => {
+      )}
+
+      {/* ====== 11 PACKAGES COMPACT GRID ====== */}
+      <div className="px-4 mb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Layers size={12} className="text-[#00E5FF]" />
+          <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Packages</h2>
+          <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.15)] to-transparent" />
+        </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {SLOTS.map((slotDef, index) => {
             const isActive = activeSlotIds.has(slotDef.id);
             const isCompleted = completedSlotIds.has(slotDef.id);
             const isOwned = isActive || isCompleted;
-            const isLocked = !isOwned && slotDef.orbit > 1 && !activeSlotIds.has(`orbit-${slotDef.orbit - 1}`) && !completedSlotIds.has(`orbit-${slotDef.orbit - 1}`);
-            const matrixPoolValue = slotDef.price * 0.26;
+            const isLocked = isSlotLocked(index) && !isOwned;
+            const slotColor = SLOT_COLORS[`orbit_${slotDef.orbit}`] || '#00E5FF';
+            const progressPercent = currentActiveSlot ? (currentActiveSlot.earned / currentActiveSlot.maxCap) * 100 : 0;
+            const rCount = rebuyCount(slotDef.id);
+            const levelFillPercent = Math.min(((matrixStats?.levelFill?.[index] || 0) / Math.pow(2, index)) * 100, 100);
 
+            // LOCKED display - minimal
+            if (isLocked) {
+              return (
+                <div key={slotDef.id}
+                  className="relative rounded-lg border border-[rgba(148,163,184,0.04)] p-2 opacity-40"
+                  style={{ background: 'rgba(18,26,43,0.3)' }}>
+                  <div className="flex items-center justify-center mb-1">
+                    <Lock size={10} className="text-[#4A5568]" />
+                  </div>
+                  <p className="text-[8px] font-bold text-[#4A5568] text-center font-heading">{slotDef.name}</p>
+                  <p className="text-[9px] font-mono font-bold text-[#4A5568] text-center">{formatCurrency(slotDef.price)}</p>
+                </div>
+              );
+            }
+
+            // COMPLETED display
+            if (isCompleted) {
+              return (
+                <div key={slotDef.id}
+                  className="relative rounded-lg border border-[rgba(0,255,178,0.1)] p-2"
+                  style={{ background: 'rgba(0,255,178,0.03)' }}>
+                  <div className="absolute top-1 right-1">
+                    <span className="text-[6px] px-1 py-0.5 rounded-full bg-[rgba(0,255,178,0.1)] text-[#00FFB2] font-bold">DONE</span>
+                  </div>
+                  <p className="text-[8px] font-bold text-white text-center font-heading pr-6">{slotDef.name}</p>
+                  <p className="text-[9px] font-mono font-bold text-[#00FFB2] text-center">{formatCurrency(slotDef.price)}</p>
+                </div>
+              );
+            }
+
+            // ACTIVE display - detailed
             return (
               <div key={slotDef.id}
-                className={cn(
-                  'relative rounded-xl border transition-all duration-300 overflow-hidden',
-                  isActive && 'border-[#00E5FF] shadow-[0_0_20px_rgba(0,229,255,0.12)]',
-                  isCompleted && 'border-[#00FFB2] opacity-80',
-                  !isOwned && !isLocked && 'border-[rgba(0,229,255,0.06)] hover:border-[rgba(0,229,255,0.15)]',
-                  isLocked && 'border-[rgba(148,163,184,0.04)] opacity-40',
-                )}
-                style={{ background: isActive ? 'linear-gradient(180deg, rgba(0,229,255,0.06), rgba(0,229,255,0.02))' : 'rgba(18,26,43,0.4)' }}
-              >
-                {isActive && (
-                  <div className="absolute inset-0 rounded-xl pointer-events-none" style={{ boxShadow: 'inset 0 0 30px rgba(0,229,255,0.05)' }} />
-                )}
-                <div className="p-2.5">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[9px] text-[#4A5568] font-mono font-medium">Slot {String(slotDef.orbit).padStart(2, '0')}</span>
-                    {isActive && <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-[rgba(0,229,255,0.12)] text-[#00E5FF] font-semibold tracking-wider">ACTIVE</span>}
-                    {isCompleted && <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-[rgba(0,255,178,0.12)] text-[#00FFB2] font-semibold tracking-wider">DONE</span>}
-                    {isLocked && <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-[rgba(74,85,104,0.12)] text-[#4A5568] font-semibold tracking-wider">LOCKED</span>}
+                className="relative rounded-lg border border-[rgba(0,229,255,0.12)] p-2 overflow-hidden"
+                style={{ background: 'linear-gradient(180deg, rgba(0,229,255,0.06), rgba(0,229,255,0.01))' }}>
+                <div className="absolute inset-0 rounded-lg pointer-events-none" style={{ boxShadow: 'inset 0 0 20px rgba(0,229,255,0.04)' }} />
+                <div className="absolute top-1 right-1">
+                  <span className="text-[6px] px-1 py-0.5 rounded-full bg-[rgba(0,229,255,0.12)] text-[#00E5FF] font-bold">LIVE</span>
+                </div>
+                <p className="text-[8px] font-bold text-white text-center font-heading pr-6">{slotDef.name}</p>
+                <p className="text-[10px] font-mono font-bold text-white text-center">{formatCurrency(slotDef.price)}</p>
+                <div className="mt-1 flex items-center justify-center gap-1">
+                  <TrendingUp size={7} className="text-[#00E5FF]" />
+                  <span className="text-[7px] text-[#00E5FF] font-mono">3%</span>
+                </div>
+                {/* Cap Progress Bar */}
+                <div className="mt-1">
+                  <div className="flex justify-between text-[6px] text-[#4A5568]">
+                    <span>Cap</span>
+                    <span className="font-mono">{currentActiveSlot?.earned ? formatCurrency(currentActiveSlot.earned) : '---'}</span>
                   </div>
-                  <p className="text-xs font-bold text-white mb-2" style={{ fontFamily: "'Rajdhani',sans-serif" }}>{slotDef.name}</p>
-                  <div className="space-y-1 mb-2">
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-[#4A5568]">Price</span>
-                      <span className="text-white font-mono font-semibold">{formatCurrency(slotDef.price)}</span>
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-[#4A5568]">Yield</span>
-                      <span className="text-[#00E5FF] font-mono">{formatCurrency(slotDef.dailyYield)}/d</span>
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-[#4A5568]">Cap</span>
-                      <span className="text-[#7B61FF] font-mono">{formatCurrency(slotDef.maxCap)}</span>
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-[#4A5568]">Matrix</span>
-                      <span className="text-[#00FFB2] font-mono">{formatCurrency(matrixPoolValue)}</span>
-                    </div>
+                  <div className="h-1 rounded-full bg-[rgba(11,16,32,0.6)] overflow-hidden mt-0.5">
+                    <div className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${Math.min(progressPercent, 100)}%`, background: `linear-gradient(90deg, ${slotColor}, #00E5FF)` }} />
                   </div>
-                  {!isOwned && !isLocked && (
-                    <Link href="/slots"
-                      className="block w-full py-1.5 rounded-lg bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] text-[9px] font-bold text-center hover:shadow-lg hover:shadow-[rgba(0,229,255,0.15)] transition-all">
-                      BUY NOW
-                    </Link>
-                  )}
-                  {isLocked && (
-                    <div className="w-full py-1.5 rounded-lg bg-[rgba(74,85,104,0.1)] text-[#4A5568] text-[9px] font-bold text-center">
-                      LOCKED
-                    </div>
-                  )}
-                  {isOwned && (
-                    <div className="w-full py-1.5 rounded-lg text-[9px] font-bold text-center"
-                      style={{ background: isActive ? 'rgba(0,229,255,0.06)' : 'rgba(0,255,178,0.06)', color: isActive ? '#00E5FF' : '#00FFB2' }}>
-                      {isActive ? 'LIVE' : 'CLAIMED'}
-                    </div>
-                  )}
+                  <div className="flex justify-between text-[6px] text-[#4A5568] mt-0.5">
+                    <span>{Math.min(progressPercent, 100).toFixed(0)}%</span>
+                    <span>200% max</span>
+                  </div>
+                </div>
+                {/* Re-buy Counter */}
+                <div className="mt-1 flex items-center justify-between bg-[rgba(0,229,255,0.03)] rounded px-1 py-0.5">
+                  <span className="text-[6px] text-[#4A5568]">Re-Buy</span>
+                  <span className="text-[7px] font-mono text-[#FFB800]">{rCount}/{maxRebuys}</span>
                 </div>
               </div>
             );
@@ -225,57 +330,360 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ====== STATS GRID ====== */}
-      <div className="px-4 pt-2 pb-4">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
-          {[
-            { label: 'Team Count', value: teamCount, icon: 'users', color: '#00E5FF' },
-            { label: 'Direct Referrals', value: directsCount, icon: 'directs', color: '#7B61FF' },
-            { label: 'Spillover Income', value: spilloverCount, icon: 'spillover', color: '#FFB800' },
-            { label: 'Apex Pool', value: formatCompact(earnings.pool), icon: 'pool', color: '#00FFB2' },
-            { label: 'Auto Vault', value: formatCompact(user?.ascensionBalance || 0), icon: 'vault', color: '#FF5C7A' },
-            { label: 'Upgrade', value: (vault?.progress || 0).toFixed(0) + '%', icon: 'upgrade', color: '#7B61FF' },
-          ].map((s, i) => {
-            const ico = () => {
-              const c = 'currentColor';
-              const sz = 16;
-              switch (s.icon) {
-                case 'users': return <Users size={sz} />;
-                case 'directs': return <GitBranch size={sz} />;
-                case 'spillover': return <TrendingUp size={sz} />;
-                case 'pool': return <Globe size={sz} />;
-                case 'vault': return <VaultIcon size={sz} />;
-                case 'upgrade': return <Zap size={sz} />;
-                default: return null;
-              }
-            };
-            return (
-              <div key={i} className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)] hover:border-[rgba(0,229,255,0.12)] transition-all" style={{ background: 'rgba(18,26,43,0.4)' }}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[9px] text-[#4A5568] uppercase tracking-wider">{s.label}</span>
-                  <span style={{ color: s.color }}>{ico()}</span>
+      {/* ====== MATRIX EXPLORER ====== */}
+      <div className="px-4 mb-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <GitBranch size={12} className="text-[#00E5FF]" />
+            <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Matrix Explorer</h2>
+          </div>
+          <div className="flex gap-1">
+            <button onClick={() => setMatrixView('explorer')}
+              className={cn('px-2 py-1 rounded text-[7px] font-semibold transition-all', matrixView === 'explorer' ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF]' : 'text-[#4A5568] hover:text-white')}>Tree</button>
+            <button onClick={() => setMatrixView('analytics')}
+              className={cn('px-2 py-1 rounded text-[7px] font-semibold transition-all', matrixView === 'analytics' ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF]' : 'text-[#4A5568] hover:text-white')}>Analytics</button>
+          </div>
+        </div>
+
+        {matrixView === 'explorer' ? (
+          <div className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3 overflow-x-auto" style={{ background: 'rgba(11,16,32,0.5)' }}>
+            {/* Legend */}
+            <div className="flex flex-wrap gap-3 mb-3">
+              {[
+                { label: 'Current User', color: '#00E5FF', dot: true },
+                { label: 'Direct', color: '#00E5FF' },
+                { label: 'Spillover', color: '#7B61FF' },
+                { label: 'Crossline', color: '#00FFB2' },
+                { label: 'Global', color: '#FFB800' },
+                { label: 'Empty', color: '#1E2A3A' },
+              ].map(l => (
+                <div key={l.label} className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full" style={{
+                    background: l.dot ? 'conic-gradient(#00E5FF, #7B61FF)' : l.color,
+                    boxShadow: l.dot ? '0 0 6px rgba(0,229,255,0.4)' : 'none',
+                  }} />
+                  <span className="text-[7px] text-[#4A5568]">{l.label}</span>
                 </div>
-                <p className="text-base font-bold font-mono text-white">{s.value}</p>
+              ))}
+            </div>
+
+            {/* Tree visualization - levels 1-11 */}
+            <div className="space-y-1.5">
+              {matrixTree.map((level) => (
+                <div key={level.level}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[6px] text-[#4A5568] font-mono w-4">L{level.level}</span>
+                    <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.05)] to-transparent" />
+                  </div>
+                  <div className="flex flex-wrap gap-1 justify-center">
+                    {level.nodes.slice(0, 32).map((node, i) => {
+                      const isSelf = node.type === 'self';
+                      const colors: Record<string, string> = {
+                        self: '#00E5FF', direct: '#00E5FF', spillover: '#7B61FF',
+                        crossline: '#00FFB2', global: '#FFB800', empty: '#1E2A3A',
+                      };
+                      const glows: Record<string, string> = {
+                        self: '0 0 8px rgba(0,229,255,0.3)', direct: '0 0 4px rgba(0,229,255,0.15)',
+                        spillover: '0 0 4px rgba(123,97,255,0.15)', crossline: '0 0 4px rgba(0,255,178,0.15)',
+                        global: '0 0 4px rgba(255,184,0,0.15)',
+                      };
+                      return (
+                        <button key={i} onClick={() => node.type !== 'empty' && setSelectedNode(node)}
+                          className="relative transition-all duration-200 hover:scale-110"
+                          style={{ opacity: node.type === 'empty' ? 0.3 : 1 }}>
+                          <div className="w-5 h-5 rounded-full border flex items-center justify-center cursor-pointer"
+                            style={{
+                              borderColor: colors[node.type] || '#1E2A3A',
+                              background: isSelf ? 'linear-gradient(135deg, #00E5FF, #7B61FF)' : `${colors[node.type]}15`,
+                              boxShadow: glows[node.type] || 'none',
+                            }}>
+                            {isSelf ? (
+                              <User size={8} className="text-[#050816]" />
+                            ) : node.type !== 'empty' ? (
+                              <div className="w-1.5 h-1.5 rounded-full" style={{ background: colors[node.type] }} />
+                            ) : null}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Matrix Capacity Stats */}
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="rounded-lg p-2 bg-[rgba(0,229,255,0.02)] border border-[rgba(0,229,255,0.04)]">
+                <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">Capacity</p>
+                <p className="text-[10px] font-mono font-bold text-white">{filledPositions}/{totalPositions}</p>
+              </div>
+              <div className="rounded-lg p-2 bg-[rgba(0,229,255,0.02)] border border-[rgba(0,229,255,0.04)]">
+                <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">Filled</p>
+                <p className="text-[10px] font-mono font-bold text-[#00E5FF]">{filledPositions}</p>
+              </div>
+              <div className="rounded-lg p-2 bg-[rgba(0,229,255,0.02)] border border-[rgba(0,229,255,0.04)]">
+                <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">Remaining</p>
+                <p className="text-[10px] font-mono font-bold text-[#FFB800]">{remainingPositions}</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* ====== MATRIX ANALYTICS ====== */
+          <div className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3" style={{ background: 'rgba(11,16,32,0.5)' }}>
+            {/* Level Progress */}
+            <div className="space-y-2 mb-3">
+              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider font-semibold">Level Fill Progress</p>
+              {matrixTree.slice(0, 11).map((level) => {
+                const filled = level.nodes.filter(n => n.type !== 'empty').length;
+                const total = level.nodes.length;
+                const pct = (filled / total) * 100;
+                return (
+                  <div key={level.level} className="flex items-center gap-2">
+                    <span className="text-[7px] text-[#4A5568] font-mono w-8">L{level.level}</span>
+                    <div className="flex-1 h-1.5 rounded-full bg-[rgba(11,16,32,0.6)] overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%`, background: pct > 50 ? 'linear-gradient(90deg, #00E5FF, #7B61FF)' : 'linear-gradient(90deg, #4A5568, #00E5FF)' }} />
+                    </div>
+                    <span className="text-[7px] text-[#4A5568] font-mono w-10 text-right">{filled}/{total}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Auto Flow Analytics */}
+            <div className="border-t border-[rgba(0,229,255,0.05)] pt-3">
+              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider font-semibold mb-2">Auto Flow Distribution</p>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { label: 'Direct', value: autoFlowStats.directs, color: '#00E5FF' },
+                  { label: 'Spillover', value: autoFlowStats.spillovers, color: '#7B61FF' },
+                  { label: 'Crossline', value: autoFlowStats.crosslines, color: '#00FFB2' },
+                  { label: 'Global', value: autoFlowStats.globals, color: '#FFB800' },
+                ].map(s => (
+                  <div key={s.label} className="rounded-lg p-2 text-center" style={{ background: `${s.color}06`, border: `1px solid ${s.color}12` }}>
+                    <p className="text-[9px] font-mono font-bold" style={{ color: s.color }}>{s.value}</p>
+                    <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Node Detail Panel */}
+        {selectedNode && (
+          <div className="mt-2 rounded-xl border border-[rgba(0,229,255,0.08)] p-3 relative" style={{ background: 'rgba(11,16,32,0.8)' }}>
+            <button onClick={() => setSelectedNode(null)} className="absolute top-2 right-2 text-[#4A5568] hover:text-white">
+              <EyeOff size={12} />
+            </button>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center">
+                <User size={10} className="text-[#050816]" />
+              </div>
+              <p className="text-[10px] font-mono font-bold text-white">{shortenAddress(selectedNode.id)}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-[8px]">
+              <div><span className="text-[#4A5568]">Package:</span> <span className="text-white">{selectedNode.package || '--'}</span></div>
+              <div><span className="text-[#4A5568]">Level:</span> <span className="text-white">Level {selectedNode.level}</span></div>
+              <div>
+                <span className="text-[#4A5568]">Source:</span>
+                <span className="font-semibold ml-1" style={{ color: getNodeColor(selectedNode.type) }}>{selectedNode.type.charAt(0).toUpperCase() + selectedNode.type.slice(1)}</span>
+              </div>
+              <div><span className="text-[#4A5568]">Position:</span> <span className="text-white">#{selectedNode.position + 1}</span></div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ====== PACKAGE PROGRESS PANEL ====== */}
+      <div className="px-4 mb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <BarChart3 size={12} className="text-[#7B61FF]" />
+          <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Package Progress</h2>
+          <div className="flex-1 h-px bg-gradient-to-r from-[rgba(123,97,255,0.15)] to-transparent" />
+        </div>
+        <div className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3" style={{ background: 'rgba(11,16,32,0.5)' }}>
+          {currentActiveSlotDef && currentActiveSlot ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Active Package</p>
+                <p className="text-sm font-bold text-white font-heading" style={{ color: SLOT_COLORS[`orbit_${currentActiveSlotDef.orbit}`] || '#00E5FF' }}>
+                  {currentActiveSlotDef.name}
+                </p>
+                <p className="text-[10px] font-mono text-[#4A5568]">Orbit #{currentActiveSlotDef.orbit}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Daily Yield</p>
+                <p className="text-lg font-bold font-mono text-[#00E5FF]">{formatCurrency(currentActiveSlot.dailyEarned)}</p>
+                <p className="text-[8px] text-[#4A5568]">3% of {formatCurrency(currentActiveSlotDef.price)}</p>
+              </div>
+              {/* Cap Progress */}
+              <div className="col-span-2">
+                <div className="flex justify-between text-[7px] text-[#4A5568] mb-1">
+                  <span>Cap Progress</span>
+                  <span className="font-mono">{formatCurrency(currentActiveSlot.earned)} / {formatCurrency(currentActiveSlot.maxCap)}</span>
+                </div>
+                <div className="h-2 rounded-full bg-[rgba(11,16,32,0.6)] overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${Math.min((currentActiveSlot.earned / currentActiveSlot.maxCap) * 100, 100)}%`, background: 'linear-gradient(90deg, #7B61FF, #00E5FF)' }} />
+                </div>
+                <div className="flex justify-between text-[7px] mt-1">
+                  <span className="text-white font-mono">{Math.min((currentActiveSlot.earned / currentActiveSlot.maxCap) * 100, 100).toFixed(1)}%</span>
+                  <span className="text-[#7B61FF]">200% max</span>
+                </div>
+              </div>
+              {/* Re-buy Progress */}
+              <div className="col-span-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[7px] text-[#4A5568] uppercase tracking-wider">Re-Buy Cycles</span>
+                  <span className="text-[9px] font-mono text-[#FFB800]">{rebuyCount(currentActiveSlotDef.id)} / {maxRebuys}</span>
+                </div>
+                <div className="flex gap-1 mt-1">
+                  {Array.from({ length: maxRebuys }).map((_, i) => (
+                    <div key={i} className={cn('flex-1 h-1.5 rounded-full transition-all', i < rebuyCount(currentActiveSlotDef.id) ? 'bg-[#FFB800]' : 'bg-[rgba(255,184,0,0.1)]')} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : nextSlotDef ? (
+            <div className="text-center py-3">
+              <p className="text-[9px] text-[#4A5568]">No active package</p>
+              <Link href="/slots" className="inline-flex items-center gap-1 mt-2 text-[8px] text-[#00E5FF] font-semibold hover:underline">
+                Activate {nextSlotDef.name} <ChevronRight size={10} />
+              </Link>
+            </div>
+          ) : (
+            <div className="text-center py-3">
+              <p className="text-[9px] text-[#4A5568]">All packages completed</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ====== GLOBAL APEX POOL ====== */}
+      <div className="px-4 mb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Trophy size={12} className="text-[#FFB800]" />
+          <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Global Apex Pool</h2>
+          <div className="flex-1 h-px bg-gradient-to-r from-[rgba(255,184,0,0.15)] to-transparent" />
+        </div>
+        <div className="rounded-xl border border-[rgba(255,184,0,0.06)] p-3" style={{ background: 'linear-gradient(135deg, rgba(255,184,0,0.02), rgba(255,92,122,0.02))' }}>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Pool Balance</p>
+              <p className="text-lg font-bold font-mono text-[#FFB800]">{formatCompact(earnings.pool || 125000)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Qualified</p>
+              <p className="text-lg font-bold font-mono text-white">{matrixStats?.total || 0} members</p>
+            </div>
+            <div>
+              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Next Distribution</p>
+              <div className="flex items-center gap-1">
+                <Timer size={10} className="text-[#FFB800]" />
+                <p className="text-[10px] font-mono text-white">~12h 34m</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Per Qualifier</p>
+              <p className="text-[10px] font-mono text-[#00FFB2]">{formatCurrency(earnings.pool > 0 ? earnings.pool / Math.max(matrixStats?.total || 1, 1) : 42.50)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ====== TRANSACTION HISTORY ====== */}
+      <div className="px-4 mb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Activity size={12} className="text-[#00E5FF]" />
+          <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Transactions</h2>
+          <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.15)] to-transparent" />
+          {transactions.length > 0 && (
+            <Link href="/transactions" className="text-[7px] text-[#00E5FF] font-semibold hover:underline">View All</Link>
+          )}
+        </div>
+        <div className="rounded-xl border border-[rgba(0,229,255,0.06)] overflow-hidden" style={{ background: 'rgba(11,16,32,0.5)' }}>
+          {recentTxns.length > 0 ? (
+            <div className="divide-y divide-[rgba(0,229,255,0.03)]">
+              {recentTxns.map((tx, i) => {
+                const typeConfig: Record<string, { color: string; label: string }> = {
+                  slot_purchase: { color: '#00E5FF', label: 'Purchase' },
+                  withdraw: { color: '#FF5C7A', label: 'Withdraw' },
+                  referral: { color: '#7B61FF', label: 'Referral' },
+                  daily_earning: { color: '#00FFB2', label: 'Daily' },
+                  matrix_earning: { color: '#00E5FF', label: 'Matrix' },
+                  pool_earning: { color: '#FFB800', label: 'Pool' },
+                  ascension_credit: { color: '#7B61FF', label: 'Ascension' },
+                  upgrade: { color: '#7B61FF', label: 'Upgrade' },
+                  recycle: { color: '#00E5FF', label: 'Re-cycle' },
+                };
+                const tc = typeConfig[tx.type] || { color: '#4A5568', label: tx.type };
+                return (
+                  <div key={tx.id || i} className="flex items-center justify-between px-3 py-2 hover:bg-[rgba(0,229,255,0.01)] transition-all">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${tc.color}10` }}>
+                        <Activity size={10} style={{ color: tc.color }} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[8px] font-semibold text-white truncate">{tx.description || tc.label}</p>
+                        <p className="text-[6px] text-[#4A5568] font-mono">{tx.timestamp ? new Date(tx.timestamp).toLocaleDateString() : '--'}</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold shrink-0" style={{ color: tx.amount > 0 ? '#00FFB2' : '#FF5C7A' }}>
+                      {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-4 text-center">
+              <Activity size={16} className="mx-auto mb-2 text-[#4A5568]" />
+              <p className="text-[8px] text-[#4A5568]">No recent transactions</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ====== STATS SUMMARY ROW ====== */}
+      <div className="px-4 mb-3">
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { label: 'Team', value: teamCount, icon: Users, color: '#00E5FF' },
+            { label: 'Directs', value: directsCount, icon: Users, color: '#7B61FF' },
+            { label: 'Spillover', value: spilloverCount, icon: TrendingUp, color: '#FFB800' },
+          ].map((s, i) => {
+            const Icon = s.icon;
+            return (
+              <div key={i} className="rounded-lg p-2.5 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(18,26,43,0.4)' }}>
+                <Icon size={12} className="mx-auto mb-1" style={{ color: s.color }} />
+                <p className="text-xs font-mono font-bold text-white">{s.value}</p>
+                <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">{s.label}</p>
               </div>
             );
           })}
         </div>
-        {/* Upgrade Progress Bar */}
-        <div className="mt-2.5 rounded-xl p-3 border border-[rgba(0,229,255,0.06)]" style={{ background: 'rgba(18,26,43,0.4)' }}>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Shield size={12} className="text-[#7B61FF]" />
-              <span className="text-[9px] text-[#4A5568] uppercase tracking-wider">Upgrade Progress</span>
+      </div>
+
+      {/* ====== FLOATING WALLET/USDT BAR ====== */}
+      <div className="px-4 mb-3">
+        <div className="rounded-lg p-2 border border-[rgba(0,229,255,0.04)] flex items-center justify-between" style={{ background: 'rgba(0,229,255,0.02)' }}>
+          <div className="flex items-center gap-2">
+            <Coins size={12} className="text-[#00E5FF]" />
+            <span className="text-[7px] text-[#4A5568] uppercase tracking-wider">Connected Wallet</span>
+            <code className="text-[8px] font-mono text-[#00E5FF]">{shortenAddress(address) || 'Not Connected'}</code>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <span className="text-[7px] text-[#4A5568]">USDT:</span>
+              <span className="text-[9px] font-mono font-bold text-white">{formatCompact(usdtBalance)}</span>
             </div>
-            <span className="text-[10px] text-[#7B61FF] font-mono">{(vault?.progress || 0).toFixed(0)}%</span>
-          </div>
-          <div className="h-2 rounded-full bg-[rgba(11,16,32,0.6)] overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${Math.min(vault?.progress || 0, 100)}%`, background: 'linear-gradient(90deg, #7B61FF, #00E5FF)' }} />
-          </div>
-          <div className="flex justify-between mt-1.5 text-[8px] text-[#4A5568]">
-            <span>Next: {vault?.nextSlot || '--'}</span>
-            <span className="font-mono">{formatCurrency(vault?.nextSlotCost || 0)}</span>
+            {address && (
+              <a href={`https://bscscan.com/address/${address}`} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1 text-[#4A5568] hover:text-[#00E5FF] transition-all">
+                <ExternalLink size={10} />
+              </a>
+            )}
           </div>
         </div>
       </div>
@@ -293,8 +701,8 @@ export default function DashboardPage() {
                   active ? 'text-[#00E5FF]' : 'text-[#4A5568] hover:text-[#94A3B8]'
                 )}>
                 {active && <div className="absolute -top-[5px] w-8 h-0.5 rounded-full bg-[#00E5FF]" />}
-                {navIcon(item.icon, active)}
-                <span className={cn('text-[9px] font-semibold tracking-wider', active && 'text-[#00E5FF]')}>{item.label}</span>
+                <NavIcon id={item.icon} active={active} />
+                <span className={cn('text-[8px] font-semibold tracking-wider', active && 'text-[#00E5FF]')}>{item.label}</span>
               </Link>
             );
           })}
