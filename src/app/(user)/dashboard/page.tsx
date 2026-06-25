@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
 import { getMatrixStats, getMatrixTree } from '@/lib/db';
-import { SLOTS, SLOT_CONFIG } from '@/lib/constants';
+import { SLOTS, SLOT_CONFIG, REBUY_MAX } from '@/lib/constants';
 import { useAccount } from 'wagmi';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -14,7 +14,7 @@ import {
   ArrowUpRight, Shield, Coins, Copy, CheckCheck,
   Link as LinkIcon, Lock, Activity, User,
   Timer, Trophy, Layers, ChevronRight,
-  ExternalLink, EyeOff, ShoppingCart,
+  ExternalLink, EyeOff, RotateCcw, Globe,
 } from 'lucide-react';
 
 const cn = (...classes: (string | boolean | undefined | null)[]) => classes.filter(Boolean).join(' ');
@@ -33,19 +33,12 @@ const shortenAddress = (addr?: string) => {
   return addr.slice(0, 6) + '...' + addr.slice(-4);
 };
 
-const SLOT_COLORS: Record<string, string> = {
-  orbit_1: '#00E5FF', orbit_2: '#7B61FF', orbit_3: '#00FFB2',
-  orbit_4: '#FFB800', orbit_5: '#FF5C7A', orbit_6: '#00E5FF',
-  orbit_7: '#7B61FF', orbit_8: '#00FFB2', orbit_9: '#FFB800',
-  orbit_10: '#FF5C7A', orbit_11: '#00E5FF',
-};
-
 const PLACEMENT_LABELS: Record<string, string> = {
   root: 'Self', left: 'Direct', right: 'Spillover',
 };
 
 export default function DashboardPage() {
-  const { user, slots, earnings, vault, transactions } = useAppStore();
+  const { user, slots, earnings, vault, transactions, adminStats } = useAppStore();
   const { loading } = useInitData();
   const { isConnected, address } = useAccount();
   const pathname = usePathname();
@@ -104,6 +97,17 @@ export default function DashboardPage() {
     return !ownedSlotIds.has(SLOTS[index - 1].id);
   };
 
+  const getGradient = (orbit: number) => {
+    if (orbit <= 3) return { from: '#00E5FF', to: '#00B4D8' };
+    if (orbit <= 7) return { from: '#7B61FF', to: '#C084FC' };
+    return { from: '#FFB800', to: '#FF5C7A' };
+  };
+
+  const communityStats = {
+    teamCount: matrixStats?.total || 0,
+    directsCount: matrixStats?.directsCount || 0,
+  };
+  const rebuyCount = (slotId: string) => slots.filter(s => s.slotId === slotId).length;
   const autoFlowStats = [
     { label: 'Direct', value: matrixStats?.directsCount || 0, color: '#00E5FF' },
     { label: 'Spillover', value: Math.max(0, (matrixStats?.total || 0) - (matrixStats?.directsCount || 0)), color: '#7B61FF' },
@@ -192,6 +196,21 @@ export default function DashboardPage() {
               <span className="text-[9px] font-bold text-white">Withdraw</span>
             </Link>
           </div>
+          {/* Summary boxes */}
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            <div className="rounded-lg p-2 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(0,229,255,0.02)' }}>
+              <p className="text-[6px] text-[#4A5568] uppercase tracking-wider mb-0.5">Team / Direct</p>
+              <p className="text-xs font-mono font-bold text-white">{communityStats.teamCount}<span className="text-[#4A5568] text-[8px]">/{communityStats.directsCount}</span></p>
+            </div>
+            <div className="rounded-lg p-2 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(0,229,255,0.02)' }}>
+              <p className="text-[6px] text-[#4A5568] uppercase tracking-wider mb-0.5">Community</p>
+              <p className="text-xs font-mono font-bold text-[#00E5FF]">{adminStats?.totalUsers || 0}</p>
+            </div>
+            <div className="rounded-lg p-2 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(0,229,255,0.02)' }}>
+              <p className="text-[6px] text-[#4A5568] uppercase tracking-wider mb-0.5">24h Growth</p>
+              <p className="text-xs font-mono font-bold text-[#00FFB2]">+{adminStats?.newUsersToday || 0}</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -221,93 +240,106 @@ export default function DashboardPage() {
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
           {SLOTS.map((slotDef, index) => {
-            const isActive = activeSlotIds.has(slotDef.id);
-            const isCompleted = completedSlotIds.has(slotDef.id);
-            const isOwned = isActive || isCompleted;
+            const slotRecords = slots.filter(s => s.slotId === slotDef.id);
+            const isActive = slotRecords.some(s => s.status === 'active');
+            const isCompleted = slotRecords.some(s => s.status === 'completed');
+            const isLockedPermanent = slotRecords.some(s => s.status === 'locked');
+            const isOwned = isActive || isCompleted || isLockedPermanent;
             const isLocked = isSlotLocked(index) && !isOwned;
             const isCleared = !isOwned && !isLocked && lastOwnedIndex >= index;
-            const slotColor = SLOT_COLORS[`orbit_${slotDef.orbit}`] || '#00E5FF';
+            const grad = getGradient(slotDef.orbit);
+            const totalPurchases = slotRecords.length;
             const progressPercent = currentActiveSlot && currentActiveSlot.slotId === slotDef.id
               ? (currentActiveSlot.earned / currentActiveSlot.maxCap) * 100 : 0;
 
+            if (isLockedPermanent) {
+              return (
+                <div key={slotDef.id} className="relative rounded-xl p-3 flex flex-col items-center text-center overflow-hidden" style={{ background: `linear-gradient(135deg, ${grad.from}06, ${grad.to}03)`, border: `1px solid ${grad.from}15`, opacity: 0.4 }}>
+                  <Lock size={12} className="text-[#4A5568] mb-1" />
+                  <p className="text-[10px] font-bold text-[#4A5568] font-heading">{slotDef.name}</p>
+                  <p className="text-[11px] font-mono font-bold text-[#4A5568]">{formatCurrency(slotDef.price)}</p>
+                  <p className="text-[6px] text-[#4A5568] mt-0.5">5/5 Re-buys</p>
+                </div>
+              );
+            }
+
             if (isLocked) {
               return (
-                <div key={slotDef.id}
-                  className="relative rounded-xl border border-[rgba(148,163,184,0.06)] p-3 opacity-40 flex flex-col items-center text-center"
-                  style={{ background: 'rgba(18,26,43,0.3)' }}>
-                  <Lock size={14} className="text-[#4A5568] mb-2" />
-                  <p className="text-[11px] font-bold text-[#4A5568] font-heading leading-tight">{slotDef.name}</p>
-                  <p className="text-[13px] font-mono font-bold text-[#4A5568] mt-1">{formatCurrency(slotDef.price)}</p>
+                <div key={slotDef.id} className="relative rounded-xl p-3 flex flex-col items-center text-center overflow-hidden" style={{ background: `linear-gradient(135deg, ${grad.from}06, ${grad.to}03)`, border: `1px solid ${grad.from}15`, opacity: 0.3 }}>
+                  <Lock size={12} className="text-[#4A5568] mb-1" />
+                  <p className="text-[10px] font-bold text-[#4A5568] font-heading">{slotDef.name}</p>
+                  <p className="text-[11px] font-mono font-bold text-[#4A5568]">{formatCurrency(slotDef.price)}</p>
                 </div>
               );
             }
 
             if (isCompleted) {
               return (
-                <div key={slotDef.id}
-                  className="relative rounded-xl border border-[rgba(0,255,178,0.08)] p-3 flex flex-col items-center text-center"
-                  style={{ background: 'rgba(0,255,178,0.03)' }}>
-                  <div className="absolute top-1.5 right-1.5">
-                    <span className="text-[6px] px-1.5 py-0.5 rounded-full bg-[rgba(0,255,178,0.1)] text-[#00FFB2] font-bold">DONE</span>
-                  </div>
-                  <p className="text-[11px] font-bold text-white font-heading leading-tight pr-6">{slotDef.name}</p>
-                  <p className="text-[13px] font-mono font-bold text-[#00FFB2] mt-1">{formatCurrency(slotDef.price)}</p>
+                <div key={slotDef.id} className="relative rounded-xl p-3 flex flex-col items-center text-center overflow-hidden" style={{ background: `linear-gradient(135deg, ${grad.from}08, ${grad.to}05)`, border: `1px solid ${grad.from}30` }}>
+                  <div className="absolute top-1 right-1"><span className="text-[5px] px-1 py-0.5 rounded-full bg-[rgba(0,255,178,0.1)] text-[#00FFB2] font-bold">DONE</span></div>
+                  <p className="text-[10px] font-bold text-white font-heading pr-5">{slotDef.name}</p>
+                  <p className="text-[11px] font-mono font-bold text-[#00FFB2]">{formatCurrency(slotDef.price)}</p>
+                  <p className="text-[6px] text-[#00FFB2] mt-0.5">{totalPurchases}/{REBUY_MAX + 1} re-buys</p>
                 </div>
               );
             }
 
             if (isCleared) {
               return (
-                <div key={slotDef.id}
-                  className="relative rounded-xl border border-[rgba(0,229,255,0.06)] p-3 opacity-50 flex flex-col items-center text-center"
-                  style={{ background: 'rgba(18,26,43,0.3)' }}>
-                  <div className="absolute top-1.5 right-1.5">
-                    <span className="text-[6px] px-1.5 py-0.5 rounded-full bg-[rgba(0,229,255,0.08)] text-[#00E5FF] font-bold">CLEARED</span>
-                  </div>
-                  <p className="text-[11px] font-bold text-white font-heading leading-tight pr-6">{slotDef.name}</p>
-                  <p className="text-[13px] font-mono font-bold text-[#4A5568] mt-1">{formatCurrency(slotDef.price)}</p>
+                <div key={slotDef.id} className="relative rounded-xl p-3 flex flex-col items-center text-center overflow-hidden opacity-50" style={{ background: `linear-gradient(135deg, ${grad.from}06, ${grad.to}03)`, border: `1px solid ${grad.from}15` }}>
+                  <div className="absolute top-1 right-1"><span className="text-[5px] px-1 py-0.5 rounded-full bg-[rgba(0,229,255,0.08)] text-[#00E5FF] font-bold">CLRD</span></div>
+                  <p className="text-[10px] font-bold text-white font-heading pr-5">{slotDef.name}</p>
+                  <p className="text-[11px] font-mono font-bold text-[#4A5568]">{formatCurrency(slotDef.price)}</p>
                 </div>
               );
             }
 
             return (
-              <div key={slotDef.id}
-                className="relative rounded-xl border overflow-hidden p-3 flex flex-col items-center text-center"
+              <div key={slotDef.id} className="relative rounded-xl overflow-hidden p-3 flex flex-col items-center text-center"
                 style={{
-                  background: isActive ? 'linear-gradient(180deg, rgba(0,229,255,0.06), transparent)' : 'rgba(18,26,43,0.4)',
-                  borderColor: isActive ? 'rgba(0,229,255,0.15)' : 'rgba(0,229,255,0.06)',
-                  boxShadow: isActive ? '0 0 20px rgba(0,229,255,0.06)' : 'none',
+                  background: isActive ? `linear-gradient(180deg, ${grad.from}12, transparent)` : `linear-gradient(135deg, ${grad.from}06, ${grad.to}03)`,
+                  border: `1.5px solid ${isActive ? grad.from : `${grad.from}30`}`,
+                  boxShadow: isActive ? `0 0 18px ${grad.from}20` : 'none',
+                  opacity: isActive ? 1 : 0.35,
+                  transition: 'all 0.3s ease',
                 }}>
                 {isActive && (
-                  <div className="absolute top-1.5 right-1.5">
-                    <span className="text-[6px] px-1.5 py-0.5 rounded-full bg-[rgba(0,229,255,0.12)] text-[#00E5FF] font-bold">LIVE</span>
-                  </div>
+                  <div className="absolute top-1 right-1"><span className="text-[5px] px-1 py-0.5 rounded-full bg-[rgba(0,229,255,0.12)] text-[#00E5FF] font-bold">LIVE</span></div>
                 )}
-                <p className="text-[11px] font-bold text-white font-heading leading-tight pr-6">{slotDef.name}</p>
-                <p className="text-[13px] font-mono font-bold text-white mt-1">{formatCurrency(slotDef.price)}</p>
+                <p className="text-[10px] font-bold text-white font-heading pr-5">{slotDef.name}</p>
+                <p className="text-[11px] font-mono font-bold text-white mt-0.5">{formatCurrency(slotDef.price)}</p>
 
                 {isActive && currentActiveSlot?.slotId === slotDef.id && (
-                  <div className="w-full mt-2 space-y-1.5">
+                  <div className="w-full mt-1.5 space-y-1">
                     <div className="flex items-center justify-center gap-1">
-                      <TrendingUp size={8} className="text-[#00E5FF]" />
-                      <span className="text-[7px] text-[#00E5FF] font-semibold">Daily Yield 3%</span>
+                      <TrendingUp size={6} className="text-[#00E5FF]" />
+                      <span className="text-[6px] text-[#00E5FF] font-semibold">3% daily</span>
                     </div>
                     <div>
-                      <div className="flex justify-between text-[6px] text-[#4A5568]">
-                        <span>Cap</span>
-                        <span className="font-mono">{Math.min(progressPercent, 100).toFixed(0)}% / 200%</span>
+                      <div className="h-1 rounded-full bg-[rgba(11,16,32,0.6)] overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(progressPercent, 100)}%`, background: `linear-gradient(90deg, ${grad.from}, ${grad.to})` }} />
                       </div>
-                      <div className="h-1 rounded-full bg-[rgba(11,16,32,0.6)] overflow-hidden mt-0.5">
-                        <div className="h-full rounded-full transition-all duration-700"
-                          style={{ width: `${Math.min(progressPercent, 100)}%`, background: `linear-gradient(90deg, ${slotColor}, #00E5FF)` }} />
+                      <div className="flex justify-between text-[5px] text-[#4A5568] mt-0.5">
+                        <span>{Math.min(progressPercent, 100).toFixed(0)}%</span>
+                        <span>200%</span>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {!isOwned && !isCleared && (
-                  <Link href="/slots" className="mt-2 w-full py-1.5 rounded-lg bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] text-[8px] font-bold text-center hover:shadow-lg hover:shadow-[rgba(0,229,255,0.15)] transition-all">
-                    BUY NOW
+                {isActive && (
+                  <div className="w-full mt-1">
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: REBUY_MAX + 1 }).map((_, i) => (
+                        <div key={i} className="flex-1 h-0.5 rounded-full" style={{ background: i < totalPurchases ? grad.from : `${grad.from}20` }} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!isOwned && !isCleared && index === lastOwnedIndex + 1 && (
+                  <Link href="/slots" className="mt-2 w-full py-1 rounded-lg text-[#050816] text-[7px] font-bold text-center" style={{ background: `linear-gradient(135deg, ${grad.from}, ${grad.to})` }}>
+                    BUY
                   </Link>
                 )}
               </div>
@@ -500,12 +532,12 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Active Package</p>
-                <p className="text-sm font-bold text-white font-heading" style={{ color: SLOT_COLORS[`orbit_${currentActiveSlotDef.orbit}`] || '#00E5FF' }}>{currentActiveSlotDef.name}</p>
+                <p className="text-sm font-bold text-white font-heading" style={{ color: getGradient(currentActiveSlotDef.orbit).from }}>{currentActiveSlotDef.name}</p>
                 <p className="text-[10px] font-mono text-[#4A5568]">Orbit #{currentActiveSlotDef.orbit}</p>
               </div>
               <div className="text-right">
                 <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Daily Yield</p>
-                <p className="text-lg font-bold font-mono text-[#00E5FF]">{formatCurrency(currentActiveSlot.dailyEarned)}</p>
+                <p className="text-lg font-bold font-mono" style={{ color: getGradient(currentActiveSlotDef.orbit).from }}>{formatCurrency(currentActiveSlot.dailyEarned)}</p>
                 <p className="text-[8px] text-[#4A5568]">3% of {formatCurrency(currentActiveSlotDef.price)}</p>
               </div>
               <div className="col-span-2">
@@ -515,14 +547,25 @@ export default function DashboardPage() {
                 </div>
                 <div className="h-2.5 rounded-full bg-[rgba(11,16,32,0.6)] overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-700"
-                    style={{ width: `${Math.min((currentActiveSlot.earned / currentActiveSlot.maxCap) * 100, 100)}%`, background: 'linear-gradient(90deg, #7B61FF, #00E5FF)' }} />
+                    style={{ width: `${Math.min((currentActiveSlot.earned / currentActiveSlot.maxCap) * 100, 100)}%`, background: `linear-gradient(90deg, ${getGradient(currentActiveSlotDef.orbit).from}, ${getGradient(currentActiveSlotDef.orbit).to})` }} />
                 </div>
                 <div className="flex justify-between text-[7px] mt-1">
                   <span className="text-white font-mono font-semibold">{Math.min((currentActiveSlot.earned / currentActiveSlot.maxCap) * 100, 100).toFixed(1)}%</span>
                   <span className="text-[#7B61FF]">/ 200% max</span>
                 </div>
               </div>
-
+              <div className="col-span-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[7px] text-[#4A5568] uppercase tracking-wider">Re-Buy Cycles</span>
+                  <span className="text-[9px] font-mono" style={{ color: getGradient(currentActiveSlotDef.orbit).from }}>{rebuyCount(currentActiveSlotDef.id)} / {REBUY_MAX + 1}</span>
+                </div>
+                <div className="flex gap-1 mt-1">
+                  {Array.from({ length: REBUY_MAX + 1 }).map((_, i) => (
+                    <div key={i} className="flex-1 h-1.5 rounded-full"
+                      style={{ background: i < rebuyCount(currentActiveSlotDef.id) ? getGradient(currentActiveSlotDef.orbit).from : `${getGradient(currentActiveSlotDef.orbit).from}20` }} />
+                  ))}
+                </div>
+              </div>
             </div>
           ) : nextSlotDef ? (
             <div className="text-center py-3">
@@ -592,7 +635,7 @@ export default function DashboardPage() {
 
       {/* ====== TEAM STATS ====== */}
       <div className="px-4 mb-3">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <div className="rounded-lg p-2.5 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(18,26,43,0.4)' }}>
             <Users size={12} className="mx-auto mb-1 text-[#00E5FF]" />
             <p className="text-xs font-mono font-bold text-white">{matrixStats?.total || 0}</p>
@@ -602,11 +645,6 @@ export default function DashboardPage() {
             <Users size={12} className="mx-auto mb-1 text-[#7B61FF]" />
             <p className="text-xs font-mono font-bold text-white">{matrixStats?.directsCount || 0}</p>
             <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">Directs</p>
-          </div>
-          <div className="rounded-lg p-2.5 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(18,26,43,0.4)' }}>
-            <TrendingUp size={12} className="mx-auto mb-1 text-[#FFB800]" />
-            <p className="text-xs font-mono font-bold text-white">{Math.max(0, (matrixStats?.total || 0) - (matrixStats?.directsCount || 0))}</p>
-            <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">Spillover</p>
           </div>
         </div>
       </div>

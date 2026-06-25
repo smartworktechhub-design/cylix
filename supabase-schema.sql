@@ -40,7 +40,7 @@ CREATE TABLE user_slots (
   daily_earned DECIMAL(20,2) DEFAULT 0,
   max_cap DECIMAL(20,2) NOT NULL,
   progress DECIMAL(5,2) DEFAULT 0,
-  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'completed', 'pending')),
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'completed', 'pending', 'locked')),
   activated_at TIMESTAMPTZ DEFAULT now(),
   completed_at TIMESTAMPTZ,
   last_earning_at TIMESTAMPTZ DEFAULT now()

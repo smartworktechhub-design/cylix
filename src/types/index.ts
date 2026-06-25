@@ -20,7 +20,7 @@ export interface UserSlot {
   dailyEarned: number;
   maxCap: number;
   progress: number;
-  status: 'active' | 'completed' | 'pending';
+  status: 'active' | 'completed' | 'pending' | 'locked';
   activatedAt: string;
   completedAt?: string;
 }

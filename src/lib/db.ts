@@ -1,5 +1,5 @@
 import { getSupabase } from './supabase';
-import { SLOTS, MATRIX_LEVELS, APEX_POOL, SLOT_CONFIG } from './constants';
+import { SLOTS, MATRIX_LEVELS, APEX_POOL, SLOT_CONFIG, REBUY_MAX } from './constants';
 import type { User, UserSlot, Transaction, Withdrawal, Notification, Earnings, Referral, AdminStats, ApexPoolState, AscensionVault } from '@/types';
 
 function sb() { return getSupabase(); }
@@ -301,12 +301,17 @@ export async function processMatrixCommission(purchaserId: string, amount: numbe
 export async function purchaseSlot(userId: string, slotId: string): Promise<UserSlot | null> {
   const slot = SLOTS.find(s => s.id === slotId);
   if (!slot) return null;
-  const { data: existing } = await sb().from('user_slots')
-    .select('id, status').eq('user_id', userId).eq('slot_id', slotId).eq('status', 'active').maybeSingle();
-  if (existing) return null;
-  // Enforce sequential unlock: must own all previous slots
+  const { data: allPurchases } = await sb().from('user_slots')
+    .select('id, status').eq('user_id', userId).eq('slot_id', slotId).order('activated_at', { ascending: false });
+  const existingActive = allPurchases?.find(p => p.status === 'active');
+  if (existingActive) return null;
+  const completedCount = allPurchases?.filter(p => p.status === 'completed').length || 0;
+  const isLocked = allPurchases?.some(p => p.status === 'locked');
+  if (isLocked) return null;
+  const rebuyCount = allPurchases?.length || 0;
+  const isRebuy = rebuyCount > 0;
   const slotIndex = SLOTS.findIndex(s => s.id === slotId);
-  if (slotIndex > 0) {
+  if (!isRebuy && slotIndex > 0) {
     const prevSlotId = SLOTS[slotIndex - 1].id;
     const { data: prev } = await sb().from('user_slots')
       .select('id').eq('user_id', userId).eq('slot_id', prevSlotId).maybeSingle();
@@ -319,9 +324,10 @@ export async function purchaseSlot(userId: string, slotId: string): Promise<User
     progress: 0, status: 'active',
   }).select().single();
   if (error || !data) return null;
+  const txType = isRebuy ? 'slot_purchase' : 'slot_purchase';
   await sb().from('transactions').insert({
-    user_id: userId, type: 'slot_purchase', amount: slot.price,
-    description: `Purchased ${slot.name} slot`,
+    user_id: userId, type: txType, amount: slot.price,
+    description: isRebuy ? `Re-bought ${slot.name} slot (${rebuyCount + 1}/${REBUY_MAX + 1})` : `Purchased ${slot.name} slot`,
   });
   await sb().from('users').update({
     total_invested: sb().rpc('increment', { x: slot.price }),
@@ -330,6 +336,18 @@ export async function purchaseSlot(userId: string, slotId: string): Promise<User
   await processMatrixCommission(userId, slot.price);
   await processApexPoolContribution(slot.price);
   return mapSlot(data);
+}
+
+export async function getRebuyCount(userId: string, slotId: string): Promise<number> {
+  const { data } = await sb().from('user_slots')
+    .select('id').eq('user_id', userId).eq('slot_id', slotId);
+  return data?.length || 0;
+}
+
+export async function isSlotLocked(userId: string, slotId: string): Promise<boolean> {
+  const { data } = await sb().from('user_slots')
+    .select('id, status').eq('user_id', userId).eq('slot_id', slotId).eq('status', 'locked').maybeSingle();
+  return !!data;
 }
 
 export async function getUserSlots(userId: string): Promise<UserSlot[]> {
@@ -385,16 +403,23 @@ export async function processSlotEarnings(userId: string): Promise<void> {
       });
     }
     if (newEarned >= maxCap) {
+      const { data: totalPurchases } = await sb().from('user_slots')
+        .select('id').eq('user_id', userId).eq('slot_id', s.slot_id);
+      const purchaseCount = totalPurchases?.length || 1;
+      const isFinalCycle = purchaseCount >= REBUY_MAX + 1;
+      const newStatus = isFinalCycle ? 'locked' : 'completed';
       await sb().from('user_slots').update({
-        status: 'completed', completed_at: new Date().toISOString(),
+        status: newStatus, completed_at: new Date().toISOString(),
       }).eq('id', s.id);
       await sb().from('notifications').insert({
-        user_id: userId, type: 'slot', title: 'Slot Completed!',
-        message: `${s.slot_name} reached 200% cap. Check Upgrade Vault.`,
+        user_id: userId, type: 'slot', title: isFinalCycle ? 'Slot Locked!' : 'Slot Completed!',
+        message: isFinalCycle
+          ? `${s.slot_name} completed 5 re-buy cycles. Permanently locked.`
+          : `${s.slot_name} reached 200% cap. Re-buy available.`,
       });
       if (s.slot_orbit === 11) {
         await processOrbit11Recycle(userId, s.id, newEarned);
-      } else {
+      } else if (!isFinalCycle) {
         await checkAutoUpgrade(userId);
       }
     }

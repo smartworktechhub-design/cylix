@@ -76,6 +76,8 @@ export const ADMIN_NAV_LINKS = [
   { href: '/admin/security', label: 'Security', icon: 'Shield' },
 ];
 
+export const REBUY_MAX = 5;
+
 export const USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955';
 export const TREASURY_WALLET = '0x3739af171cd5288e44c5C43eEeEe04d523d4b872';
 export const BSC_RPC_URL = 'https://bsc-dataseed.binance.org/';

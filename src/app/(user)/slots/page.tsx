@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
-import { purchaseSlot } from '@/lib/db';
-import { SLOTS, SLOT_CONFIG, TREASURY_WALLET, USDT_ADDRESS, USDT_DECIMALS } from '@/lib/constants';
+import { purchaseSlot, getRebuyCount } from '@/lib/db';
+import { SLOTS, SLOT_CONFIG, TREASURY_WALLET, USDT_ADDRESS, USDT_DECIMALS, REBUY_MAX } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
 import { useAccount, useSwitchChain } from 'wagmi';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Loader2, Orbit, TrendingUp, Shield, Sparkles,
   Copy, CheckCheck, ExternalLink, Coins, Wallet, CheckCircle2, XCircle, Clock,
-  Lock, LockKeyhole,
+  Lock, LockKeyhole, RotateCcw,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -116,6 +116,12 @@ export default function SlotsPage() {
     return !ownedSlotIds.has(SLOTS[index - 1].id);
   };
 
+  const getGradient = (orbit: number) => {
+    if (orbit <= 3) return { from: '#00E5FF', to: '#00B4D8', label: 'Cyan' };
+    if (orbit <= 7) return { from: '#7B61FF', to: '#C084FC', label: 'Purple' };
+    return { from: '#FFB800', to: '#FF5C7A', label: 'Gold' };
+  };
+
   const statusModal = () => {
     if (purchaseStatus === 'idle') return null;
     return (
@@ -165,24 +171,52 @@ export default function SlotsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
         {SLOTS.map((slot, index) => {
-          const isOwned = activeSlotIds.has(slot.id);
-          const locked = isSlotLocked(index);
+          const slotSlots = slots.filter(s => s.slotId === slot.id);
+          const isActive = slotSlots.some(s => s.status === 'active');
+          const isCompleted = slotSlots.some(s => s.status === 'completed');
+          const isLockedPermanent = slotSlots.some(s => s.status === 'locked');
+          const isOwned = isActive || isCompleted || isLockedPermanent;
+          const totalPurchases = slotSlots.length;
           const dailyYield = slot.price * (SLOT_CONFIG.dailyYieldPercent / 100);
           const maxCap = slot.price * SLOT_CONFIG.maxCapMultiplier;
           const isBuying = pendingSlot === slot.id && (purchaseStatus === 'approve' || purchaseStatus === 'confirm');
-
+          const nextUnlockable = maxOwnedIndex + 1;
+          const isNextAvailable = index === nextUnlockable;
+          const locked = isSlotLocked(index);
           const isCleared = !isOwned && !locked && maxOwnedIndex >= index;
+          const grad = getGradient(slot.orbit);
+          const progressPercent = isActive ? ((slotSlots.find(s => s.status === 'active')?.earned || 0) / maxCap) * 100 : 0;
+
+          if (isLockedPermanent) {
+            return (
+              <Card key={slot.id} className="relative flex flex-col overflow-hidden border-0"
+                style={{ background: `linear-gradient(135deg, ${grad.from}08, ${grad.to}05)` }}>
+                <div className="absolute inset-0 rounded-xl" style={{ border: '1px solid', borderColor: `${grad.from}20`, opacity: 0.3 }} />
+                <CardContent className="p-5 flex flex-col flex-1 items-center text-center relative z-10">
+                  <div className="absolute top-2 right-2">
+                    <Badge variant="danger" className="px-2 py-0.5 text-[9px]">LOCKED</Badge>
+                  </div>
+                  <LockKeyhole size={20} className="text-[#4A5568] mb-2" />
+                  <h3 className="text-sm font-bold text-[#4A5568] font-heading">{slot.name}</h3>
+                  <p className="text-lg font-mono font-bold text-[#4A5568]">{formatCurrency(slot.price)}</p>
+                  <p className="text-[8px] text-[#4A5568] mt-1">5/5 Re-buys completed</p>
+                </CardContent>
+              </Card>
+            );
+          }
 
           if (isCleared) {
             return (
-              <Card key={slot.id} className="relative flex flex-col opacity-60">
-                <CardContent className="p-5 flex flex-col flex-1 items-center text-center">
+              <Card key={slot.id} className="relative flex flex-col overflow-hidden border-0 opacity-50"
+                style={{ background: `linear-gradient(135deg, ${grad.from}06, ${grad.to}03)` }}>
+                <div className="absolute inset-0 rounded-xl" style={{ border: '1px solid', borderColor: `${grad.from}15`, opacity: 0.3 }} />
+                <CardContent className="p-5 flex flex-col flex-1 items-center text-center relative z-10">
                   <div className="absolute top-2 right-2">
-                    <Badge variant="success" className="px-2 py-0.5 text-[10px]">Cleared</Badge>
+                    <Badge variant="success" className="px-2 py-0.5 text-[9px]">CLEARED</Badge>
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-1 font-heading">{slot.name}</h3>
-                  <p className="text-2xl font-bold font-mono text-[#00FFB2] mb-2">{formatCurrency(slot.price)}</p>
-                  <p className="text-[10px] text-[#4A5568]">Already progressed past this slot</p>
+                  <h3 className="text-sm font-bold text-white font-heading">{slot.name}</h3>
+                  <p className="text-lg font-mono font-bold text-[#00FFB2]">{formatCurrency(slot.price)}</p>
+                  <p className="text-[8px] text-[#4A5568] mt-1">Progressed past this slot</p>
                 </CardContent>
               </Card>
             );
@@ -190,59 +224,120 @@ export default function SlotsPage() {
 
           if (locked) {
             return (
-              <Card key={slot.id} className="relative flex flex-col opacity-40">
-                <CardContent className="p-5 flex flex-col flex-1 items-center text-center">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{ background: 'rgba(148,163,184,0.08)' }}>
-                    <LockKeyhole size={22} className="text-[#4A5568]" />
-                  </div>
-                  <h3 className="text-lg font-bold text-[#4A5568] mb-1 font-heading">{slot.name}</h3>
-                  <p className="text-2xl font-bold font-mono text-[#4A5568] mb-2">{formatCurrency(slot.price)}</p>
-                  <p className="text-[10px] text-[#4A5568]">Buy {SLOTS[index - 1].name} first to unlock</p>
+              <Card key={slot.id} className="relative flex flex-col overflow-hidden border-0 opacity-40"
+                style={{ background: `linear-gradient(135deg, ${grad.from}06, ${grad.to}03)` }}>
+                <div className="absolute inset-0 rounded-xl" style={{ border: '1px solid', borderColor: `${grad.from}20`, opacity: 0.3 }} />
+                <CardContent className="p-5 flex flex-col flex-1 items-center text-center relative z-10">
+                  <LockKeyhole size={22} className="text-[#4A5568] mb-2" />
+                  <h3 className="text-sm font-bold text-[#4A5568] font-heading">{slot.name}</h3>
+                  <p className="text-lg font-mono font-bold text-[#4A5568]">{formatCurrency(slot.price)}</p>
+                  <p className="text-[8px] text-[#4A5568] mt-1">Buy {SLOTS[index - 1].name} first</p>
                 </CardContent>
               </Card>
             );
           }
 
+          const slotActive = slotSlots.find(s => s.status === 'active');
+
           return (
-            <Card key={slot.id} hover className={`relative flex flex-col ${isOwned ? 'border-[#00E5FF] shadow-[0_0_20px_rgba(0,229,255,0.1)]' : ''}`}>
-              {isOwned && (
+            <Card key={slot.id} hover className={`relative flex flex-col overflow-hidden border-0`}
+              style={{
+                background: isActive
+                  ? `linear-gradient(135deg, ${grad.from}12, ${grad.to}08)`
+                  : `linear-gradient(135deg, ${grad.from}06, ${grad.to}03)`,
+                boxShadow: isActive ? `0 0 25px ${grad.from}25, inset 0 0 25px ${grad.from}10` : 'none',
+                transition: 'all 0.3s ease',
+              }}>
+              {/* Gradient border overlay */}
+              <div className="absolute inset-0 rounded-xl pointer-events-none"
+                style={{
+                  border: '1.5px solid',
+                  borderColor: isActive ? grad.from : `${grad.from}40`,
+                  opacity: isActive ? 1 : 0.3,
+                  transition: 'opacity 0.3s ease',
+                }} />
+              {isActive && (
                 <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-10">
-                  <Badge variant="info" className="px-3 py-0.5 text-xs">Active</Badge>
+                  <Badge variant="info" className="px-3 py-0.5 text-xs">LIVE</Badge>
                 </div>
               )}
-              <CardContent className="p-5 flex flex-col flex-1">
+              {isCompleted && (
+                <div className="absolute top-2 right-2 z-10">
+                  <Badge variant="success" className="px-2 py-0.5 text-[9px]">DONE</Badge>
+                </div>
+              )}
+              <CardContent className="p-5 flex flex-col flex-1 relative z-10">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${slot.color}15` }}>
-                    <div style={{ color: slot.color }}>{SLOT_ICONS[slot.icon] || <Sparkles size={20} />}</div>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${grad.from}15` }}>
+                    <div style={{ color: grad.from }}>{SLOT_ICONS[slot.icon] || <Sparkles size={20} />}</div>
                   </div>
-                  <Badge variant="default" className="text-xs">Orbit #{slot.orbit}</Badge>
+                  <Badge variant="default" className="text-xs" style={{ borderColor: `${grad.from}30`, color: grad.from }}>
+                    Orbit #{slot.orbit}
+                  </Badge>
                 </div>
                 <h3 className="text-lg font-bold text-white mb-1 font-heading">{slot.name}</h3>
                 <p className="text-2xl font-bold font-mono text-white mb-4">{formatCurrency(slot.price)}</p>
                 <div className="space-y-2.5 mb-5 flex-1">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-[#94A3B8] flex items-center gap-1.5"><TrendingUp size={14} /> Daily Yield (3%)</span>
-                    <span className="font-mono font-medium text-[#00FFB2]">{formatCurrency(dailyYield)}</span>
+                    <span className="font-mono font-medium" style={{ color: grad.from }}>{formatCurrency(dailyYield)}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-[#94A3B8] flex items-center gap-1.5"><Shield size={14} /> Max Cap (200%)</span>
                     <span className="font-mono font-medium text-white">{formatCurrency(maxCap)}</span>
                   </div>
+                  {isActive && (
+                    <div>
+                      <div className="flex justify-between text-[9px] text-[#4A5568] mb-1">
+                        <span>Progress</span>
+                        <span className="font-mono">{Math.min(progressPercent, 100).toFixed(0)}% / 200%</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-[rgba(11,16,32,0.6)] overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${Math.min(progressPercent, 100)}%`, background: `linear-gradient(90deg, ${grad.from}, ${grad.to})` }} />
+                      </div>
+                    </div>
+                  )}
+                  {isCompleted && (
+                    <div className="flex items-center justify-center gap-2 text-[9px]">
+                      <RotateCcw size={10} className="text-[#00FFB2]" />
+                      <span className="text-[#00FFB2] font-semibold">Re-buy available ({totalPurchases}/{REBUY_MAX + 1})</span>
+                    </div>
+                  )}
                 </div>
                 {!address ? (
                   <Link href="/" className="w-full">
                     <Button variant="primary" className="w-full"><Wallet size={14} /> Connect Wallet</Button>
                   </Link>
-                ) : isOwned ? (
-                  <Button variant="outline" className="w-full" disabled>Active Slot</Button>
-                ) : (
+                ) : isActive ? (
+                  slotActive && (
+                    <div className="w-full mt-1">
+                      <div className="flex items-center justify-between text-[8px] text-[#4A5568] mb-1">
+                        <span>Re-buy cycle</span>
+                        <span className="font-mono" style={{ color: grad.from }}>{totalPurchases}/{REBUY_MAX + 1}</span>
+                      </div>
+                      <div className="flex gap-0.5">
+                        {Array.from({ length: REBUY_MAX + 1 }).map((_, i) => (
+                          <div key={i} className="flex-1 h-1 rounded-full"
+                            style={{ background: i < totalPurchases ? grad.from : `${grad.from}20` }} />
+                        ))}
+                      </div>
+                    </div>
+                  )
+                ) : isCompleted ? (
+                  <Button variant="primary" className="w-full" style={{ background: `linear-gradient(135deg, ${grad.from}, ${grad.to})` }}
+                    onClick={() => handlePurchase(slot)} loading={isBuying} disabled={isBuying}>
+                    {isBuying ? 'Buying...' : <><RotateCcw size={14} /> Re-buy ({totalPurchases}/{REBUY_MAX + 1})</>}
+                  </Button>
+                ) : isNextAvailable ? (
                   <div className="space-y-2">
-                    <Button variant="primary" className="w-full" onClick={() => handlePurchase(slot)} loading={isBuying} disabled={isBuying || !address}>
-                      {isBuying ? (purchaseStatus === 'approve' ? 'Approve...' : 'Confirming...') : <><Coins size={14} /> Buy with USDT</>}
+                    <Button variant="primary" className="w-full" style={{ background: `linear-gradient(135deg, ${grad.from}, ${grad.to})` }}
+                      onClick={() => handlePurchase(slot)} loading={isBuying} disabled={isBuying || !address}>
+                      {isBuying ? (purchaseStatus === 'approve' ? 'Approve...' : 'Confirming...') : <><Coins size={14} /> Buy {slot.name}</>}
                     </Button>
-                    <p className="text-[9px] text-[#4A5568] text-center">Send to: {TREASURY_WALLET.slice(0, 6)}...{TREASURY_WALLET.slice(-4)}</p>
+                    <p className="text-[8px] text-[#4A5568] text-center">USDT to: {TREASURY_WALLET.slice(0, 6)}...{TREASURY_WALLET.slice(-4)}</p>
                   </div>
-                )}
+                ) : null}
               </CardContent>
             </Card>
           );

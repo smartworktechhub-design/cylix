@@ -4,12 +4,15 @@ interface BadgeProps {
   children: React.ReactNode;
   variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'primary';
   className?: string;
+  style?: React.CSSProperties;
 }
 
-export function Badge({ children, variant = 'default', className }: BadgeProps) {
+export function Badge({ children, variant = 'default', className, style }: BadgeProps) {
   return (
     <span
+      style={style}
       className={cn(
+
         'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
         {
           'bg-[rgba(148,163,184,0.1)] text-[#94A3B8]': variant === 'default',
