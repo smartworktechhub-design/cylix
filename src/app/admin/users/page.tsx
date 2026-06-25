@@ -3,11 +3,13 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { formatCurrency, formatNumber, shortenAddress } from '@/lib/utils';
-import { getAllUsers } from '@/lib/db';
+import { getAllUsers, purchaseSlot } from '@/lib/db';
 import { getSupabase } from '@/lib/supabase';
-import { Search, Loader2, ArrowUpRight, Users as TeamIcon } from 'lucide-react';
+import { SLOTS } from '@/lib/constants';
+import { Search, Loader2, ArrowUpRight, Users as TeamIcon, Zap } from 'lucide-react';
 import type { User } from '@/types';
 
 interface UserRow {
@@ -27,44 +29,53 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [allUsers, setAllUsers] = useState<UserRow[]>([]);
+  const [activating, setActivating] = useState<string | null>(null);
+  const [slotFilter, setSlotFilter] = useState('spark');
 
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      const { data: slotData } = await getSupabase()
-        .from('user_slots')
-        .select('user_id')
-        .eq('status', 'active');
+  async function load() {
+    setLoading(true);
+    const { data: slotData } = await getSupabase()
+      .from('user_slots')
+      .select('user_id')
+      .eq('status', 'active');
 
-      const activeSlotsMap: Record<string, number> = {};
-      (slotData || []).forEach((s: Record<string, unknown>) => {
-        const uid = String(s.user_id || '');
-        activeSlotsMap[uid] = (activeSlotsMap[uid] || 0) + 1;
-      });
+    const activeSlotsMap: Record<string, number> = {};
+    (slotData || []).forEach((s: Record<string, unknown>) => {
+      const uid = String(s.user_id || '');
+      activeSlotsMap[uid] = (activeSlotsMap[uid] || 0) + 1;
+    });
 
-      const users = await getAllUsers();
-      if (!mounted) return;
-      setAllUsers(users.map((u: User) => ({
-        id: u.id,
-        wallet: u.wallet,
-        referralCode: u.referralCode,
-        totalInvested: u.totalInvested,
-        totalEarned: u.totalEarned,
-        directs: u.directs,
-        teamSize: u.teamSize,
-        ascensionBalance: u.ascensionBalance,
-        isActive: u.isActive,
-        activeSlots: activeSlotsMap[u.id] || 0,
-      })));
-      setLoading(false);
-    }
-    load();
-    return () => { mounted = false; };
-  }, []);
+    const users = await getAllUsers();
+    setAllUsers(users.map((u: User) => ({
+      id: u.id,
+      wallet: u.wallet,
+      referralCode: u.referralCode,
+      totalInvested: u.totalInvested,
+      totalEarned: u.totalEarned,
+      directs: u.directs,
+      teamSize: u.teamSize,
+      ascensionBalance: u.ascensionBalance,
+      isActive: u.isActive,
+      activeSlots: activeSlotsMap[u.id] || 0,
+    })));
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
 
   const filtered = allUsers.filter((u) =>
-    u.wallet.toLowerCase().includes(search.toLowerCase())
+    u.wallet.toLowerCase().includes(search.toLowerCase()) ||
+    u.referralCode.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleActivate = async (userId: string) => {
+    setActivating(userId);
+    const result = await purchaseSlot(userId, slotFilter);
+    if (result) {
+      await load();
+    }
+    setActivating(null);
+  };
 
   if (loading) {
     return (
@@ -88,12 +99,16 @@ export default function AdminUsers() {
           <div className="flex items-center gap-4">
             <div className="flex-1 max-w-md">
               <Input
-                placeholder="Search by wallet address..."
+                placeholder="Search by wallet or referral code..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 icon={<Search size={16} />}
               />
             </div>
+            <select value={slotFilter} onChange={(e) => setSlotFilter(e.target.value)}
+              className="bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.12)] rounded-xl px-3 py-2 text-xs text-white font-mono">
+              {SLOTS.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
           </div>
         </CardHeader>
         <CardContent>
@@ -108,6 +123,7 @@ export default function AdminUsers() {
                 <TableHeader>Team Size</TableHeader>
                 <TableHeader>Ascension Balance</TableHeader>
                 <TableHeader>Status</TableHeader>
+                <TableHeader>Action</TableHeader>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -134,6 +150,12 @@ export default function AdminUsers() {
                     <Badge variant={user.isActive ? 'success' : 'default'}>
                       {user.isActive ? 'Active' : 'Inactive'}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="primary" size="sm" onClick={() => handleActivate(user.id)}
+                      loading={activating === user.id} disabled={activating === user.id}>
+                      <Zap size={12} /> Activate
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
