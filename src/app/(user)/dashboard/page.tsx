@@ -12,8 +12,9 @@ import { usePathname } from 'next/navigation';
 import {
   Loader2, Copy, CheckCheck, Wallet, Users, GitBranch,
   TrendingUp, Orbit, Vault as VaultIcon, Activity, ArrowUpRight,
-  DollarSign, Zap, Globe, Shield, Gem,
+  DollarSign, Zap, Globe, Shield, Gem, Coins,
 } from 'lucide-react';
+import { useUsdtBalance } from '@/lib/usdt';
 
 function cn(...classes: (string | boolean | undefined | null)[]) {
   return classes.filter(Boolean).join(' ');
@@ -37,7 +38,7 @@ function shortenAddress(addr: string | undefined) {
 export default function DashboardPage() {
   const { user, slots, earnings, vault } = useAppStore();
   const { loading } = useInitData();
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const pathname = usePathname();
   const [copied, setCopied] = useState(false);
   const [matrixStats, setMatrixStats] = useState<any>(null);
@@ -57,6 +58,7 @@ export default function DashboardPage() {
   const teamCount = matrixStats?.total || 0;
   const directsCount = matrixStats?.directsCount || 0;
   const spilloverCount = matrixStats?.spilloverCount || 0;
+  const { balance: usdtBalance } = useUsdtBalance(address);
 
   const copyAddr = () => {
     if (user?.wallet) { navigator.clipboard.writeText(user.wallet); setCopied(true); setTimeout(() => setCopied(false), 2000); }
@@ -132,7 +134,14 @@ export default function DashboardPage() {
 
       {/* ====== EARNINGS + WITHDRAW STRIP ====== */}
       <div className="px-4 pt-4 pb-3">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="rounded-2xl p-4 border border-[rgba(0,229,255,0.08)]" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.04), rgba(123,97,255,0.04))' }}>
+            <p className="text-[10px] text-[#4A5568] uppercase tracking-wider mb-1">Wallet USDT</p>
+            <p className="text-2xl font-bold text-white font-mono">{formatCompact(usdtBalance)}</p>
+            <p className="text-[10px] text-[#00E5FF] mt-1 flex items-center gap-1">
+              <Coins size={10} /> BSC Balance
+            </p>
+          </div>
           <div className="rounded-2xl p-4 border border-[rgba(0,229,255,0.08)]" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.04), rgba(123,97,255,0.04))' }}>
             <p className="text-[10px] text-[#4A5568] uppercase tracking-wider mb-1">Total Earnings</p>
             <p className="text-2xl font-bold text-white font-mono">{formatCompact(totalEarnings)}</p>
