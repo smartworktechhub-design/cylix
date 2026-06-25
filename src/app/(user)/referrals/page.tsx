@@ -6,13 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { formatCurrency, shortenAddress, formatDate } from '@/lib/utils';
-import { getUserByWallet, getReferrals } from '@/lib/db';
+import { useAppStore } from '@/stores/app-store';
+import { useInitData } from '@/lib/use-data';
+import { getReferrals } from '@/lib/db';
+import { useAccount } from 'wagmi';
 import {
   Users, Copy, Check, Link, DollarSign, TrendingUp,
   Layers, ChevronRight, UserPlus, Loader2
 } from 'lucide-react';
-
-const DEMO_WALLET = '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18';
 
 const commissionTiers = [
   { level: 'Level 1', commission: '5%', requirement: 'Direct Referrals' },
@@ -22,26 +23,25 @@ const commissionTiers = [
 ];
 
 export default function ReferralsPage() {
-  const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState<{ referralCode: string } | null>(null);
+  const { user } = useAppStore();
+  const { loading: initLoading } = useInitData();
+  const { address } = useAccount();
   const [referrals, setReferrals] = useState<any[]>([]);
   const [copied, setCopied] = useState<'code' | 'link' | null>(null);
 
   useEffect(() => {
     async function load() {
-      const user = await getUserByWallet(DEMO_WALLET);
       if (user) {
-        setUserData({ referralCode: user.referralCode });
         const refs = await getReferrals(user.id);
-        setReferrals(refs);
+        setReferrals(refs || []);
       }
-      setLoading(false);
     }
     load();
-  }, []);
+  }, [user]);
 
-  const referralCode = userData?.referralCode || 'LOADING...';
-  const referralLink = `https://cylix.io/ref/${referralCode}`;
+  const referralCode = user?.referralCode || (address ? 'CXL' + address.slice(2, 6).toUpperCase() : '');
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://cylix.io';
+  const referralLink = `${origin}/?ref=${referralCode}`;
 
   const totalEarnings = referrals.reduce((s, r) => s + r.earnings, 0);
   const activeReferrals = referrals.filter((r) => r.earnings > 0).length;
@@ -59,7 +59,7 @@ export default function ReferralsPage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  if (loading) {
+  if (initLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 size={32} className="animate-spin text-[#00E5FF]" />
