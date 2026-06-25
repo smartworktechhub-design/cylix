@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,6 @@ import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@
 import { formatCurrency, shortenAddress, formatDate } from '@/lib/utils';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
-import { getReferrals } from '@/lib/db';
 import { useAccount } from 'wagmi';
 import {
   Users, Copy, Check, Link, DollarSign, TrendingUp,
@@ -23,21 +22,12 @@ const commissionTiers = [
 ];
 
 export default function ReferralsPage() {
-  const { user } = useAppStore();
+  const { user, referrals: storeReferrals } = useAppStore();
   const { loading: initLoading } = useInitData();
   const { address } = useAccount();
-  const [referrals, setReferrals] = useState<any[]>([]);
   const [copied, setCopied] = useState<'code' | 'link' | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      if (user) {
-        const refs = await getReferrals(user.id);
-        setReferrals(refs || []);
-      }
-    }
-    load();
-  }, [user]);
+  const referrals = user && storeReferrals.length > 0 ? storeReferrals : [];
 
   const referralCode = user?.referralCode || (address ? 'CXL' + address.slice(2, 6).toUpperCase() : '');
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://cylix.io';
@@ -181,7 +171,7 @@ export default function ReferralsPage() {
                     <Badge variant="primary">Lvl {ref.level}</Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="text-[#94A3B8] text-sm">{formatDate(ref.joined)}</span>
+                    <span className="text-[#94A3B8] text-sm">{formatDate(ref.joinedAt)}</span>
                   </TableCell>
                   <TableCell>
                     <span className="font-mono text-sm text-[#00FFB2]">{formatCurrency(ref.earnings)}</span>
