@@ -15,25 +15,29 @@ export const SLOTS: SlotDef[] = [
 ];
 
 export const MATRIX_LEVELS: MatrixLevelConfig[] = [
-  { level: 1, percent: 5.0, directsRequired: 0 },
-  { level: 2, percent: 4.0, directsRequired: 0 },
-  { level: 3, percent: 3.0, directsRequired: 2 },
+  { level: 1, percent: 6.0, directsRequired: 0 },
+  { level: 2, percent: 5.0, directsRequired: 0 },
+  { level: 3, percent: 4.0, directsRequired: 2 },
   { level: 4, percent: 3.0, directsRequired: 2 },
-  { level: 5, percent: 2.0, directsRequired: 2 },
+  { level: 5, percent: 3.0, directsRequired: 2 },
   { level: 6, percent: 2.0, directsRequired: 2 },
   { level: 7, percent: 2.0, directsRequired: 2 },
-  { level: 8, percent: 1.5, directsRequired: 2 },
-  { level: 9, percent: 1.5, directsRequired: 2 },
+  { level: 8, percent: 2.0, directsRequired: 2 },
+  { level: 9, percent: 1.0, directsRequired: 2 },
   { level: 10, percent: 1.0, directsRequired: 2 },
   { level: 11, percent: 1.0, directsRequired: 2 },
 ];
 
 export const MATRIX_TOTAL_PERCENT = MATRIX_LEVELS.reduce((s, l) => s + l.percent, 0);
 
+export const ALLOCATION = {
+  yieldPercent: 65,
+  matrixPercent: 30,
+  poolPercent: 5,
+};
+
 export const APEX_POOL = {
-  blockValue: 1000,
-  poolPercent: 4,
-  safetyReservePercent: 70,
+  poolPercent: 5,
   distributionInterval: 24,
 };
 

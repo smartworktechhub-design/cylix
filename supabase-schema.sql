@@ -78,11 +78,11 @@ CREATE TABLE matrix_earnings (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Apex Pool Blocks ($1,000 each)
+-- Apex Pool Contributions (unlimited - no blocks/capacity)
 CREATE TABLE apex_pool_blocks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  block_number INTEGER NOT NULL,
-  value DECIMAL(20,2) DEFAULT 1000,
+  block_number INTEGER DEFAULT 0,
+  value DECIMAL(20,2) DEFAULT 0,
   completed BOOLEAN DEFAULT false,
   completed_at TIMESTAMPTZ,
   distributed BOOLEAN DEFAULT false

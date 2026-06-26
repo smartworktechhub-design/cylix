@@ -1,5 +1,5 @@
 import { getSupabase } from './supabase';
-import { SLOTS, MATRIX_LEVELS, APEX_POOL, SLOT_CONFIG, REBUY_MAX } from './constants';
+import { SLOTS, MATRIX_LEVELS, APEX_POOL, SLOT_CONFIG, REBUY_MAX, ALLOCATION } from './constants';
 import type { User, UserSlot, Transaction, Withdrawal, Notification, Earnings, Referral, AdminStats, ApexPoolState, AscensionVault } from '@/types';
 
 function sb() { return getSupabase(); }
@@ -238,26 +238,17 @@ export async function getUserMatrixLevel(userId: string): Promise<any[]> {
 
 export async function getMatrixStats(userId: string): Promise<any> {
   const { data: treeNodes } = await sb().from('matrix_tree').select('user_id, level, side').eq('owner_id', userId);
-  if (!treeNodes) return { total: 0, levels: [], spilloverCount: 0, directsCount: 0 };
+  if (!treeNodes) return { total: 0, levels: [], directsCount: 0 };
 
   const { count: directs } = await sb().from('users').select('*', { count: 'exact', head: true }).eq('sponsor_id', userId);
   const levelCounts: number[] = [];
   for (let i = 1; i <= 11; i++) levelCounts.push(treeNodes.filter((n: any) => n.level === i).length);
 
-  const maxPositions = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
-  const levelFill = levelCounts.map((c, i) => ({
-    level: i + 1, filled: c, total: maxPositions[i], percent: (c / maxPositions[i]) * 100,
-  }));
-
-  const totalSponsored = treeNodes.filter((n: any) => n.level === 1).length;
-  const spilloverCount = Math.max(0, totalSponsored - 2);
-
   return {
     total: treeNodes.length,
-    totalSponsored,
-    spilloverCount,
+    totalSponsored: treeNodes.filter((n: any) => n.level === 1).length,
     directsCount: directs || 0,
-    levelFill,
+    levels: levelCounts,
   };
 }
 
@@ -481,61 +472,55 @@ async function processOrbit11Recycle(userId: string, slotId: string, earned: num
   });
 }
 
-// ─── APEX POOL ───
+// ─── APEX POOL (Unlimited - No Blocks/Capacity) ───
 
 async function processApexPoolContribution(amount: number): Promise<void> {
-  const contribution = (amount * APEX_POOL.poolPercent) / 100;
-  const { data: pendingBlock } = await sb().from('apex_pool_blocks')
-    .select('*').eq('completed', false).order('block_number', { ascending: false }).limit(1).maybeSingle();
-  if (pendingBlock) {
-    const newValue = Number(pendingBlock.value) + contribution;
-    if (newValue >= APEX_POOL.blockValue) {
-      await sb().from('apex_pool_blocks').update({
-        value: newValue, completed: true, completed_at: new Date().toISOString(),
-      }).eq('id', pendingBlock.id);
-    } else {
-      await sb().from('apex_pool_blocks').update({ value: newValue }).eq('id', pendingBlock.id);
-    }
-  } else {
-    const { count } = await sb().from('apex_pool_blocks').select('*', { count: 'exact', head: true });
-    await sb().from('apex_pool_blocks').insert({
-      block_number: (count || 0) + 1, value: contribution, completed: false,
-    });
-  }
+  const contribution = (amount * ALLOCATION.poolPercent) / 100;
+  await sb().from('apex_pool_blocks').insert({
+    block_number: 0, value: contribution, completed: false, distributed: false,
+  });
 }
 
 export async function getApexPoolState(): Promise<ApexPoolState> {
-  const { data: completed } = await sb().from('apex_pool_blocks').select('*').eq('completed', true);
-  const { data: pendingBlock } = await sb().from('apex_pool_blocks')
-    .select('value').eq('completed', false).order('block_number', { ascending: false }).limit(1).maybeSingle();
-  const totalBlocks = completed?.length || 0;
-  const totalPoolFund = totalBlocks * APEX_POOL.blockValue;
+  const { data: pending } = await sb().from('apex_pool_blocks').select('value').eq('distributed', false);
+  const totalPoolFund = pending?.reduce((s, r) => s + Number(r.value), 0) || 0;
   const { data: lastDist } = await sb().from('apex_pool_distributions')
     .select('*').order('distributed_at', { ascending: false }).limit(1).maybeSingle();
+  const { count: qualifiedCount } = await sb().from('user_slots')
+    .select('*', { count: 'exact', head: true }).eq('status', 'active');
+  const { data: allDists } = await sb().from('apex_pool_distributions')
+    .select('*').order('distributed_at', { ascending: false });
+  const lifetimeDistribution = allDists?.reduce((s, d) => s + Number(d.total_fund), 0) || 0;
+  const todayStr = new Date().toDateString();
+  const todayDistribution = allDists?.filter(d => new Date(d.distributed_at).toDateString() === todayStr)
+    .reduce((s, d) => s + Number(d.total_fund), 0) || 0;
+  const nextTime = lastDist
+    ? new Date(new Date(lastDist.distributed_at).getTime() + APEX_POOL.distributionInterval * 60 * 60 * 1000).toISOString()
+    : new Date().toISOString();
   return {
-    totalBlocks,
-    currentBlockValue: Number(pendingBlock?.value || 0),
-    totalPoolFund,
-    lastDistribution: lastDist?.distributed_at || '',
-    qualifiedCount: 0,
-    distributePerPerson: 0,
+    totalPoolFund, lastDistribution: lastDist?.distributed_at || '',
+    qualifiedCount: qualifiedCount || 0,
+    distributePerPerson: qualifiedCount && qualifiedCount > 0 ? totalPoolFund / qualifiedCount : 0,
+    todayDistribution, lifetimeDistribution, nextDistributionTime: nextTime,
+    distributionHistory: (allDists || []).map(d => ({
+      id: d.id, totalFund: Number(d.total_fund),
+      qualifiedCount: d.qualified_count, perPerson: Number(d.per_person),
+      distributedAt: d.distributed_at, safetyReserve: Number(d.safety_reserve),
+    })),
   };
 }
 
 export async function distributeApexPool(): Promise<void> {
-  const { data: blocks } = await sb().from('apex_pool_blocks')
-    .select('*').eq('distributed', false).eq('completed', true);
-  if (!blocks || blocks.length === 0) return;
-  const totalFund = blocks.length * APEX_POOL.blockValue;
-  const safetyReserve = (totalFund * APEX_POOL.safetyReservePercent) / 100;
-  const distributable = totalFund - safetyReserve;
+  const { data: pending } = await sb().from('apex_pool_blocks').select('id, value').eq('distributed', false);
+  if (!pending || pending.length === 0) return;
+  const totalFund = pending.reduce((s, r) => s + Number(r.value), 0);
   const { count: activeUsers } = await sb().from('user_slots')
     .select('*', { count: 'exact', head: true }).eq('status', 'active');
   const qualifiedCount = activeUsers || 0;
-  const perPerson = qualifiedCount > 0 ? distributable / qualifiedCount : 0;
+  const perPerson = qualifiedCount > 0 ? totalFund / qualifiedCount : 0;
   const { data: dist } = await sb().from('apex_pool_distributions').insert({
     total_fund: totalFund, qualified_count: qualifiedCount,
-    per_person: perPerson, safety_reserve: safetyReserve,
+    per_person: perPerson, safety_reserve: 0,
   }).select().single();
   if (dist && perPerson > 0) {
     const { data: qualifiers } = await sb().from('user_slots')
@@ -547,7 +532,7 @@ export async function distributeApexPool(): Promise<void> {
       await claimApexPoolForUser(q.user_id, dist.id);
     }
   }
-  await sb().from('apex_pool_blocks').update({ distributed: true }).in('id', blocks.map(b => b.id));
+  await sb().from('apex_pool_blocks').update({ distributed: true }).in('id', pending.map(p => p.id));
 }
 
 async function claimApexPoolForUser(userId: string, distId: string): Promise<void> {
@@ -690,16 +675,18 @@ export async function getAdminStats(): Promise<AdminStats> {
   const { count: totalUsers } = await sb().from('users').select('*', { count: 'exact', head: true });
   const { data: slotData } = await sb().from('user_slots').select('invested').eq('status', 'active');
   const { data: wdData } = await sb().from('withdrawals').select('amount, status');
-  const { data: poolData } = await sb().from('apex_pool_blocks').select('*').eq('completed', true);
+  const { data: poolContribs } = await sb().from('apex_pool_blocks').select('value').eq('distributed', false);
+  const { data: totalDistributed } = await sb().from('apex_pool_distributions').select('total_fund');
   const activeSlots = slotData?.length || 0;
   const totalRevenue = slotData?.reduce((s: number, p: any) => s + Number(p.invested), 0) || 0;
   const pendingWithdrawals = wdData?.filter((w: any) => w.status === 'pending').length || 0;
   const totalWithdrawals = wdData?.reduce((s: number, w: any) => s + Number(w.amount), 0) || 0;
+  const poolFund = poolContribs?.reduce((s: number, p: any) => s + Number(p.value), 0) || 0;
   return {
     totalUsers: totalUsers || 0, totalRevenue, activeSlots,
     pendingWithdrawals, totalWithdrawals, newUsersToday: 0, growthRate: 0,
-    poolFund: (poolData?.length || 0) * 1000,
-    totalBlocks: poolData?.length || 0,
+    poolFund,
+    totalBlocks: totalDistributed?.length || 0,
   };
 }
 

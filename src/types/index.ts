@@ -112,20 +112,23 @@ export interface LeaderboardEntry {
 }
 
 export interface ApexPoolState {
-  totalBlocks: number;
-  currentBlockValue: number;
   totalPoolFund: number;
   lastDistribution: string;
   qualifiedCount: number;
   distributePerPerson: number;
+  todayDistribution: number;
+  lifetimeDistribution: number;
+  nextDistributionTime: string;
+  distributionHistory: ApexPoolDistribution[];
 }
 
-export interface ApexPoolBlock {
+export interface ApexPoolDistribution {
   id: string;
-  blockNumber: number;
-  value: number;
-  completedAt: string;
-  distributed: boolean;
+  totalFund: number;
+  qualifiedCount: number;
+  perPerson: number;
+  distributedAt: string;
+  safetyReserve: number;
 }
 
 export interface AscensionVault {
