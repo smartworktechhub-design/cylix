@@ -2,8 +2,17 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 let supabaseInstance: SupabaseClient | null = null;
 
+function qb(): any {
+  return new Proxy(() => {}, {
+    get: () => qb(),
+    apply: () => Promise.resolve({ data: [], error: null, count: 0 }),
+  });
+}
+
 function createDummyClient(): SupabaseClient {
-  const dummy: any = new Proxy({}, { get: () => () => Promise.resolve({ data: [], error: null }) });
+  const dummy: any = new Proxy({}, {
+    get: () => qb(),
+  });
   return dummy;
 }
 
