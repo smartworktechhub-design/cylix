@@ -63,6 +63,11 @@ export async function getUserByWallet(wallet: string): Promise<User | null> {
   return data ? mapUser(data) : null;
 }
 
+export async function getUserById(userId: string): Promise<User | null> {
+  const { data } = await sb().from('users').select('*').eq('id', userId).single();
+  return data ? mapUser(data) : null;
+}
+
 export async function setUserSponsor(userId: string, sponsorCode: string): Promise<User | null> {
   const { data: sponsor } = await sb().from('users').select('id').eq('referral_code', sponsorCode).single();
   if (!sponsor) return null;

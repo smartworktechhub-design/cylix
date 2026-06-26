@@ -1,52 +1,49 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { formatCurrency, shortenAddress } from '@/lib/utils';
+import { shortenAddress } from '@/lib/utils';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
 import { useAccount } from 'wagmi';
+import { getUserById } from '@/lib/db';
+import type { User as DbUser } from '@/types';
 import {
-  User, Copy, Check, Wallet, Shield, Bell,
-  Key, Clock, Link, Settings, Mail, Smartphone,
-  CreditCard, LogOut, Loader2
+  User, Copy, Check, Wallet, Shield, Key, Clock, Link,
+  Settings, Smartphone, LogOut, Save, Loader2
 } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user } = useAppStore();
   const { address } = useAccount();
   useInitData();
-  const [copied, setCopied] = useState<'wallet' | 'code' | null>(null);
+  const [copied, setCopied] = useState<'wallet' | 'code' | 'sponsor' | null>(null);
   const [displayName, setDisplayName] = useState(user ? `User_${user.wallet.slice(2, 8)}` : 'User');
-  const [emailPrefs, setEmailPrefs] = useState({
-    earnings: true,
-    promotions: false,
-    security: true,
-    newsletter: false,
-  });
+  const [sponsor, setSponsor] = useState<DbUser | null>(null);
+  const [nameSaved, setNameSaved] = useState(false);
 
   const walletAddress = user?.wallet || address || '0x...';
   const referralCode = user?.referralCode || '...';
-  const daysActive = user ? Math.floor((Date.now() - new Date(user.joinedAt).getTime()) / 86400000) : 0;
 
-  const profileStats = [
-    { label: 'Total Earnings', value: user?.totalEarned || 0, icon: Wallet, color: '#00FFB2' },
-    { label: 'Active Packages', value: user?.totalInvested ? Math.min(Math.floor(user.totalInvested / 5000) + 1, 4) : 0, icon: CreditCard, color: '#00E5FF' },
-    { label: 'Team Members', value: user?.teamSize || 0, icon: User, color: '#7B61FF' },
-    { label: 'Days Active', value: daysActive || 1, icon: Clock, color: '#FFB800' },
-  ];
+  useEffect(() => {
+    if (user?.sponsorId) {
+      getUserById(user.sponsorId).then(setSponsor);
+    }
+  }, [user?.sponsorId]);
 
-  const handleCopy = (type: 'wallet' | 'code') => {
-    navigator.clipboard.writeText(type === 'wallet' ? walletAddress : referralCode);
+  const handleCopy = (type: 'wallet' | 'code' | 'sponsor') => {
+    const val = type === 'wallet' ? walletAddress : type === 'code' ? referralCode : sponsor?.referralCode || '';
+    navigator.clipboard.writeText(val);
     setCopied(type);
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const toggleEmailPref = (key: keyof typeof emailPrefs) => {
-    setEmailPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
+  const handleSaveName = () => {
+    setNameSaved(true);
+    setTimeout(() => setNameSaved(false), 2000);
   };
 
   return (
@@ -79,7 +76,7 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <p className="text-sm text-[#94A3B8] mb-2">Referral Code</p>
+              <p className="text-sm text-[#94A3B8] mb-2">Your Referral Code</p>
               <div className="flex items-center gap-2 p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(0,229,255,0.08)]">
                 <Link size={14} className="text-[#00E5FF]" />
                 <span className="flex-1 font-mono text-sm text-white tracking-wider">{referralCode}</span>
@@ -88,35 +85,22 @@ export default function ProfilePage() {
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <h3 className="text-lg font-semibold text-white">Quick Stats</h3>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {profileStats.map((stat) => {
-              const Icon = stat.icon;
-              return (
-                <div key={stat.label} className="flex items-center justify-between p-3 rounded-xl bg-[rgba(11,16,32,0.5)]">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${stat.color}15` }}>
-                      <Icon size={14} style={{ color: stat.color }} />
-                    </div>
-                    <span className="text-sm text-[#94A3B8]">{stat.label}</span>
-                  </div>
-                  <span className="text-sm font-mono font-medium text-white">
-                    {stat.label === 'Total Earnings' ? formatCurrency(stat.value) : stat.value}
-                  </span>
+            {sponsor && (
+              <div>
+                <p className="text-sm text-[#94A3B8] mb-2">Sponsor ID</p>
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(123,97,255,0.08)]">
+                  <User size={14} className="text-[#7B61FF]" />
+                  <span className="flex-1 font-mono text-sm text-white tracking-wider">{sponsor.referralCode}</span>
+                  <Button variant="ghost" size="sm" onClick={() => handleCopy('sponsor')}>
+                    {copied === 'sponsor' ? <Check size={14} className="text-[#00FFB2]" /> : <Copy size={14} />}
+                  </Button>
                 </div>
-              );
-            })}
+              </div>
+            )}
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -131,38 +115,15 @@ export default function ProfilePage() {
               onChange={(e) => setDisplayName(e.target.value)}
               icon={<User size={14} />}
             />
-
-            <div>
-              <p className="text-sm font-medium text-[#94A3B8] mb-3">Email Notifications</p>
-              <div className="space-y-2">
-                {([
-                  { key: 'earnings' as const, label: 'Earnings & Payments', desc: 'Daily earnings and withdrawal updates' },
-                  { key: 'promotions' as const, label: 'Promotions & Offers', desc: 'Special bonuses and limited-time offers' },
-                  { key: 'security' as const, label: 'Security Alerts', desc: 'Login attempts and security changes' },
-                  { key: 'newsletter' as const, label: 'Newsletter', desc: 'Platform updates and monthly digests' },
-                ]).map((item) => (
-                  <div key={item.key} className="flex items-center justify-between p-3 rounded-xl bg-[rgba(11,16,32,0.5)]">
-                    <div>
-                      <p className="text-sm text-white">{item.label}</p>
-                      <p className="text-xs text-[#94A3B8]">{item.desc}</p>
-                    </div>
-                    <button
-                      onClick={() => toggleEmailPref(item.key)}
-                      className={`w-10 h-6 rounded-full transition-all relative ${
-                        emailPrefs[item.key] ? 'bg-[#00E5FF]' : 'bg-[rgba(148,163,184,0.2)]'
-                      }`}
-                    >
-                      <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${
-                        emailPrefs[item.key] ? 'left-5' : 'left-1'
-                      }`} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <Button className="w-full" onClick={handleSaveName}>
+              {nameSaved ? <Check size={14} /> : <Save size={14} />}
+              {nameSaved ? 'Saved!' : 'Save Name'}
+            </Button>
           </CardContent>
         </Card>
+      </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
