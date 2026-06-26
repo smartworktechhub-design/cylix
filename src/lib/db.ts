@@ -189,7 +189,7 @@ async function updateTeamSize(userId: string): Promise<void> {
   const { count: treeCount } = await sb().from('matrix_tree').select('*', { count: 'exact', head: true }).eq('owner_id', userId);
   await sb().from('users').update({
     directs: directs || 0,
-    team_size: (treeCount || 0),
+    team_size: Math.max(0, (treeCount || 0) - 1), // exclude self
   }).eq('id', userId);
 }
 
@@ -255,7 +255,7 @@ export async function getMatrixStats(userId: string): Promise<any> {
   for (let i = 1; i <= 11; i++) levelCounts.push(treeNodes.filter((n: any) => n.level === i).length);
 
   return {
-    total: treeNodes.length,
+    total: Math.max(0, treeNodes.length - 1), // exclude self (root)
     totalSponsored: treeNodes.filter((n: any) => n.level === 1).length,
     directsCount: directs || 0,
     levels: levelCounts,
