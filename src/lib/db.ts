@@ -281,7 +281,7 @@ export async function processMatrixCommission(purchaserId: string, amount: numbe
       level: m.level, amount: commission,
     });
     await sb().from('matrix_11').update({
-      total_earnings: sb().rpc('increment', { x: commission }),
+      'total_earnings;': 'total_earnings + ' + commission,
     }).eq('id', m.id);
     await sb().from('earnings').insert({
       user_id: m.sponsor_id, type: 'matrix', amount: commission,
@@ -293,7 +293,7 @@ export async function processMatrixCommission(purchaserId: string, amount: numbe
       amount: commission, description: `L${m.level} from ${purchaser?.referral_code || purchaserId.slice(0, 8)}`,
     });
     await sb().from('users').update({
-      total_earned: sb().rpc('increment', { x: commission }),
+      'total_earned;': 'total_earned + ' + commission,
     }).eq('id', m.sponsor_id);
   }
 }
@@ -332,7 +332,7 @@ export async function purchaseSlot(userId: string, slotId: string): Promise<User
     description: isRebuy ? `Re-bought ${slot.name} slot (${rebuyCount + 1}/${REBUY_MAX + 1})` : `Purchased ${slot.name} slot`,
   });
   await sb().from('users').update({
-    total_invested: sb().rpc('increment', { x: slot.price }),
+    'total_invested;': 'total_invested + ' + slot.price,
     is_active: true,
   }).eq('id', userId);
   await processMatrixCommission(userId, slot.price);
@@ -407,7 +407,7 @@ export async function processSlotEarnings(userId: string): Promise<void> {
     }).eq('id', s.id);
     if (ascensionShare > 0) {
       await sb().from('users').update({
-        ascension_balance: sb().rpc('increment', { x: ascensionShare }),
+        'ascension_balance;': 'ascension_balance + ' + ascensionShare,
       }).eq('id', userId);
       await sb().from('earnings').insert({
         user_id: userId, type: 'ascension', amount: ascensionShare,
@@ -421,7 +421,7 @@ export async function processSlotEarnings(userId: string): Promise<void> {
     }
     if (walletShare > 0) {
       await sb().from('users').update({
-        total_earned: sb().rpc('increment', { x: walletShare }),
+        'total_earned;': 'total_earned + ' + walletShare,
       }).eq('id', userId);
       await sb().from('earnings').insert({
         user_id: userId, type: 'daily', amount: walletShare,
@@ -477,7 +477,7 @@ async function checkAutoUpgrade(userId: string): Promise<void> {
 async function processOrbit11Recycle(userId: string, slotId: string, earned: number): Promise<void> {
   const halfCycle = earned / 2;
   await sb().from('users').update({
-    total_earned: sb().rpc('increment', { x: halfCycle }),
+    'total_earned;': 'total_earned + ' + halfCycle,
   }).eq('id', userId);
   await sb().from('user_slots').insert({
     user_id: userId, slot_id: 'orbit-11', slot_name: 'Infinity Core',
@@ -571,17 +571,19 @@ async function claimApexPoolForUser(userId: string, distId: string): Promise<voi
     description: 'Apex Pool daily distribution',
   });
   await sb().from('users').update({
-    total_earned: sb().rpc('increment', { x: amount }),
+    'total_earned;': 'total_earned + ' + amount,
   }).eq('id', userId);
 }
 
 // ─── DAILY PROCESSING (CRON / ON-LOGIN TRIGGER) ───
 
 export async function checkDailyProcess(userId: string): Promise<boolean> {
-  const { data } = await sb().from('users').select('last_daily_process').eq('id', userId).single();
+  const { data } = await sb().from('users').select('last_daily_process, created_at').eq('id', userId).single();
   if (!data?.last_daily_process) return true;
-  const elapsed = Date.now() - new Date(data.last_daily_process).getTime();
-  return elapsed >= 24 * 60 * 60 * 1000;
+  const lastProcess = new Date(data.last_daily_process).getTime();
+  const createdAt = new Date(data.created_at).getTime();
+  if (Math.abs(lastProcess - createdAt) < 60000) return true;
+  return Date.now() - lastProcess >= 24 * 60 * 60 * 1000;
 }
 
 export async function updateLastDailyProcess(userId: string): Promise<void> {
