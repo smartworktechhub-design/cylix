@@ -20,11 +20,9 @@ export default function HomePage() {
   }, []);
   useEffect(() => {
     if (isConnected && mounted) {
-      if (!referralCode.trim()) {
-        setError('Referral code is required');
-        return;
+      if (referralCode.trim()) {
+        localStorage.setItem('cylix_ref', referralCode.trim().toUpperCase());
       }
-      localStorage.setItem('cylix_ref', referralCode.trim().toUpperCase());
       router.push('/dashboard');
     }
   }, [isConnected, mounted, referralCode, router]);
