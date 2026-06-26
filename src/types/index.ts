@@ -102,6 +102,8 @@ export interface User {
   teamSize: number;
   isActive: boolean;
   ascensionBalance: number;
+  displayName?: string;
+  twoFAEnabled?: boolean;
 }
 
 export interface LeaderboardEntry {

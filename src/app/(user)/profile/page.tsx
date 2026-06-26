@@ -9,11 +9,11 @@ import { shortenAddress } from '@/lib/utils';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
 import { useAccount } from 'wagmi';
-import { getUserById } from '@/lib/db';
+import { getUserById, updateDisplayName } from '@/lib/db';
 import type { User as DbUser } from '@/types';
 import {
   User, Copy, Check, Wallet, Shield, Key, Clock, Link,
-  Settings, Smartphone, LogOut, Save, Loader2
+  Settings, Smartphone, LogOut, Save, Loader2, X, QrCode
 } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -24,17 +24,27 @@ export default function ProfilePage() {
   const [displayName, setDisplayName] = useState('');
   const [sponsor, setSponsor] = useState<DbUser | null>(null);
   const [nameSaved, setNameSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [twoFA, setTwoFA] = useState(false);
+
+  // 2FA setup modal state
+  const [show2FA, setShow2FA] = useState(false);
+  const [secret, setSecret] = useState('');
+  const [otpauth, setOtpauth] = useState('');
+  const [verifyCode, setVerifyCode] = useState('');
+  const [verifyStep, setVerifyStep] = useState<'setup' | 'verify' | 'done'>('setup');
+  const [verifyError, setVerifyError] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [disabling, setDisabling] = useState(false);
 
   const walletAddress = user?.wallet || address || '0x...';
   const referralCode = user?.referralCode || '...';
 
   useEffect(() => {
-    const saved = localStorage.getItem('cylix_display_name');
-    if (saved) setDisplayName(saved);
-    else if (user) setDisplayName(`User_${user.wallet.slice(2, 8)}`);
-    const saved2fa = localStorage.getItem('cylix_2fa') === 'true';
-    setTwoFA(saved2fa);
+    if (user) {
+      setDisplayName(user.displayName || `User_${user.wallet.slice(2, 8)}`);
+      setTwoFA(user.twoFAEnabled || false);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -50,16 +60,74 @@ export default function ProfilePage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const handleSaveName = () => {
-    localStorage.setItem('cylix_display_name', displayName);
-    setNameSaved(true);
-    setTimeout(() => setNameSaved(false), 2000);
+  const handleSaveName = async () => {
+    if (!user || !displayName.trim()) return;
+    setSaving(true);
+    try {
+      await updateDisplayName(user.id, displayName.trim());
+      setNameSaved(true);
+      setTimeout(() => setNameSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const toggle2FA = () => {
-    const next = !twoFA;
-    setTwoFA(next);
-    localStorage.setItem('cylix_2fa', String(next));
+  const handleSetup2FA = async () => {
+    if (!user) return;
+    setShow2FA(true);
+    setVerifyStep('setup');
+    setVerifyError('');
+    try {
+      const res = await fetch('/api/auth/2fa/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const data = await res.json();
+      setSecret(data.secret);
+      setOtpauth(data.otpauth);
+    } catch {
+      setVerifyError('Failed to generate 2FA setup');
+    }
+  };
+
+  const handleVerify2FA = async () => {
+    if (!user || !verifyCode || !secret) return;
+    setVerifying(true);
+    setVerifyError('');
+    try {
+      const res = await fetch('/api/auth/2fa/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, secret, token: verifyCode }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTwoFA(true);
+        setVerifyStep('done');
+      } else {
+        setVerifyError(data.error || 'Invalid code');
+      }
+    } catch {
+      setVerifyError('Verification failed');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleDisable2FA = async () => {
+    if (!user) return;
+    setDisabling(true);
+    try {
+      await fetch('/api/auth/2fa/disable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      setTwoFA(false);
+    } finally {
+      setDisabling(false);
+    }
   };
 
   return (
@@ -131,9 +199,9 @@ export default function ProfilePage() {
               onChange={(e) => setDisplayName(e.target.value)}
               icon={<User size={14} />}
             />
-            <Button className="w-full" onClick={handleSaveName}>
-              {nameSaved ? <Check size={14} /> : <Save size={14} />}
-              {nameSaved ? 'Saved!' : 'Save Name'}
+            <Button className="w-full" onClick={handleSaveName} disabled={saving || !displayName.trim()}>
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              {saving ? 'Saving...' : nameSaved ? 'Saved!' : 'Save Name'}
             </Button>
           </CardContent>
         </Card>
@@ -173,25 +241,92 @@ export default function ProfilePage() {
                   <Smartphone size={14} className="text-[#94A3B8]" />
                   <span className="text-sm text-white">Two-Factor Authentication</span>
                 </div>
-                <button
-                  onClick={toggle2FA}
-                  className={`w-10 h-6 rounded-full transition-all relative ${twoFA ? 'bg-[#00E5FF]' : 'bg-[rgba(148,163,184,0.2)]'}`}
-                >
-                  <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${twoFA ? 'left-5' : 'left-1'}`} />
-                </button>
+                {twoFA ? (
+                  <Button variant="ghost" size="sm" className="text-[#FF5C7A]" onClick={handleDisable2FA} disabled={disabling}>
+                    {disabling ? <Loader2 size={12} className="animate-spin" /> : null}
+                    Disable
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" onClick={handleSetup2FA}>
+                    <QrCode size={12} /> Setup
+                  </Button>
+                )}
               </div>
-              <p className="text-xs text-[#94A3B8] mt-1">{twoFA ? 'Protected' : 'Enhance your account security'}</p>
-            </div>
-
-            <div className="pt-2">
-              <Button variant="danger" size="sm" className="w-full">
-                <LogOut size={14} />
-                Disconnect Wallet
-              </Button>
+              <p className="text-xs text-[#94A3B8] mt-1">{twoFA ? 'Protected via Google Authenticator' : 'Enhance your account security'}</p>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* 2FA Setup Modal */}
+      {show2FA && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShow2FA(false)}>
+          <div className="w-full max-w-md bg-[#0B1020] rounded-2xl border border-[rgba(0,229,255,0.1)] p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white font-heading">Setup 2FA</h3>
+              <button onClick={() => setShow2FA(false)} className="text-[#94A3B8] hover:text-white">
+                <X size={18} />
+              </button>
+            </div>
+
+            {verifyStep === 'setup' && otpauth && (
+              <div className="space-y-4">
+                <p className="text-sm text-[#94A3B8]">Scan this QR code with Google Authenticator:</p>
+                <div className="flex justify-center">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpauth)}`}
+                    alt="2FA QR Code"
+                    className="rounded-xl"
+                  />
+                </div>
+                <p className="text-xs text-[#94A3B8] text-center">Or enter this key manually: <span className="font-mono text-[#00E5FF]">{secret}</span></p>
+                <Button className="w-full" onClick={() => setVerifyStep('verify')}>
+                  I've scanned the code
+                </Button>
+              </div>
+            )}
+
+            {verifyStep === 'setup' && !otpauth && !verifyError && (
+              <div className="flex justify-center py-8">
+                <Loader2 size={32} className="animate-spin text-[#00E5FF]" />
+              </div>
+            )}
+
+            {verifyStep === 'verify' && (
+              <div className="space-y-4">
+                <p className="text-sm text-[#94A3B8]">Enter the 6-digit code from Google Authenticator:</p>
+                <Input
+                  label="Verification Code"
+                  placeholder="000000"
+                  value={verifyCode}
+                  onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                />
+                {verifyError && <p className="text-xs text-[#FF5C7A]">{verifyError}</p>}
+                <Button className="w-full" onClick={handleVerify2FA} disabled={verifying || verifyCode.length !== 6}>
+                  {verifying ? <Loader2 size={14} className="animate-spin" /> : null}
+                  {verifying ? 'Verifying...' : 'Verify & Enable'}
+                </Button>
+              </div>
+            )}
+
+            {verifyStep === 'done' && (
+              <div className="text-center py-6 space-y-3">
+                <Check size={40} className="mx-auto text-[#00FFB2]" />
+                <p className="text-white font-medium">2FA Enabled Successfully</p>
+                <p className="text-sm text-[#94A3B8]">Your account is now protected with Google Authenticator</p>
+                <Button className="w-full" onClick={() => setShow2FA(false)}>Done</Button>
+              </div>
+            )}
+
+            {verifyError && verifyStep === 'setup' && (
+              <div className="text-center py-4">
+                <p className="text-[#FF5C7A] text-sm mb-3">{verifyError}</p>
+                <Button variant="outline" onClick={() => setShow2FA(false)}>Close</Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

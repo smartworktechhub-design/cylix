@@ -12,6 +12,8 @@ function mapUser(u: any): User {
     joinedAt: u.created_at, totalInvested: Number(u.total_invested),
     totalEarned: Number(u.total_earned), isActive: u.is_active,
     ascensionBalance: Number(u.ascension_balance),
+    displayName: u.display_name || '',
+    twoFAEnabled: u.two_factor_enabled || false,
   };
 }
 
@@ -66,6 +68,18 @@ export async function getUserByWallet(wallet: string): Promise<User | null> {
 export async function getUserById(userId: string): Promise<User | null> {
   const { data } = await sb().from('users').select('*').eq('id', userId).single();
   return data ? mapUser(data) : null;
+}
+
+export async function updateDisplayName(userId: string, displayName: string): Promise<void> {
+  await sb().from('users').update({ display_name: displayName }).eq('id', userId);
+}
+
+export async function enable2FA(userId: string, secret: string): Promise<void> {
+  await sb().from('users').update({ two_factor_secret: secret, two_factor_enabled: true }).eq('id', userId);
+}
+
+export async function disable2FA(userId: string): Promise<void> {
+  await sb().from('users').update({ two_factor_secret: '', two_factor_enabled: false }).eq('id', userId);
 }
 
 export async function setUserSponsor(userId: string, sponsorCode: string): Promise<User | null> {

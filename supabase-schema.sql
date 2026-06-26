@@ -177,6 +177,9 @@ $$ LANGUAGE plpgsql;
 -- Add columns to users (for existing databases)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_daily_process TIMESTAMPTZ DEFAULT now();
 ALTER TABLE users ADD COLUMN IF NOT EXISTS ascension_balance DECIMAL(20,2) DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name VARCHAR(255) DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret VARCHAR(255) DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT false;
 
 -- Scheduled daily processing via pg_cron (requires pg_cron extension)
 -- CREATE EXTENSION IF NOT EXISTS pg_cron;
