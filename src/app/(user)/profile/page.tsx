@@ -21,12 +21,21 @@ export default function ProfilePage() {
   const { address } = useAccount();
   useInitData();
   const [copied, setCopied] = useState<'wallet' | 'code' | 'sponsor' | null>(null);
-  const [displayName, setDisplayName] = useState(user ? `User_${user.wallet.slice(2, 8)}` : 'User');
+  const [displayName, setDisplayName] = useState('');
   const [sponsor, setSponsor] = useState<DbUser | null>(null);
   const [nameSaved, setNameSaved] = useState(false);
+  const [twoFA, setTwoFA] = useState(false);
 
   const walletAddress = user?.wallet || address || '0x...';
   const referralCode = user?.referralCode || '...';
+
+  useEffect(() => {
+    const saved = localStorage.getItem('cylix_display_name');
+    if (saved) setDisplayName(saved);
+    else if (user) setDisplayName(`User_${user.wallet.slice(2, 8)}`);
+    const saved2fa = localStorage.getItem('cylix_2fa') === 'true';
+    setTwoFA(saved2fa);
+  }, [user]);
 
   useEffect(() => {
     if (user?.sponsorId) {
@@ -42,8 +51,15 @@ export default function ProfilePage() {
   };
 
   const handleSaveName = () => {
+    localStorage.setItem('cylix_display_name', displayName);
     setNameSaved(true);
     setTimeout(() => setNameSaved(false), 2000);
+  };
+
+  const toggle2FA = () => {
+    const next = !twoFA;
+    setTwoFA(next);
+    localStorage.setItem('cylix_2fa', String(next));
   };
 
   return (
@@ -152,14 +168,19 @@ export default function ProfilePage() {
             </div>
 
             <div className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)]">
-              <div className="flex items-center gap-2 mb-1">
-                <Smartphone size={14} className="text-[#94A3B8]" />
-                <span className="text-sm text-white">Two-Factor Authentication</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Smartphone size={14} className="text-[#94A3B8]" />
+                  <span className="text-sm text-white">Two-Factor Authentication</span>
+                </div>
+                <button
+                  onClick={toggle2FA}
+                  className={`w-10 h-6 rounded-full transition-all relative ${twoFA ? 'bg-[#00E5FF]' : 'bg-[rgba(148,163,184,0.2)]'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${twoFA ? 'left-5' : 'left-1'}`} />
+                </button>
               </div>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-xs text-[#94A3B8]">Enhance your account security</span>
-                <Button variant="outline" size="sm">Enable</Button>
-              </div>
+              <p className="text-xs text-[#94A3B8] mt-1">{twoFA ? 'Protected' : 'Enhance your account security'}</p>
             </div>
 
             <div className="pt-2">
