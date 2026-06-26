@@ -1,26 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatCurrency, shortenAddress } from '@/lib/utils';
-import { getUserByWallet } from '@/lib/db';
-import type { User as DbUser } from '@/types';
+import { useAppStore } from '@/stores/app-store';
+import { useAccount } from 'wagmi';
 import {
   User, Copy, Check, Wallet, Shield, Bell,
   Key, Clock, Link, Settings, Mail, Smartphone,
   CreditCard, LogOut, Loader2
 } from 'lucide-react';
 
-const DEMO_WALLET = '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18';
-
 export default function ProfilePage() {
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<DbUser | null>(null);
+  const { user } = useAppStore();
+  const { address } = useAccount();
   const [copied, setCopied] = useState<'wallet' | 'code' | null>(null);
-  const [displayName, setDisplayName] = useState('User');
+  const [displayName, setDisplayName] = useState(user ? `User_${user.wallet.slice(2, 8)}` : 'User');
   const [emailPrefs, setEmailPrefs] = useState({
     earnings: true,
     promotions: false,
@@ -28,26 +26,8 @@ export default function ProfilePage() {
     newsletter: false,
   });
 
-  useEffect(() => {
-    getUserByWallet(DEMO_WALLET).then((u) => {
-      if (u) {
-        setUser(u);
-        setDisplayName(`User_${u.wallet.slice(2, 8)}`);
-      }
-      setLoading(false);
-    });
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 size={32} className="animate-spin text-[#00E5FF]" />
-      </div>
-    );
-  }
-
-  const walletAddress = user?.wallet || DEMO_WALLET;
-  const referralCode = user?.referralCode || 'LOADING...';
+  const walletAddress = user?.wallet || address || '0x...';
+  const referralCode = user?.referralCode || '...';
   const daysActive = user ? Math.floor((Date.now() - new Date(user.joinedAt).getTime()) / 86400000) : 0;
 
   const profileStats = [

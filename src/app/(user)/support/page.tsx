@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,14 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
-import { getUserByWallet } from '@/lib/db';
 import {
   MessageSquare, HelpCircle, ChevronDown, ChevronUp,
   Send, Clock, CheckCircle, AlertCircle, Headphones,
   Mail, Phone, LifeBuoy, Ticket, Plus
 } from 'lucide-react';
-
-const DEMO_WALLET = '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18';
 
 const faqs = [
   { q: 'How do I purchase a package?', a: 'Navigate to the Packages page, select your desired package, and follow the checkout process. You will need a connected wallet with sufficient funds.' },
@@ -58,12 +55,6 @@ export default function SupportPage() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [priority, setPriority] = useState('medium');
-
-  useEffect(() => {
-    getUserByWallet(DEMO_WALLET).then((user) => {
-      // User data available if needed for prefilling support forms
-    });
-  }, []);
 
   return (
     <div className="space-y-6">

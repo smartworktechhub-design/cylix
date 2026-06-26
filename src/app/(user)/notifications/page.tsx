@@ -1,18 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatRelativeTime } from '@/lib/utils';
-import { getUserByWallet, getNotifications } from '@/lib/db';
+import { useAppStore } from '@/stores/app-store';
 import type { Notification } from '@/types';
 import {
   Bell, CheckCheck, TrendingUp, DollarSign, Gift, Award,
   AlertTriangle, Info, UserPlus, Zap, Shield, CheckCircle, Loader2
 } from 'lucide-react';
-
-const DEMO_WALLET = '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18';
 
 const filterTabs = ['All', 'Earnings', 'System', 'Promotions', 'Security'];
 
@@ -28,34 +26,13 @@ const typeConfig: Record<string, { icon: typeof Bell; color: string; label: stri
 };
 
 export default function NotificationsPage() {
+  const { notifications, markNotificationRead } = useAppStore();
   const [activeTab, setActiveTab] = useState('All');
-  const [loading, setLoading] = useState(true);
-  const [list, setList] = useState<Notification[]>([]);
   const [markedRead, setMarkedRead] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    async function load() {
-      const user = await getUserByWallet(DEMO_WALLET);
-      if (user) {
-        const data = await getNotifications(user.id);
-        setList(data);
-      }
-      setLoading(false);
-    }
-    load();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 size={32} className="animate-spin text-[#00E5FF]" />
-      </div>
-    );
-  }
-
   const filtered = activeTab === 'All'
-    ? list
-    : list.filter((n) => {
+    ? notifications
+    : notifications.filter((n) => {
         const catMap: Record<string, string[]> = {
           Earnings: ['earnings', 'payment'],
           System: ['system', 'upgrade'],
@@ -65,10 +42,11 @@ export default function NotificationsPage() {
         return catMap[activeTab]?.includes(n.type);
       });
 
-  const unreadCount = list.filter((n) => !n.read && !markedRead.has(n.id)).length;
+  const unreadCount = notifications.filter((n) => !n.read && !markedRead.has(n.id)).length;
 
   const markAsRead = (id: string) => {
     setMarkedRead((prev) => new Set(prev).add(id));
+    markNotificationRead(id);
   };
 
   const markAllAsRead = () => {

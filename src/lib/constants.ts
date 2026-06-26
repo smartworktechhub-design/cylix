@@ -74,6 +74,8 @@ export const ADMIN_NAV_LINKS = [
   { href: '/admin/withdrawals', label: 'Withdrawals', icon: 'Wallet' },
   { href: '/admin/apex-pool', label: 'Apex Pool', icon: 'Trophy' },
   { href: '/admin/referrals', label: 'Referrals', icon: 'Users' },
+  { href: '/admin/notifications', label: 'Notifications', icon: 'Bell' },
+  { href: '/admin/support', label: 'Support', icon: 'LifeBuoy' },
   { href: '/admin/announcements', label: 'Announcements', icon: 'Megaphone' },
   { href: '/admin/transactions', label: 'Transactions', icon: 'ArrowLeftRight' },
   { href: '/admin/settings', label: 'Settings', icon: 'Settings' },
