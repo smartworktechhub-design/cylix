@@ -20,6 +20,7 @@ export default function AdminNotifications() {
   const [message, setMessage] = useState('');
   const [type, setType] = useState('announcement');
   const [sendStatus, setSendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [sendError, setSendError] = useState('');
 
   async function load() {
     try {
@@ -49,11 +50,13 @@ export default function AdminNotifications() {
         load();
       } else {
         setSendStatus('error');
-        setTimeout(() => setSendStatus('idle'), 3000);
+        setSendError(data.error || 'Unknown error');
+        setTimeout(() => setSendStatus('idle'), 5000);
       }
     } catch {
       setSendStatus('error');
-      setTimeout(() => setSendStatus('idle'), 3000);
+      setSendError('Network error');
+      setTimeout(() => setSendStatus('idle'), 5000);
     }
   }
 
@@ -125,8 +128,10 @@ export default function AdminNotifications() {
               </div>
             )}
             {sendStatus === 'error' && (
-              <div className="flex items-center gap-2 text-[#FF5C7A] text-sm">
-                <AlertTriangle size={14} /> Failed to send notification
+              <div className="flex flex-col gap-1 text-[#FF5C7A] text-sm">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={14} /> Failed: {sendError || 'Unknown error'}
+                </div>
               </div>
             )}
           </CardContent>
