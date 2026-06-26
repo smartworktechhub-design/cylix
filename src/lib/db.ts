@@ -358,6 +358,30 @@ export async function getUserSlots(userId: string): Promise<UserSlot[]> {
   return (data || []).map(mapSlot);
 }
 
+async function markSlotCapped(s: any, userId?: string, earned?: number): Promise<void> {
+  const uid = userId || s.user_id;
+  const newEarned = earned ?? Number(s.earned);
+  const { data: totalPurchases } = await sb().from('user_slots')
+    .select('id').eq('user_id', uid).eq('slot_id', s.slot_id);
+  const purchaseCount = totalPurchases?.length || 1;
+  const isFinalCycle = purchaseCount >= REBUY_MAX + 1;
+  const newStatus = isFinalCycle ? 'locked' : 'completed';
+  await sb().from('user_slots').update({
+    status: newStatus, completed_at: new Date().toISOString(),
+  }).eq('id', s.id);
+  await sb().from('notifications').insert({
+    user_id: uid, type: 'slot', title: isFinalCycle ? 'Slot Locked!' : 'Slot Completed!',
+    message: isFinalCycle
+      ? `${s.slot_name} completed ${REBUY_MAX} re-buy cycles. Permanently locked.`
+      : `${s.slot_name} reached 200% cap. Re-buy available.`,
+  });
+  if (s.slot_orbit === 11) {
+    await processOrbit11Recycle(uid, s.id, newEarned);
+  } else if (!isFinalCycle) {
+    await checkAutoUpgrade(uid);
+  }
+}
+
 export async function processSlotEarnings(userId: string): Promise<void> {
   const canProcess = await checkDailyProcess(userId);
   if (!canProcess) return;
@@ -368,10 +392,14 @@ export async function processSlotEarnings(userId: string): Promise<void> {
     const currentEarned = Number(s.earned);
     const dailyAmount = Number(s.daily_earned);
     const maxCap = Number(s.max_cap);
-    if (currentEarned + dailyAmount > maxCap) continue;
-    const newEarned = currentEarned + dailyAmount;
-    const walletShare = (dailyAmount * SLOT_CONFIG.walletSplitPercent) / 100;
-    const ascensionShare = (dailyAmount * SLOT_CONFIG.ascensionSplitPercent) / 100;
+    if (currentEarned >= maxCap) {
+      await markSlotCapped(s);
+      continue;
+    }
+    const actualDaily = Math.min(dailyAmount, maxCap - currentEarned);
+    const newEarned = currentEarned + actualDaily;
+    const walletShare = (actualDaily * SLOT_CONFIG.walletSplitPercent) / 100;
+    const ascensionShare = (actualDaily * SLOT_CONFIG.ascensionSplitPercent) / 100;
     await sb().from('user_slots').update({
       earned: newEarned,
       progress: (newEarned / maxCap) * 100,
@@ -405,25 +433,7 @@ export async function processSlotEarnings(userId: string): Promise<void> {
       });
     }
     if (newEarned >= maxCap) {
-      const { data: totalPurchases } = await sb().from('user_slots')
-        .select('id').eq('user_id', userId).eq('slot_id', s.slot_id);
-      const purchaseCount = totalPurchases?.length || 1;
-      const isFinalCycle = purchaseCount >= REBUY_MAX + 1;
-      const newStatus = isFinalCycle ? 'locked' : 'completed';
-      await sb().from('user_slots').update({
-        status: newStatus, completed_at: new Date().toISOString(),
-      }).eq('id', s.id);
-      await sb().from('notifications').insert({
-        user_id: userId, type: 'slot', title: isFinalCycle ? 'Slot Locked!' : 'Slot Completed!',
-        message: isFinalCycle
-          ? `${s.slot_name} completed 5 re-buy cycles. Permanently locked.`
-          : `${s.slot_name} reached 200% cap. Re-buy available.`,
-      });
-      if (s.slot_orbit === 11) {
-        await processOrbit11Recycle(userId, s.id, newEarned);
-      } else if (!isFinalCycle) {
-        await checkAutoUpgrade(userId);
-      }
+      await markSlotCapped(s, userId, newEarned);
     }
   }
   await updateLastDailyProcess(userId);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
 import { purchaseSlot, getRebuyCount } from '@/lib/db';
@@ -32,6 +32,8 @@ export default function SlotsPage() {
   const { user, slots } = useAppStore();
   const { loading } = useInitData();
   const { address } = useAccount();
+  const [rebuyId, setRebuyId] = useState<string | null>(null);
+  const slotRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const { switchChainAsync } = useSwitchChain();
   const { balance: usdtBalance, refetch: refetchBalance } = useUsdtBalance(address);
   const { writeContract, isPending: isTxPending, data: txHash } = useWriteContract();
@@ -40,6 +42,16 @@ export default function SlotsPage() {
   const [purchaseStatus, setPurchaseStatus] = useState<'idle' | 'approve' | 'confirm' | 'success' | 'error'>('idle');
   const [purchaseError, setPurchaseError] = useState<string>('');
   const [depositCopied, setDepositCopied] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setRebuyId(params.get('rebuy'));
+  }, []);
+  useEffect(() => {
+    if (rebuyId && slotRefs.current[rebuyId]) {
+      slotRefs.current[rebuyId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [rebuyId, slots]);
 
   const activeSlotIds = new Set(slots.filter((s) => s.status === 'active').map((s) => s.slotId));
   const ownedSlotIds = new Set(slots.map((s) => s.slotId));
@@ -199,7 +211,7 @@ export default function SlotsPage() {
                   <LockKeyhole size={20} className="text-[#4A5568] mb-2" />
                   <h3 className="text-sm font-bold text-[#4A5568] font-heading">{slot.name}</h3>
                   <p className="text-lg font-mono font-bold text-[#4A5568]">{formatCurrency(slot.price)}</p>
-                  <p className="text-[8px] text-[#4A5568] mt-1">5/5 Re-buys completed</p>
+                  <p className="text-[8px] text-[#4A5568] mt-1">{REBUY_MAX}/{REBUY_MAX} Re-buys completed</p>
                 </CardContent>
               </Card>
             );
@@ -240,7 +252,8 @@ export default function SlotsPage() {
           const slotActive = slotSlots.find(s => s.status === 'active');
 
           return (
-            <Card key={slot.id} hover className={`relative flex flex-col overflow-hidden border-0`}
+            <div key={slot.id} ref={(el) => { slotRefs.current[slot.id] = el; }}>
+            <Card hover className={`relative flex flex-col overflow-hidden border-0`}
               style={{
                 background: isActive
                   ? `linear-gradient(135deg, ${grad.from}12, ${grad.to}08)`
@@ -340,6 +353,7 @@ export default function SlotsPage() {
                 ) : null}
               </CardContent>
             </Card>
+            </div>
           );
         })}
       </div>

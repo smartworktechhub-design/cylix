@@ -80,7 +80,7 @@ export const ADMIN_NAV_LINKS = [
   { href: '/admin/security', label: 'Security', icon: 'Shield' },
 ];
 
-export const REBUY_MAX = 5;
+export const REBUY_MAX = 2;
 
 export const APP_VERSION = '1.0.0';
 

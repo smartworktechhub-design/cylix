@@ -300,8 +300,9 @@ export default function DashboardPage() {
             const isCleared = !isOwned && !isLocked && lastOwnedIndex >= index;
             const grad = getGradient(slotDef.orbit);
             const totalPurchases = slotRecords.length;
-            const progressPercent = currentActiveSlot && currentActiveSlot.slotId === slotDef.id
-              ? (currentActiveSlot.earned / currentActiveSlot.maxCap) * 100 : 0;
+            const activeRecord = slotRecords.find(s => s.status === 'active');
+            const progressPercent = activeRecord
+              ? (activeRecord.earned / activeRecord.maxCap) * 100 : 0;
 
             if (isLockedPermanent) {
               return (
@@ -309,7 +310,7 @@ export default function DashboardPage() {
                   <Lock size={12} className="text-[#4A5568] mb-1" />
                   <p className="text-[10px] font-bold text-[#4A5568] font-heading">{slotDef.name}</p>
                   <p className="text-[11px] font-mono font-bold text-[#4A5568]">{formatCurrency(slotDef.price)}</p>
-                  <p className="text-[6px] text-[#4A5568] mt-0.5">5/5 Re-buys</p>
+                  <p className="text-[6px] text-[#4A5568] mt-0.5">{REBUY_MAX}/{REBUY_MAX} Re-buys</p>
                 </div>
               );
             }
@@ -325,12 +326,18 @@ export default function DashboardPage() {
             }
 
             if (isCompleted) {
+              const canRebuy = totalPurchases < REBUY_MAX + 1;
               return (
-                <div key={slotDef.id} className="relative rounded-xl p-3 flex flex-col items-center text-center overflow-hidden" style={{ background: `linear-gradient(135deg, ${grad.from}08, ${grad.to}05)`, border: `1px solid ${grad.from}30` }}>
-                  <div className="absolute top-1 right-1"><span className="text-[5px] px-1 py-0.5 rounded-full bg-[rgba(0,255,178,0.1)] text-[#00FFB2] font-bold">DONE</span></div>
+                <div key={slotDef.id} className="relative rounded-xl p-3 flex flex-col items-center text-center overflow-hidden" style={{ background: `linear-gradient(135deg, ${grad.from}08, ${grad.to}05)`, border: `1px solid ${grad.from}30`, opacity: canRebuy ? 1 : 0.4 }}>
+                  <div className="absolute top-1 right-1"><span className="text-[5px] px-1 py-0.5 rounded-full bg-[rgba(0,255,178,0.1)] text-[#00FFB2] font-bold">{canRebuy ? 'CAPPED' : 'LOCKED'}</span></div>
                   <p className="text-[10px] font-bold text-white font-heading pr-5">{slotDef.name}</p>
                   <p className="text-[11px] font-mono font-bold text-[#00FFB2]">{formatCurrency(slotDef.price)}</p>
                   <p className="text-[6px] text-[#00FFB2] mt-0.5">{totalPurchases}/{REBUY_MAX + 1} re-buys</p>
+                  {canRebuy && (
+                    <Link href={`/slots?rebuy=${slotDef.id}`} className="mt-1.5 w-full py-1 rounded-lg text-[#050816] text-[7px] font-bold text-center" style={{ background: `linear-gradient(135deg, ${grad.from}, ${grad.to})` }}>
+                      RE-BUY
+                    </Link>
+                  )}
                 </div>
               );
             }
@@ -360,7 +367,7 @@ export default function DashboardPage() {
                 <p className="text-[10px] font-bold text-white font-heading pr-5">{slotDef.name}</p>
                 <p className="text-[11px] font-mono font-bold text-white mt-0.5">{formatCurrency(slotDef.price)}</p>
 
-                {isActive && currentActiveSlot?.slotId === slotDef.id && (
+                {isActive && (
                   <div className="w-full mt-1.5 space-y-1">
                     <div className="flex items-center justify-center gap-1">
                       <TrendingUp size={6} className="text-[#00E5FF]" />
@@ -579,44 +586,46 @@ export default function DashboardPage() {
           <div className="flex-1 h-px bg-gradient-to-r from-[rgba(123,97,255,0.15)] to-transparent" />
         </div>
         <div className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3" style={{ background: 'rgba(11,16,32,0.5)' }}>
-          {currentActiveSlotDef && currentActiveSlot ? (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Active Package</p>
-                <p className="text-sm font-bold text-white font-heading" style={{ color: getGradient(currentActiveSlotDef.orbit).from }}>{currentActiveSlotDef.name}</p>
-                <p className="text-[10px] font-mono text-[#4A5568]">Orbit #{currentActiveSlotDef.orbit}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Daily Yield</p>
-                <p className="text-lg font-bold font-mono" style={{ color: getGradient(currentActiveSlotDef.orbit).from }}>{formatCurrency(currentActiveSlot.dailyEarned)}</p>
-                <p className="text-[8px] text-[#4A5568]">3% of {formatCurrency(currentActiveSlotDef.price)}</p>
-              </div>
-              <div className="col-span-2">
-                <div className="flex justify-between text-[7px] text-[#4A5568] mb-1">
-                  <span>Cap Progress</span>
-                  <span className="font-mono">{formatCurrency(currentActiveSlot.earned)} / {formatCurrency(currentActiveSlot.maxCap)}</span>
-                </div>
-                <div className="h-2.5 rounded-full bg-[rgba(11,16,32,0.6)] overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-700"
-                    style={{ width: `${Math.min((currentActiveSlot.earned / currentActiveSlot.maxCap) * 100, 100)}%`, background: `linear-gradient(90deg, ${getGradient(currentActiveSlotDef.orbit).from}, ${getGradient(currentActiveSlotDef.orbit).to})` }} />
-                </div>
-                <div className="flex justify-between text-[7px] mt-1">
-                  <span className="text-white font-mono font-semibold">{Math.min((currentActiveSlot.earned / currentActiveSlot.maxCap) * 100, 100).toFixed(1)}%</span>
-                  <span className="text-[#7B61FF]">/ 200% max</span>
-                </div>
-              </div>
-              <div className="col-span-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[7px] text-[#4A5568] uppercase tracking-wider">Re-Buy Cycles</span>
-                  <span className="text-[9px] font-mono" style={{ color: getGradient(currentActiveSlotDef.orbit).from }}>{rebuyCount(currentActiveSlotDef.id)} / {REBUY_MAX + 1}</span>
-                </div>
-                <div className="flex gap-1 mt-1">
-                  {Array.from({ length: REBUY_MAX + 1 }).map((_, i) => (
-                    <div key={i} className="flex-1 h-1.5 rounded-full"
-                      style={{ background: i < rebuyCount(currentActiveSlotDef.id) ? getGradient(currentActiveSlotDef.orbit).from : `${getGradient(currentActiveSlotDef.orbit).from}20` }} />
-                  ))}
-                </div>
-              </div>
+          {activeSlots.length > 0 ? (
+            <div className="space-y-4">
+              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider">{activeSlots.length} Active Package{activeSlots.length > 1 ? 's' : ''}</p>
+              {activeSlots.map((aslot) => {
+                const sdef = SLOTS.find(s => s.id === aslot.slotId);
+                if (!sdef) return null;
+                const g = getGradient(sdef.orbit);
+                return (
+                  <div key={aslot.id} className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-xs font-bold text-white font-heading" style={{ color: g.from }}>{sdef.name}</p>
+                      <p className="text-[8px] font-mono text-[#4A5568]">Orbit #{sdef.orbit}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[7px] text-[#4A5568] uppercase tracking-wider">Daily Yield</p>
+                      <p className="text-sm font-bold font-mono" style={{ color: g.from }}>{formatCurrency(aslot.dailyEarned)}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <div className="flex justify-between text-[6px] text-[#4A5568] mb-0.5">
+                        <span className="font-mono">{formatCurrency(aslot.earned)} / {formatCurrency(aslot.maxCap)}</span>
+                        <span>{Math.min((aslot.earned / aslot.maxCap) * 100, 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-[rgba(11,16,32,0.6)] overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${Math.min((aslot.earned / aslot.maxCap) * 100, 100)}%`, background: `linear-gradient(90deg, ${g.from}, ${g.to})` }} />
+                      </div>
+                    </div>
+                    <div className="col-span-2 flex items-center justify-between">
+                      <span className="text-[6px] text-[#4A5568]">Re-buys</span>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: REBUY_MAX + 1 }).map((_, i) => (
+                          <div key={i} className="w-2 h-2 rounded-full"
+                            style={{ background: i < rebuyCount(sdef.id) ? g.from : `${g.from}20` }} />
+                        ))}
+                        <span className="text-[7px] font-mono text-[#4A5568] ml-1">{rebuyCount(sdef.id)}/{REBUY_MAX + 1}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : nextSlotDef ? (
             <div className="text-center py-3">
