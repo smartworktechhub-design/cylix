@@ -20,10 +20,14 @@ export function useInitData() {
         return;
       }
       try {
-        const refCode = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref') : null;
+        const urlRef = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref') : null;
+        const storedRef = typeof window !== 'undefined' ? localStorage.getItem('cylix_ref') : null;
+        const refCode = urlRef || storedRef;
+        if (storedRef) localStorage.removeItem('cylix_ref');
         let user = await getUserByWallet(address);
         if (!user) {
-          user = await createUser(address, refCode || undefined);
+          if (!refCode) { setLoading(false); return; }
+          user = await createUser(address, refCode);
         }
         if (!user) {
           setLoading(false);

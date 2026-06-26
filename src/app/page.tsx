@@ -10,6 +10,7 @@ export default function HomePage() {
   const { isConnected } = useAccount();
   const router = useRouter();
   const [referralCode, setReferralCode] = useState('');
+  const [error, setError] = useState('');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -18,8 +19,15 @@ export default function HomePage() {
     if (ref) setReferralCode(ref.toUpperCase());
   }, []);
   useEffect(() => {
-    if (isConnected && mounted) router.push('/dashboard');
-  }, [isConnected, mounted, router]);
+    if (isConnected && mounted) {
+      if (!referralCode.trim()) {
+        setError('Referral code is required');
+        return;
+      }
+      localStorage.setItem('cylix_ref', referralCode.trim().toUpperCase());
+      router.push('/dashboard');
+    }
+  }, [isConnected, mounted, referralCode, router]);
 
   if (!mounted) {
     return (
@@ -69,13 +77,16 @@ export default function HomePage() {
 
           <div className="max-w-md mx-auto space-y-4">
             <div className="rounded-2xl bg-[rgba(18,26,43,0.6)] border border-[rgba(0,229,255,0.08)] p-4">
-              <label className="block text-sm text-[#94A3B8] mb-2">Referral Code (optional)</label>
+              <label className="block text-sm text-[#94A3B8] mb-2">
+                Referral Code <span className="text-[#FF5C7A]">*</span>
+              </label>
               <input
                 value={referralCode}
-                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                placeholder="Enter referral code"
+                onChange={(e) => { setReferralCode(e.target.value.toUpperCase()); setError(''); }}
+                placeholder="Enter referral code (required)"
                 className="w-full h-12 px-4 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#94A3B8]/50 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)]"
               />
+              {error && <p className="text-[10px] text-[#FF5C7A] mt-1">{error}</p>}
             </div>
             <ConnectButton.Custom>
               {({ openConnectModal, mounted: rkMounted }) => {
