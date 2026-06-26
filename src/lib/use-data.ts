@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useAppStore } from '@/stores/app-store';
-import { getUserByWallet, createUser, getUserSlots, getTransactions, getWithdrawals, getNotifications, getUserEarnings, getReferrals, getAdminStats, getAscensionVault, processSlotEarnings, checkApexPoolDistribution, distributeApexPool } from './db';
+import { getUserByWallet, createUser, setUserSponsor, getUserSlots, getTransactions, getWithdrawals, getNotifications, getUserEarnings, getReferrals, getAdminStats, getAscensionVault, processSlotEarnings, checkApexPoolDistribution, distributeApexPool } from './db';
 
 
 export function useInitData() {
-  const { setUser, setSlots, setEarnings, setVault, setTransactions, setWithdrawals, setNotifications, setReferrals, setActivities, setAdminStats } = useAppStore();
+  const { setUser, setSlots, setEarnings, setVault, setTransactions, setWithdrawals, setNotifications, setReferrals, setActivities, setAdminStats, setNeedsReferral } = useAppStore();
   const { address, isConnected } = useAccount();
   const [loading, setLoading] = useState(true);
 
@@ -25,11 +25,16 @@ export function useInitData() {
         const refCode = urlRef || storedRef;
         if (storedRef) localStorage.removeItem('cylix_ref');
         let user = await getUserByWallet(address);
+        if (user && !user.sponsorId && refCode) {
+          const updated = await setUserSponsor(user.id, refCode);
+          if (updated) user = updated;
+        }
         if (!user) {
-          if (!refCode) { setLoading(false); return; }
+          if (!refCode) { setNeedsReferral(true); setLoading(false); return; }
           user = await createUser(address, refCode);
         }
         if (!user) {
+          setNeedsReferral(true);
           setLoading(false);
           return;
         }

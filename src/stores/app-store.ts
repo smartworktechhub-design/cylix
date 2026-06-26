@@ -13,6 +13,8 @@ interface AppState {
   activities: Activity[];
   adminStats: AdminStats | null;
   sidebarOpen: boolean;
+  needsReferral: boolean;
+  setNeedsReferral: (v: boolean) => void;
   setUser: (user: User | null) => void;
   setSlots: (slots: UserSlot[]) => void;
   setEarnings: (earnings: Earnings) => void;
@@ -41,7 +43,9 @@ export const useAppStore = create<AppState>((set) => ({
   activities: [],
   adminStats: null,
   sidebarOpen: true,
+  needsReferral: false,
 
+  setNeedsReferral: (needsReferral) => set({ needsReferral }),
   setUser: (user) => set({ user }),
   setSlots: (slots) => set({ slots }),
   setEarnings: (earnings) => set({ earnings }),

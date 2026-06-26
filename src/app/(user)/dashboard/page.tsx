@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
-import { getMatrixStats, getMatrixTree } from '@/lib/db';
+import { getMatrixStats, getMatrixTree, setUserSponsor } from '@/lib/db';
 import { SLOTS, SLOT_CONFIG, REBUY_MAX, APP_VERSION } from '@/lib/constants';
 import { useAccount } from 'wagmi';
 import Link from 'next/link';
@@ -38,7 +38,7 @@ const PLACEMENT_LABELS: Record<string, string> = {
 };
 
 export default function DashboardPage() {
-  const { user, slots, earnings, vault, transactions, adminStats } = useAppStore();
+  const { user, slots, earnings, vault, transactions, adminStats, needsReferral, setNeedsReferral } = useAppStore();
   const { loading } = useInitData();
   const { isConnected, address } = useAccount();
   const pathname = usePathname();
@@ -140,10 +140,44 @@ export default function DashboardPage() {
     }
   };
 
+  const [refInput, setRefInput] = useState('');
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#050816' }}>
         <Loader2 size={36} className="animate-spin text-[#00E5FF]" />
+      </div>
+    );
+  }
+
+  if (needsReferral) {
+    return (
+      <div className="min-h-screen bg-[#050816] flex items-center justify-center p-4">
+        <div className="max-w-sm w-full rounded-2xl bg-[rgba(18,26,43,0.6)] border border-[rgba(0,229,255,0.08)] p-6 text-center">
+          <div className="w-12 h-12 rounded-xl bg-[rgba(0,229,255,0.1)] flex items-center justify-center mx-auto mb-4">
+            <Users size={20} className="text-[#00E5FF]" />
+          </div>
+          <h2 className="text-lg font-bold text-white font-heading mb-2">Referral Code Required</h2>
+          <p className="text-xs text-[#94A3B8] mb-4">Enter your sponsor's referral code to continue</p>
+          <input
+            value={refInput}
+            onChange={(e) => setRefInput(e.target.value.toUpperCase())}
+            placeholder="Enter referral code"
+            className="w-full h-11 px-4 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#94A3B8]/50 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)] mb-3"
+          />
+          <button
+            onClick={async () => {
+              if (!refInput.trim() || !user) return;
+              const updated = await setUserSponsor(user.id, refInput.trim().toUpperCase());
+              if (updated) {
+                useAppStore.getState().setUser(updated as any);
+                setNeedsReferral(false);
+              }
+            }}
+            className="w-full h-11 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] font-semibold text-sm hover:opacity-90 transition-all">
+            Submit
+          </button>
+        </div>
       </div>
     );
   }
