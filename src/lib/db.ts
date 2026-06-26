@@ -436,6 +436,7 @@ export async function processSlotEarnings(userId: string): Promise<void> {
       await markSlotCapped(s, userId, newEarned);
     }
   }
+  await checkAutoUpgrade(userId);
   await updateLastDailyProcess(userId);
 }
 
