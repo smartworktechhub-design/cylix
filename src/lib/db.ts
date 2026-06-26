@@ -287,9 +287,10 @@ export async function processMatrixCommission(purchaserId: string, amount: numbe
       user_id: m.sponsor_id, type: 'matrix', amount: commission,
       source: `Level ${m.level} commission from slot purchase`,
     });
+    const { data: purchaser } = await sb().from('users').select('referral_code').eq('id', purchaserId).single();
     await sb().from('transactions').insert({
       user_id: m.sponsor_id, type: 'matrix_earning',
-      amount: commission, description: `Level ${m.level} matrix commission`,
+      amount: commission, description: `L${m.level} from ${purchaser?.referral_code || purchaserId.slice(0, 8)}`,
     });
     await sb().from('users').update({
       total_earned: sb().rpc('increment', { x: commission }),

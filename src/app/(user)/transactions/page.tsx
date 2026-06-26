@@ -23,15 +23,16 @@ const statusVariant: Record<string, 'success' | 'warning' | 'danger' | 'info'> =
 };
 
 const typeConfig: Record<string, { icon: typeof ArrowUpRight; color: string; label: string }> = {
-  purchase: { icon: ArrowUpRight, color: '#00E5FF', label: 'Purchase' },
-  withdrawal: { icon: ArrowDownRight, color: '#FF5C7A', label: 'Withdrawal' },
-  withdraw: { icon: ArrowDownRight, color: '#FF5C7A', label: 'Withdrawal' },
-  earnings: { icon: TrendingUp, color: '#00FFB2', label: 'Earnings' },
-  daily: { icon: TrendingUp, color: '#00FFB2', label: 'Earnings' },
-  referral: { icon: TrendingUp, color: '#00FFB2', label: 'Earnings' },
-  matrix: { icon: TrendingUp, color: '#00FFB2', label: 'Earnings' },
-  pool: { icon: TrendingUp, color: '#00FFB2', label: 'Earnings' },
+  slot_purchase: { icon: ArrowUpRight, color: '#00E5FF', label: 'Purchase' },
   upgrade: { icon: ArrowUpRight, color: '#7B61FF', label: 'Upgrade' },
+  recycle: { icon: ArrowUpRight, color: '#00E5FF', label: 'Re-cycle' },
+  withdraw: { icon: ArrowDownRight, color: '#FF5C7A', label: 'Withdrawal' },
+  withdrawal: { icon: ArrowDownRight, color: '#FF5C7A', label: 'Withdrawal' },
+  daily_earning: { icon: TrendingUp, color: '#00FFB2', label: 'Daily Yield' },
+  matrix_earning: { icon: TrendingUp, color: '#7B61FF', label: 'Matrix' },
+  pool_earning: { icon: TrendingUp, color: '#FFB800', label: 'Apex Pool' },
+  referral: { icon: TrendingUp, color: '#00E5FF', label: 'Referral' },
+  ascension_credit: { icon: TrendingUp, color: '#7B61FF', label: 'Ascension' },
 };
 
 export default function TransactionsPage() {
@@ -72,11 +73,15 @@ export default function TransactionsPage() {
 
   const filtered = activeTab === 'All'
     ? transactions
-    : transactions.filter((t) => {
-        const typeMap: Record<string, string> = { Purchases: 'purchase', Withdrawals: 'withdrawal', Earnings: 'earnings' };
-        const target = typeMap[activeTab];
-        return t.type === target || (target === 'earnings' && ['earnings', 'daily', 'referral', 'matrix', 'pool'].includes(t.type));
-      });
+      : transactions.filter((t) => {
+          const typeMap: Record<string, string[]> = {
+            Purchases: ['slot_purchase', 'upgrade', 'recycle'],
+            Withdrawals: ['withdraw', 'withdrawal'],
+            Earnings: ['daily_earning', 'matrix_earning', 'pool_earning', 'referral', 'ascension_credit'],
+          };
+          const targets = typeMap[activeTab] || [];
+          return targets.includes(t.type);
+        });
 
   if (loading) {
     return (
@@ -178,7 +183,16 @@ export default function TransactionsPage() {
                       <span className="text-[#94A3B8] text-sm">{formatDate(tx.timestamp)}</span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-[#94A3B8] text-sm">{tx.description}</span>
+                      {tx.type === 'matrix_earning' ? (
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="info" className="text-[10px]">
+                            {tx.description?.split(' ')[0] || 'L?'}
+                          </Badge>
+                          <span className="text-[#94A3B8] text-sm">{tx.description?.replace(/^L\d+\s+from\s+/, '') || ''}</span>
+                        </div>
+                      ) : (
+                        <span className="text-[#94A3B8] text-sm">{tx.description}</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
