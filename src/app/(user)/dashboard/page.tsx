@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
-import { getMatrixStats, getMatrixTree, setUserSponsor } from '@/lib/db';
+import { getMatrixStats, getMatrixTree, setUserSponsor, getRecentJoins } from '@/lib/db';
 import { SLOTS, SLOT_CONFIG, REBUY_MAX, APP_VERSION } from '@/lib/constants';
 import { useAccount } from 'wagmi';
 import Link from 'next/link';
@@ -14,7 +14,7 @@ import {
   ArrowUpRight, Shield, Coins, Copy, CheckCheck,
   Link as LinkIcon, Lock, Activity, User,
   Timer, Trophy, Layers, ChevronRight,
-  ExternalLink, EyeOff, RotateCcw, Globe,
+  ExternalLink, EyeOff, RotateCcw, Globe, UserPlus,
 } from 'lucide-react';
 
 const cn = (...classes: (string | boolean | undefined | null)[]) => classes.filter(Boolean).join(' ');
@@ -31,6 +31,17 @@ const formatCompact = (n: number) => {
 const shortenAddress = (addr?: string) => {
   if (!addr) return '';
   return addr.slice(0, 6) + '...' + addr.slice(-4);
+};
+
+const formatTimeAgo = (dateStr: string) => {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
 };
 
 const PLACEMENT_LABELS: Record<string, string> = {
@@ -52,6 +63,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user) {
       getMatrixStats(user.id).then(setMatrixStats);
+      getRecentJoins(10).then(setRecentJoins);
       getMatrixTree(user.id).then(tree => {
         if (!tree) return;
         const levels: any[] = [];
@@ -140,6 +152,7 @@ export default function DashboardPage() {
     }
   };
 
+  const [recentJoins, setRecentJoins] = useState<any[]>([]);
   const [refInput, setRefInput] = useState('');
 
   if (loading) {
@@ -236,8 +249,9 @@ export default function DashboardPage() {
           {/* Summary boxes */}
           <div className="grid grid-cols-3 gap-2 mt-2">
             <div className="rounded-lg p-2 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(0,229,255,0.02)' }}>
-              <p className="text-[6px] text-[#4A5568] uppercase tracking-wider mb-0.5">Team / Direct</p>
-              <p className="text-xs font-mono font-bold text-white">{communityStats.teamCount}<span className="text-[#4A5568] text-[8px]">/{communityStats.directsCount}</span></p>
+              <p className="text-[6px] text-[#4A5568] uppercase tracking-wider mb-0.5">Wallet</p>
+              <p className="text-[11px] font-mono font-bold text-white">{formatCompact(usdtBalance)} <span className="text-[6px] text-[#4A5568]">USDT</span></p>
+              <p className="text-[6px] text-[#00E5FF] font-mono">{shortenAddress(address) || 'Not Connected'}</p>
             </div>
             <div className="rounded-lg p-2 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(0,229,255,0.02)' }}>
               <p className="text-[6px] text-[#4A5568] uppercase tracking-wider mb-0.5">Community</p>
@@ -619,91 +633,41 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ====== TRANSACTION HISTORY ====== */}
+      {/* ====== LIVE FEED ====== */}
       <div className="px-4 mb-3">
         <div className="flex items-center gap-2 mb-2">
           <Activity size={12} className="text-[#00E5FF]" />
-          <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Transactions</h2>
+          <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Live Feed</h2>
           <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.15)] to-transparent" />
-          {transactions.length > 0 && <Link href="/transactions" className="text-[7px] text-[#00E5FF] font-semibold hover:underline">View All</Link>}
         </div>
         <div className="rounded-xl border border-[rgba(0,229,255,0.06)] overflow-hidden" style={{ background: 'rgba(11,16,32,0.5)' }}>
-          {recentTxns.length > 0 ? (
+          {recentJoins.length > 0 ? (
             <div className="divide-y divide-[rgba(0,229,255,0.03)]">
-              {recentTxns.map((tx, i) => {
-                const typeConfig: Record<string, { color: string; label: string }> = {
-                  slot_purchase: { color: '#00E5FF', label: 'Purchase' },
-                  withdraw: { color: '#FF5C7A', label: 'Withdraw' },
-                  referral: { color: '#7B61FF', label: 'Referral' },
-                  daily_earning: { color: '#00FFB2', label: 'Daily' },
-                  matrix_earning: { color: '#00E5FF', label: 'Matrix' },
-                  pool_earning: { color: '#FFB800', label: 'Pool' },
-                  ascension_credit: { color: '#7B61FF', label: 'Ascension' },
-                  upgrade: { color: '#7B61FF', label: 'Upgrade' },
-                  recycle: { color: '#00E5FF', label: 'Re-cycle' },
-                };
-                const tc = typeConfig[tx.type] || { color: '#4A5568', label: tx.type };
-                return (
-                  <div key={tx.id || i} className="flex items-center justify-between px-3 py-2 hover:bg-[rgba(0,229,255,0.01)] transition-all">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${tc.color}10` }}>
-                        <Activity size={10} style={{ color: tc.color }} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[8px] font-semibold text-white truncate">{tx.description || tc.label}</p>
-                        <p className="text-[6px] text-[#4A5568] font-mono">{tx.timestamp ? new Date(tx.timestamp).toLocaleDateString() : '--'}</p>
-                      </div>
+              {recentJoins.map((j: any, i: number) => (
+                <div key={j.id || i} className="flex items-center justify-between px-3 py-2 hover:bg-[rgba(0,229,255,0.01)] transition-all">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(0,229,255,0.08)' }}>
+                      <UserPlus size={10} className="text-[#00E5FF]" />
                     </div>
-                    <span className="text-[10px] font-mono font-bold shrink-0" style={{ color: tx.amount > 0 ? '#00FFB2' : '#FF5C7A' }}>
-                      {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
-                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[8px] font-semibold text-white truncate">{shortenAddress(j.wallet || j.id)}</p>
+                      <p className="text-[6px] text-[#4A5568] font-mono">Ref: {j.referralCode || '---'}</p>
+                    </div>
                   </div>
-                );
-              })}
+                  <span className="text-[7px] text-[#4A5568] font-mono">{j.timestamp ? formatTimeAgo(j.timestamp) : '--'}</span>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="p-4 text-center">
-              <Activity size={16} className="mx-auto mb-2 text-[#4A5568]" />
-              <p className="text-[8px] text-[#4A5568]">No recent transactions</p>
+              <UserPlus size={16} className="mx-auto mb-2 text-[#4A5568]" />
+              <p className="text-[8px] text-[#4A5568]">No recent joins</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* ====== TEAM STATS ====== */}
-      <div className="px-4 mb-3">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-lg p-2.5 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(18,26,43,0.4)' }}>
-            <Users size={12} className="mx-auto mb-1 text-[#00E5FF]" />
-            <p className="text-xs font-mono font-bold text-white">{matrixStats?.total || 0}</p>
-            <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">Team</p>
-          </div>
-          <div className="rounded-lg p-2.5 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(18,26,43,0.4)' }}>
-            <Users size={12} className="mx-auto mb-1 text-[#7B61FF]" />
-            <p className="text-xs font-mono font-bold text-white">{matrixStats?.directsCount || 0}</p>
-            <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">Directs</p>
-          </div>
-        </div>
-      </div>
 
-      {/* ====== WALLET INFO BAR ====== */}
-      <div className="px-4 mb-3">
-        <div className="rounded-lg p-2 border border-[rgba(0,229,255,0.04)] flex items-center justify-between" style={{ background: 'rgba(0,229,255,0.02)' }}>
-          <div className="flex items-center gap-2">
-            <Coins size={12} className="text-[#00E5FF]" />
-            <span className="text-[7px] text-[#4A5568] uppercase tracking-wider">Wallet</span>
-            <code className="text-[8px] font-mono text-[#00E5FF]">{shortenAddress(address) || 'Not Connected'}</code>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-[9px] font-mono font-bold text-white">{formatCompact(usdtBalance)} USDT</span>
-            {address && (
-              <a href={`https://bscscan.com/address/${address}`} target="_blank" rel="noopener noreferrer" className="text-[#4A5568] hover:text-[#00E5FF] transition-all">
-                <ExternalLink size={10} />
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* ====== BOTTOM NAVIGATION ====== */}
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[rgba(0,229,255,0.08)] backdrop-blur-xl" style={{ background: 'rgba(5,8,22,0.92)' }}>

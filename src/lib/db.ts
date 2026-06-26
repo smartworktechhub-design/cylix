@@ -692,12 +692,24 @@ export async function getAdminStats(): Promise<AdminStats> {
   const pendingWithdrawals = wdData?.filter((w: any) => w.status === 'pending').length || 0;
   const totalWithdrawals = wdData?.reduce((s: number, w: any) => s + Number(w.amount), 0) || 0;
   const poolFund = poolContribs?.reduce((s: number, p: any) => s + Number(p.value), 0) || 0;
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count: newUsersToday } = await sb().from('users').select('*', { count: 'exact', head: true }).gte('created_at', yesterday);
   return {
     totalUsers: totalUsers || 0, totalRevenue, activeSlots,
-    pendingWithdrawals, totalWithdrawals, newUsersToday: 0, growthRate: 0,
+    pendingWithdrawals, totalWithdrawals, newUsersToday: newUsersToday || 0, growthRate: 0,
     poolFund,
     totalBlocks: totalDistributed?.length || 0,
   };
+}
+
+export async function getRecentJoins(limit = 10): Promise<any[]> {
+  const { data } = await sb().from('users')
+    .select('id, wallet, referral_code, sponsor_id, created_at')
+    .order('created_at', { ascending: false }).limit(limit);
+  return (data || []).map((u: any) => ({
+    id: u.id, wallet: u.wallet, referralCode: u.referral_code,
+    sponsorId: u.sponsor_id, timestamp: u.created_at,
+  }));
 }
 
 export async function getAllUsers(): Promise<any[]> {

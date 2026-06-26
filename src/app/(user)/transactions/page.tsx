@@ -5,13 +5,13 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { getUserByWallet, getTransactions } from '@/lib/db';
+import { useAppStore } from '@/stores/app-store';
+import { getTransactions } from '@/lib/db';
+import { useAccount } from 'wagmi';
 import {
   ArrowUpRight, ArrowDownRight, RefreshCw, DollarSign,
   Clock, Filter, TrendingUp, Loader2
 } from 'lucide-react';
-
-const DEMO_WALLET = '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18';
 
 const tabs = ['All', 'Purchases', 'Withdrawals', 'Earnings'];
 
@@ -35,6 +35,8 @@ const typeConfig: Record<string, { icon: typeof ArrowUpRight; color: string; lab
 };
 
 export default function TransactionsPage() {
+  const { user } = useAppStore();
+  const { address } = useAccount();
   const [activeTab, setActiveTab] = useState('All');
   const [transactions, setTransactions] = useState<any[]>([]);
   const [summaryStats, setSummaryStats] = useState([
@@ -48,29 +50,25 @@ export default function TransactionsPage() {
   useEffect(() => {
     async function load() {
       try {
-        const user = await getUserByWallet(DEMO_WALLET);
-        if (user) {
-          const txs = await getTransactions(user.id);
-          setTransactions(txs);
-
-          const totalVolume = txs.reduce((s, t) => s + t.amount, 0);
-          const pending = txs.filter((t) => t.status === 'pending').length;
-          const completed = txs.filter((t) => t.status === 'completed').length;
-          const successRate = txs.length > 0 ? Math.round((completed / txs.length) * 100) + '%' : '0%';
-
-          setSummaryStats([
-            { label: 'Total Transactions', value: txs.length, icon: RefreshCw, color: '#00E5FF' },
-            { label: 'Total Volume', value: totalVolume, icon: DollarSign, color: '#7B61FF' },
-            { label: 'Pending', value: pending, icon: Clock, color: '#FFB800' },
-            { label: 'Success Rate', value: successRate, icon: TrendingUp, color: '#00FFB2' },
-          ]);
-        }
+        if (!user) return;
+        const txs = await getTransactions(user.id);
+        setTransactions(txs);
+        const totalVolume = txs.reduce((s, t) => s + t.amount, 0);
+        const pending = txs.filter((t) => t.status === 'pending').length;
+        const completed = txs.filter((t) => t.status === 'completed').length;
+        const successRate = txs.length > 0 ? Math.round((completed / txs.length) * 100) + '%' : '0%';
+        setSummaryStats([
+          { label: 'Total Transactions', value: txs.length, icon: RefreshCw, color: '#00E5FF' },
+          { label: 'Total Volume', value: totalVolume, icon: DollarSign, color: '#7B61FF' },
+          { label: 'Pending', value: pending, icon: Clock, color: '#FFB800' },
+          { label: 'Success Rate', value: successRate, icon: TrendingUp, color: '#00FFB2' },
+        ]);
       } finally {
         setLoading(false);
       }
     }
     load();
-  }, []);
+  }, [user]);
 
   const filtered = activeTab === 'All'
     ? transactions
