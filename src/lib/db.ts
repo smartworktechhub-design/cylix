@@ -580,9 +580,9 @@ async function claimApexPoolForUser(userId: string, distId: string): Promise<voi
 export async function checkDailyProcess(userId: string): Promise<boolean> {
   const { data } = await sb().from('users').select('last_daily_process, created_at').eq('id', userId).single();
   if (!data?.last_daily_process) return true;
+  const { count } = await sb().from('earnings').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+  if (count === 0) return true;
   const lastProcess = new Date(data.last_daily_process).getTime();
-  const createdAt = new Date(data.created_at).getTime();
-  if (Math.abs(lastProcess - createdAt) < 60000) return true;
   return Date.now() - lastProcess >= 24 * 60 * 60 * 1000;
 }
 

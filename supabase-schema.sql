@@ -174,8 +174,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Add last_daily_process to users
+-- Add columns to users (for existing databases)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_daily_process TIMESTAMPTZ DEFAULT now();
+ALTER TABLE users ADD COLUMN IF NOT EXISTS ascension_balance DECIMAL(20,2) DEFAULT 0;
 
 -- Scheduled daily processing via pg_cron (requires pg_cron extension)
 -- CREATE EXTENSION IF NOT EXISTS pg_cron;
