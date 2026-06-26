@@ -12,8 +12,10 @@ export function useInitData() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const timeout = setTimeout(() => setLoading(false), 8000);
     async function load() {
       if (!isConnected || !address) {
+        clearTimeout(timeout);
         setLoading(false);
         return;
       }
@@ -54,6 +56,7 @@ export function useInitData() {
       } catch (err) {
         console.error('Data load error:', err);
       } finally {
+        clearTimeout(timeout);
         setLoading(false);
       }
     }
