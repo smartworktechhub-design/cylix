@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatCurrency, shortenAddress } from '@/lib/utils';
 import { useAppStore } from '@/stores/app-store';
+import { useInitData } from '@/lib/use-data';
 import { useAccount } from 'wagmi';
 import {
   User, Copy, Check, Wallet, Shield, Bell,
@@ -17,6 +18,7 @@ import {
 export default function ProfilePage() {
   const { user } = useAppStore();
   const { address } = useAccount();
+  useInitData();
   const [copied, setCopied] = useState<'wallet' | 'code' | null>(null);
   const [displayName, setDisplayName] = useState(user ? `User_${user.wallet.slice(2, 8)}` : 'User');
   const [emailPrefs, setEmailPrefs] = useState({

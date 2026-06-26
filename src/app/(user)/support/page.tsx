@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
+import { useInitData } from '@/lib/use-data';
 import {
   MessageSquare, HelpCircle, ChevronDown, ChevronUp,
   Send, Clock, CheckCircle, AlertCircle, Headphones,
@@ -51,6 +52,7 @@ const priorityColors: Record<string, string> = {
 };
 
 export default function SupportPage() {
+  useInitData();
   const [openFaq, setOpenFaq] = useState<string | null>('0');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');

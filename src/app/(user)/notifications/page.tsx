@@ -6,20 +6,24 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatRelativeTime } from '@/lib/utils';
 import { useAppStore } from '@/stores/app-store';
+import { useInitData } from '@/lib/use-data';
 import type { Notification } from '@/types';
 import {
   Bell, CheckCheck, TrendingUp, DollarSign, Gift, Award,
-  AlertTriangle, Info, UserPlus, Zap, Shield, CheckCircle, Loader2
+  AlertTriangle, Info, UserPlus, Zap, Shield, CheckCircle, Loader2, Megaphone
 } from 'lucide-react';
 
 const filterTabs = ['All', 'Earnings', 'System', 'Promotions', 'Security'];
 
 const typeConfig: Record<string, { icon: typeof Bell; color: string; label: string }> = {
+  announcement: { icon: Megaphone, color: '#FFB800', label: 'Announcement' },
   earnings: { icon: TrendingUp, color: '#00FFB2', label: 'Earnings' },
   payment: { icon: DollarSign, color: '#00E5FF', label: 'Payment' },
   promotion: { icon: Gift, color: '#7B61FF', label: 'Promotion' },
   achievement: { icon: Award, color: '#FFB800', label: 'Achievement' },
   system: { icon: Info, color: '#94A3B8', label: 'System' },
+  slot: { icon: Zap, color: '#00E5FF', label: 'Slot' },
+  pool: { icon: Award, color: '#00FFB2', label: 'Pool' },
   referral: { icon: UserPlus, color: '#7B61FF', label: 'Referral' },
   upgrade: { icon: Zap, color: '#00E5FF', label: 'Upgrade' },
   security: { icon: Shield, color: '#FF5C7A', label: 'Security' },
@@ -27,6 +31,7 @@ const typeConfig: Record<string, { icon: typeof Bell; color: string; label: stri
 
 export default function NotificationsPage() {
   const { notifications, markNotificationRead } = useAppStore();
+  useInitData();
   const [activeTab, setActiveTab] = useState('All');
   const [markedRead, setMarkedRead] = useState<Set<string>>(new Set());
 
@@ -35,7 +40,7 @@ export default function NotificationsPage() {
     : notifications.filter((n) => {
         const catMap: Record<string, string[]> = {
           Earnings: ['earnings', 'payment'],
-          System: ['system', 'upgrade'],
+          System: ['system', 'upgrade', 'announcement', 'slot', 'pool'],
           Promotions: ['promotion', 'referral', 'achievement'],
           Security: ['security'],
         };
