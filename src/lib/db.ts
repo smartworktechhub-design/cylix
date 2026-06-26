@@ -587,7 +587,9 @@ export async function checkDailyProcess(userId: string): Promise<boolean> {
 }
 
 export async function updateLastDailyProcess(userId: string): Promise<void> {
-  await sb().from('users').update({ last_daily_process: new Date().toISOString() }).eq('id', userId);
+  try {
+    await sb().from('users').update({ last_daily_process: new Date().toISOString() }).eq('id', userId);
+  } catch (_) { /* column may not exist */ }
 }
 
 export async function processAllDailyEarnings(): Promise<{ processed: number }> {
