@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
 import { getMatrixStats, getMatrixTree } from '@/lib/db';
-import { SLOTS, SLOT_CONFIG, REBUY_MAX } from '@/lib/constants';
+import { SLOTS, SLOT_CONFIG, REBUY_MAX, APP_VERSION } from '@/lib/constants';
 import { useAccount } from 'wagmi';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -161,7 +161,10 @@ export default function DashboardPage() {
                 <Orbit size={20} className="text-[#050816]" />
               </div>
               <div>
-                <h1 className="text-sm font-bold text-white font-heading" style={{ fontFamily: "'Orbitron',sans-serif" }}>CYLIX MATRIX DeFi</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-sm font-bold text-white font-heading" style={{ fontFamily: "'Orbitron',sans-serif" }}>CYLIX MATRIX DeFi</h1>
+                  <span className="text-[6px] px-1 py-0.5 rounded bg-[rgba(0,229,255,0.08)] text-[#00E5FF] font-mono font-bold">v{APP_VERSION}</span>
+                </div>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <Shield size={10} className="text-[#00FFB2]" />
                   <span className="text-[8px] text-[#00FFB2] font-medium tracking-wider">SMART CONTRACT SECURED</span>
