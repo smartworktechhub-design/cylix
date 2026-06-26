@@ -47,16 +47,28 @@ export default function HomePage() {
           <span className="text-lg font-bold font-heading tracking-wider text-white">CYLIX</span>
         </div>
         <ConnectButton.Custom>
-          {({ openConnectModal, mounted: rkMounted }) => {
-            if (!rkMounted) return <div className="w-36 h-10 rounded-xl bg-[rgba(148,163,184,0.05)]" />;
+          {({ openConnectModal, openAccountModal, mounted: rkMounted, authenticationStatus, account }) => {
+            const ready = rkMounted && authenticationStatus !== 'loading';
+            const connected = ready && account && !authenticationStatus;
             return (
-              <button
-                onClick={openConnectModal}
-                className="flex items-center gap-2 h-10 px-5 rounded-xl bg-[#00E5FF] text-[#050816] text-sm font-semibold hover:bg-[#00E5FF]/90 transition-all"
-              >
-                <Wallet size={16} />
-                Connect Wallet
-              </button>
+              <div className={!rkMounted ? 'w-36 h-10 rounded-xl bg-[rgba(148,163,184,0.05)]' : ''}>
+                {!ready ? <div className="w-36 h-10 rounded-xl bg-[rgba(148,163,184,0.05)]" /> :
+                  connected ? (
+                    <button onClick={openAccountModal}
+                      className="flex items-center gap-2 h-10 px-4 rounded-xl bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.15)] text-white text-sm font-semibold hover:bg-[rgba(0,229,255,0.12)] transition-all">
+                      <div className="w-5 h-5 rounded-full bg-[#00E5FF] flex items-center justify-center">
+                        <Wallet size={10} className="text-[#050816]" />
+                      </div>
+                      {account.displayName}
+                    </button>
+                  ) : (
+                    <button onClick={openConnectModal}
+                      className="flex items-center gap-2 h-10 px-5 rounded-xl bg-[#00E5FF] text-[#050816] text-sm font-semibold hover:bg-[#00E5FF]/90 transition-all">
+                      <Wallet size={16} />
+                      Connect Wallet
+                    </button>
+                  )}
+              </div>
             );
           }}
         </ConnectButton.Custom>
@@ -89,16 +101,26 @@ export default function HomePage() {
               {error && <p className="text-[10px] text-[#FF5C7A] mt-1">{error}</p>}
             </div>
             <ConnectButton.Custom>
-              {({ openConnectModal, mounted: rkMounted }) => {
-                if (!rkMounted) return <div className="h-12 rounded-xl bg-[rgba(148,163,184,0.05)] animate-pulse" />;
+              {({ openConnectModal, openAccountModal, mounted: rkMounted, authenticationStatus, account }) => {
+                const ready = rkMounted && authenticationStatus !== 'loading';
+                const connected = ready && account && !authenticationStatus;
                 return (
-                  <button
-                    onClick={openConnectModal}
-                    className="w-full h-12 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] font-semibold text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2"
-                  >
-                    Connect Wallet to Start
-                    <ArrowRight size={16} />
-                  </button>
+                  <div className={!rkMounted ? 'h-12 rounded-xl bg-[rgba(148,163,184,0.05)] animate-pulse' : ''}>
+                    {!ready ? <div className="h-12 rounded-xl bg-[rgba(148,163,184,0.05)] animate-pulse" /> :
+                      connected ? (
+                        <button onClick={openAccountModal}
+                          className="w-full h-12 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] font-semibold text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2">
+                          <Wallet size={16} />
+                          {account.displayName}
+                        </button>
+                      ) : (
+                        <button onClick={openConnectModal}
+                          className="w-full h-12 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] font-semibold text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2">
+                          Connect Wallet to Start
+                          <ArrowRight size={16} />
+                        </button>
+                      )}
+                  </div>
                 );
               }}
             </ConnectButton.Custom>
