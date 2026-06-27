@@ -771,6 +771,36 @@ export async function updateTicketStatus(id: string, status: string): Promise<vo
   }).eq('id', id);
 }
 
+export async function getUserTickets(userId: string): Promise<any[]> {
+  const { data } = await sb().from('support_tickets')
+    .select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  return (data || []).map((t: any) => ({
+    id: t.id, subject: t.subject, message: t.message,
+    status: t.status, priority: t.priority,
+    createdAt: t.created_at, updatedAt: t.updated_at,
+  }));
+}
+
+export async function addTicketReply(ticketId: string, message: string, userId: string): Promise<boolean> {
+  const { error } = await sb().from('ticket_replies').insert({
+    ticket_id: ticketId, user_id: userId, message,
+  });
+  if (error) return false;
+  await sb().from('support_tickets').update({
+    status: 'in_progress', updated_at: new Date().toISOString(),
+  }).eq('id', ticketId);
+  return true;
+}
+
+export async function getTicketReplies(ticketId: string): Promise<any[]> {
+  const { data } = await sb().from('ticket_replies')
+    .select('*, users(wallet)').eq('ticket_id', ticketId).order('created_at', { ascending: true });
+  return (data || []).map((r: any) => ({
+    id: r.id, message: r.message, wallet: r.users?.wallet || '',
+    createdAt: r.created_at,
+  }));
+}
+
 // ─── LEADERBOARD ───
 
 export async function getLeaderboard(limit = 10): Promise<any[]> {

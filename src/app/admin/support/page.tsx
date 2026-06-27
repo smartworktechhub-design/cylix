@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { Select } from '@/components/ui/select';
 import { formatDate, shortenAddress } from '@/lib/utils';
-import { getAllTickets, updateTicketStatus } from '@/lib/db';
-import { MessageSquare, CheckCircle, Clock, AlertCircle, Loader2, RefreshCw, Search } from 'lucide-react';
+import { getAllTickets, updateTicketStatus, addTicketReply, getTicketReplies } from '@/lib/db';
+import { MessageSquare, CheckCircle, Clock, AlertCircle, Loader2, RefreshCw, Search, Reply } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
   open: '#FF5C7A', in_progress: '#FFB800', resolved: '#00FFB2', closed: '#94A3B8',
@@ -20,31 +20,47 @@ export default function AdminSupport() {
   const [loading, setLoading] = useState(true);
   const [tickets, setTickets] = useState<any[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
+  const [replies, setReplies] = useState<any[]>([]);
   const [replyText, setReplyText] = useState('');
   const [search, setSearch] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
 
   async function load() {
     setLoading(true);
-    try {
-      const data = await getAllTickets();
-      if (data.length > 0) {
-        setTickets(data);
-      }
-    } catch {
-      // table may not exist
-    }
+    const data = await getAllTickets();
+    setTickets(data);
     setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    if (selectedTicket) {
+      getTicketReplies(selectedTicket.id).then(setReplies);
+    } else {
+      setReplies([]);
+    }
+  }, [selectedTicket]);
+
   async function handleStatusChange(id: string, status: string) {
-    try {
-      await updateTicketStatus(id, status);
-      setTickets((prev) => prev.map((t) => t.id === id ? { ...t, status } : t));
-      if (selectedTicket?.id === id) setSelectedTicket((prev: any) => ({ ...prev, status }));
-    } catch {}
+    await updateTicketStatus(id, status);
+    setTickets((prev) => prev.map((t) => t.id === id ? { ...t, status } : t));
+    if (selectedTicket?.id === id) setSelectedTicket((prev: any) => ({ ...prev, status }));
+  }
+
+  async function handleReply() {
+    if (!replyText.trim() || !selectedTicket) return;
+    setSendingReply(true);
+    const ok = await addTicketReply(selectedTicket.id, replyText, selectedTicket.userId);
+    if (ok) {
+      setReplyText('');
+      const updated = await getTicketReplies(selectedTicket.id);
+      setReplies(updated);
+      setTickets((prev) => prev.map((t) => t.id === selectedTicket.id ? { ...t, status: 'in_progress' } : t));
+      setSelectedTicket((prev: any) => ({ ...prev, status: 'in_progress' }));
+    }
+    setSendingReply(false);
   }
 
   const filtered = tickets.filter((t) => {
@@ -160,8 +176,24 @@ export default function AdminSupport() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)]">
+                  <p className="text-xs text-[#7B61FF] mb-2">User Message</p>
                   <p className="text-sm text-[#94A3B8] leading-relaxed">{selectedTicket.message || 'No message'}</p>
                 </div>
+
+                {replies.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-[#94A3B8]">Replies</p>
+                    {replies.map((r) => (
+                      <div key={r.id} className="p-3 rounded-xl bg-[rgba(0,229,255,0.05)] border border-[rgba(0,229,255,0.08)]">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-[#00E5FF]">{shortenAddress(r.wallet) || 'Admin'}</span>
+                          <span className="text-[10px] text-[#94A3B8]">{formatDate(r.createdAt)}</span>
+                        </div>
+                        <p className="text-sm text-white">{r.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div>
                   <p className="text-sm font-medium text-[#94A3B8] mb-2">Status</p>
@@ -187,9 +219,9 @@ export default function AdminSupport() {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button disabled={!replyText}>
-                    <MessageSquare size={14} />
-                    Send Reply
+                  <Button disabled={!replyText.trim() || sendingReply} onClick={handleReply}>
+                    {sendingReply ? <Loader2 size={14} className="animate-spin" /> : <Reply size={14} />}
+                    {sendingReply ? 'Sending...' : 'Send Reply'}
                   </Button>
                   <Button variant="outline" onClick={() => handleStatusChange(selectedTicket.id, 'resolved')}>
                     <CheckCircle size={14} />

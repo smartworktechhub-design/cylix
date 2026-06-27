@@ -186,6 +186,27 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT fa
 -- SELECT cron.schedule('process-daily-earnings', '0 */6 * * *', $$SELECT process_all_daily_earnings()$$);
 -- SELECT cron.schedule('distribute-apex-pool', '0 */24 * * *', $$SELECT distribute_apex_pool()$$);
 
+-- Support Tickets
+CREATE TABLE IF NOT EXISTS support_tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) NOT NULL,
+  subject TEXT NOT NULL,
+  message TEXT DEFAULT '',
+  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
+  priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Ticket Replies
+CREATE TABLE IF NOT EXISTS ticket_replies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id UUID REFERENCES support_tickets(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id),
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_user_slots_user ON user_slots(user_id);
 CREATE INDEX IF NOT EXISTS idx_matrix_11_user ON matrix_11(user_id);
