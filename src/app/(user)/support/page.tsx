@@ -32,6 +32,7 @@ export default function SupportPage() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   async function load() {
     if (!user?.id) return;
@@ -45,7 +46,13 @@ export default function SupportPage() {
   async function handleSubmit() {
     if (!subject || !message || !user?.id) return;
     setSubmitting(true);
-    await createTicket(user.id, subject, message, priority);
+    setSubmitError('');
+    const result = await createTicket(user.id, subject, message, priority);
+    if (!result.success) {
+      setSubmitError(result.error || 'Failed to create ticket');
+      setSubmitting(false);
+      return;
+    }
     setSubject('');
     setMessage('');
     setPriority('medium');
@@ -127,6 +134,11 @@ export default function SupportPage() {
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
             />
+            {submitError && (
+              <div className="flex items-center gap-2 text-[#FF5C7A] text-xs">
+                <AlertCircle size={12} /> {submitError}
+              </div>
+            )}
             <Button variant="primary" className="w-full" disabled={!subject || !message || submitting} onClick={handleSubmit}>
               {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
               {submitting ? 'Submitting...' : 'Submit Ticket'}

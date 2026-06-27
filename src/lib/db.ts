@@ -759,10 +759,12 @@ export async function getAllTickets(): Promise<any[]> {
   } catch { return []; }
 }
 
-export async function createTicket(userId: string, subject: string, message: string, priority = 'medium'): Promise<void> {
-  await sb().from('support_tickets').insert({
+export async function createTicket(userId: string, subject: string, message: string, priority = 'medium'): Promise<{ success: boolean; error?: string }> {
+  const { error } = await sb().from('support_tickets').insert({
     user_id: userId, subject, message, priority, status: 'open',
   });
+  if (error) return { success: false, error: error.message };
+  return { success: true };
 }
 
 export async function updateTicketStatus(id: string, status: string): Promise<void> {
