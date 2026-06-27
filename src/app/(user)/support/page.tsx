@@ -10,8 +10,8 @@ import { useInitData } from '@/lib/use-data';
 import { createTicket, getUserTickets, getTicketReplies } from '@/lib/db';
 import { useAppStore } from '@/stores/app-store';
 import {
-  MessageSquare, Send, AlertCircle,
-  Mail, Ticket, Loader2, Clock, ArrowLeft, Reply
+  MessageSquare, Send, AlertCircle, CheckCircle,
+  Mail, Ticket, Loader2, Clock, ArrowLeft
 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
@@ -70,68 +70,60 @@ export default function SupportPage() {
 
   if (selectedTicket) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col h-[calc(100vh-12rem)]">
+        <div className="flex items-center gap-3 p-4 border-b border-[rgba(0,229,255,0.08)] bg-[rgba(11,16,32,0.8)] rounded-t-xl">
           <button onClick={() => setSelectedTicket(null)} className="p-2 rounded-lg hover:bg-[rgba(0,229,255,0.1)] text-[#94A3B8] hover:text-[#00E5FF] transition-all">
             <ArrowLeft size={18} />
           </button>
-          <div>
-            <h2 className="text-xl font-bold font-heading text-white">{selectedTicket.subject}</h2>
-            <div className="flex items-center gap-2 mt-1">
+          <div className="flex-1">
+            <h2 className="text-base font-bold font-heading text-white">{selectedTicket.subject}</h2>
+            <div className="flex items-center gap-2 mt-0.5">
               <Badge variant="default" style={{
                 background: `${statusColors[selectedTicket.status] || '#94A3B8'}20`,
                 color: statusColors[selectedTicket.status] || '#94A3B8',
                 border: `1px solid ${statusColors[selectedTicket.status] || '#94A3B8'}30`,
-                fontSize: '10px', padding: '2px 8px',
+                fontSize: '10px', padding: '1px 6px',
               }}>{selectedTicket.status === 'in_progress' ? 'In Progress' : selectedTicket.status.charAt(0).toUpperCase() + selectedTicket.status.slice(1)}</Badge>
               <span className="text-[10px] text-[#94A3B8]">{formatDate(selectedTicket.createdAt)}</span>
             </div>
           </div>
         </div>
 
-        <Card>
-          <CardContent className="space-y-4 pt-4">
-            <div className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)]">
-              <div className="flex items-center gap-2 mb-2">
-                <MessageSquare size={14} className="text-[#7B61FF]" />
-                <span className="text-xs text-[#7B61FF]">Your Message</span>
-              </div>
-              <p className="text-sm text-[#94A3B8] leading-relaxed">{selectedTicket.message}</p>
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[rgba(5,8,18,0.5)]">
+          <div className="flex justify-start">
+            <div className="max-w-[80%] p-3 rounded-2xl rounded-tl-sm bg-[rgba(18,26,45,0.9)] border border-[rgba(148,163,184,0.08)]">
+              <p className="text-sm text-[#CBD5E1] leading-relaxed">{selectedTicket.message}</p>
+              <p className="text-[10px] text-[#64748B] mt-1.5 text-right">{formatDate(selectedTicket.createdAt)}</p>
             </div>
+          </div>
 
-            {replies.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-[#94A3B8]">Replies ({replies.length})</p>
-                {replies.map((r) => (
-                  <div key={r.id} className="p-4 rounded-xl bg-[rgba(0,229,255,0.04)] border border-[rgba(0,229,255,0.08)]">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Reply size={12} className="text-[#00E5FF]" />
-                        <span className="text-xs text-[#00E5FF] font-medium">Admin</span>
-                      </div>
-                      <span className="text-[10px] text-[#94A3B8]">{formatDate(r.createdAt)}</span>
-                    </div>
-                    <p className="text-sm text-white leading-relaxed">{r.message}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {selectedTicket.status !== 'resolved' && selectedTicket.status !== 'closed' && (
-              <div className="p-4 rounded-xl bg-[rgba(255,184,0,0.05)] border border-[rgba(255,184,0,0.12)]">
-                <p className="text-xs text-[#FFB800]">Waiting for admin response. Check back later.</p>
-              </div>
-            )}
-            {(selectedTicket.status === 'resolved' || selectedTicket.status === 'closed') && (
-              <div className="p-4 rounded-xl bg-[rgba(0,255,178,0.05)] border border-[rgba(0,255,178,0.12)]">
-                <div className="flex items-center gap-2">
-                  <CheckCircle size={14} className="text-[#00FFB2]" />
-                  <p className="text-xs text-[#00FFB2]">This ticket is {selectedTicket.status}</p>
+          {replies.map((r) => (
+            <div key={r.id} className="flex justify-start">
+              <div className="max-w-[80%] p-3 rounded-2xl rounded-tl-sm bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.12)]">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[11px] text-[#00E5FF] font-medium">Admin</span>
                 </div>
+                <p className="text-sm text-white leading-relaxed">{r.message}</p>
+                <p className="text-[10px] text-[#64748B] mt-1.5 text-right">{formatDate(r.createdAt)}</p>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          ))}
+
+          {replies.length === 0 && selectedTicket.status !== 'resolved' && selectedTicket.status !== 'closed' && (
+            <div className="flex justify-center py-8">
+              <div className="flex items-center gap-2 text-[#FFB800] text-xs bg-[rgba(255,184,0,0.06)] px-4 py-2 rounded-full">
+                <Clock size={12} /> Waiting for admin response
+              </div>
+            </div>
+          )}
+          {(selectedTicket.status === 'resolved' || selectedTicket.status === 'closed') && (
+            <div className="flex justify-center py-4">
+              <div className="flex items-center gap-2 text-[#00FFB2] text-xs bg-[rgba(0,255,178,0.06)] px-4 py-2 rounded-full">
+                <CheckCircle size={12} /> Ticket {selectedTicket.status}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
