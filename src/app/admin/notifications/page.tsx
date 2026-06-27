@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
-import { getAllNotifications } from '@/lib/db';
-import { Bell, Send, Info, AlertTriangle, CheckCircle, Loader2, Globe, MessageSquare } from 'lucide-react';
+import { getAllNotifications, deleteNotification } from '@/lib/db';
+import { Bell, Send, Info, AlertTriangle, CheckCircle, Loader2, Globe, MessageSquare, Trash2 } from 'lucide-react';
 
 const typeColors: Record<string, string> = {
   system: '#94A3B8', earnings: '#00E5FF', slot: '#7B61FF',
@@ -21,6 +21,7 @@ export default function AdminNotifications() {
   const [type, setType] = useState('announcement');
   const [sendStatus, setSendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [sendError, setSendError] = useState('');
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   async function load() {
     try {
@@ -31,6 +32,12 @@ export default function AdminNotifications() {
   }
 
   useEffect(() => { load(); }, []);
+
+  async function handleDelete(id: string) {
+    setDeleting(id);
+    if (await deleteNotification(id)) load();
+    setDeleting(null);
+  }
 
   async function handleSend() {
     if (!title || !message) return;
@@ -152,10 +159,11 @@ export default function AdminNotifications() {
                   <TableHeader>Title</TableHeader>
                   <TableHeader>Type</TableHeader>
                   <TableHeader>Date</TableHeader>
+                  <TableHeader>Action</TableHeader>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {notifications.slice(0, 10).map((n) => (
+                {notifications.slice(0, 20).map((n) => (
                   <TableRow key={n.id}>
                     <TableCell>
                       <span className="text-sm text-white">{n.title}</span>
@@ -168,11 +176,18 @@ export default function AdminNotifications() {
                     <TableCell>
                       <span className="text-xs text-[#94A3B8]">{formatDate(n.timestamp)}</span>
                     </TableCell>
+                    <TableCell>
+                      <button onClick={() => handleDelete(n.id)} disabled={deleting === n.id}
+                        className="p-1.5 rounded-lg text-[#FF5C7A]/60 hover:text-[#FF5C7A] hover:bg-[rgba(255,92,122,0.1)] transition-all disabled:opacity-40">
+                        <Loader2 size={14} className={deleting === n.id ? 'animate-spin' : ''} />
+                        {deleting !== n.id && <Trash2 size={14} />}
+                      </button>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {notifications.length === 0 && (
                   <TableRow>
-                    <td colSpan={3} className="px-4 py-8 text-center text-[#94A3B8] text-sm">No notifications yet</td>
+                    <td colSpan={4} className="px-4 py-8 text-center text-[#94A3B8] text-sm">No notifications yet</td>
                   </TableRow>
                 )}
               </TableBody>

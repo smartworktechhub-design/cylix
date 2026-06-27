@@ -710,6 +710,11 @@ export async function markNotificationRead(id: string): Promise<void> {
   await sb().from('notifications').update({ is_read: true }).eq('id', id);
 }
 
+export async function deleteNotification(id: string): Promise<boolean> {
+  const { error } = await sb().from('notifications').delete().eq('id', id);
+  return !error;
+}
+
 export async function getAllNotifications(): Promise<any[]> {
   const { data } = await sb().from('notifications')
     .select('*').order('created_at', { ascending: false }).limit(100);

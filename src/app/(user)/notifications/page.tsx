@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { formatRelativeTime } from '@/lib/utils';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
+import { deleteNotification } from '@/lib/db';
 import type { Notification } from '@/types';
 import {
   Bell, CheckCheck, TrendingUp, DollarSign, Gift, Award,
-  AlertTriangle, Info, UserPlus, Zap, Shield, CheckCircle, Loader2, Megaphone
+  AlertTriangle, Info, UserPlus, Zap, Shield, CheckCircle, Loader2, Megaphone, Trash2
 } from 'lucide-react';
 
 const filterTabs = ['All', 'Earnings', 'System', 'Promotions', 'Security'];
@@ -30,10 +31,11 @@ const typeConfig: Record<string, { icon: typeof Bell; color: string; label: stri
 };
 
 export default function NotificationsPage() {
-  const { notifications, markNotificationRead } = useAppStore();
+  const { notifications, setNotifications, markNotificationRead } = useAppStore();
   useInitData();
   const [activeTab, setActiveTab] = useState('All');
   const [markedRead, setMarkedRead] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const filtered = activeTab === 'All'
     ? notifications
@@ -52,6 +54,14 @@ export default function NotificationsPage() {
   const markAsRead = (id: string) => {
     setMarkedRead((prev) => new Set(prev).add(id));
     markNotificationRead(id);
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeleting(id);
+    if (await deleteNotification(id)) {
+      setNotifications(notifications.filter((n) => n.id !== id));
+    }
+    setDeleting(null);
   };
 
   const markAllAsRead = () => {
@@ -139,15 +149,19 @@ export default function NotificationsPage() {
                           </div>
                           <p className="text-xs text-[#94A3B8] mt-1">{notification.message}</p>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0">
                           <span className="text-[10px] text-[#94A3B8] whitespace-nowrap">
                             {formatRelativeTime(notification.timestamp)}
                           </span>
                           {!isRead && (
-                            <Button variant="ghost" size="sm" onClick={() => markAsRead(notification.id)} className="h-7 px-2">
+                            <button onClick={() => markAsRead(notification.id)} className="p-1.5 rounded-lg text-[#00FFB2]/60 hover:text-[#00FFB2] hover:bg-[rgba(0,255,178,0.1)] transition-all">
                               <CheckCheck size={12} />
-                            </Button>
+                            </button>
                           )}
+                          <button onClick={() => handleDelete(notification.id)} disabled={deleting === notification.id}
+                            className="p-1.5 rounded-lg text-[#FF5C7A]/60 hover:text-[#FF5C7A] hover:bg-[rgba(255,92,122,0.1)] transition-all disabled:opacity-40">
+                            {deleting === notification.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                          </button>
                         </div>
                       </div>
                     </div>
