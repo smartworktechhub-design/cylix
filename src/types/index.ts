@@ -104,6 +104,7 @@ export interface User {
   ascensionBalance: number;
   displayName?: string;
   twoFAEnabled?: boolean;
+  ipAddress?: string;
 }
 
 export interface LeaderboardEntry {

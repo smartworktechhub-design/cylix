@@ -39,6 +39,7 @@ export function useInitData() {
           return;
         }
         setUser(user as any);
+        fetch('/api/user/save-ip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }).catch(() => {});
         await processSlotEarnings(user.id);
         try {
           if (await checkApexPoolDistribution()) await distributeApexPool();

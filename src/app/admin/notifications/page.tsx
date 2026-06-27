@@ -41,7 +41,8 @@ export default function AdminNotifications() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, message, type }),
       });
-      const data = await res.json();
+      let data: any = {};
+      try { data = await res.json(); } catch { data = { error: `HTTP ${res.status} - ${res.statusText}` }; }
       if (data.success) {
         setSendStatus('sent');
         setTitle('');
@@ -50,12 +51,12 @@ export default function AdminNotifications() {
         load();
       } else {
         setSendStatus('error');
-        setSendError(data.error || 'Unknown error');
+        setSendError(data.error || `HTTP ${res.status}`);
         setTimeout(() => setSendStatus('idle'), 5000);
       }
     } catch {
       setSendStatus('error');
-      setSendError('Network error');
+      setSendError('Network error - request failed');
       setTimeout(() => setSendStatus('idle'), 5000);
     }
   }

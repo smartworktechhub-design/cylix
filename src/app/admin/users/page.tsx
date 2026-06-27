@@ -23,6 +23,7 @@ interface UserRow {
   ascensionBalance: number;
   isActive: boolean;
   activeSlots: number;
+  ipAddress?: string;
 }
 
 export default function AdminUsers() {
@@ -57,6 +58,7 @@ export default function AdminUsers() {
       ascensionBalance: u.ascensionBalance,
       isActive: u.isActive,
       activeSlots: activeSlotsMap[u.id] || 0,
+      ipAddress: u.ipAddress,
     })));
     setLoading(false);
   }
