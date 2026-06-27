@@ -5,15 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
 import { useInitData } from '@/lib/use-data';
-import { createTicket, getUserTickets } from '@/lib/db';
+import { createTicket, getUserTickets, getTicketReplies } from '@/lib/db';
 import { useAppStore } from '@/stores/app-store';
 import {
-  MessageSquare, ChevronDown, ChevronUp,
-  Send, CheckCircle, AlertCircle, Search,
-  Mail, Ticket, Plus, Loader2, Clock
+  MessageSquare, Send, AlertCircle,
+  Mail, Ticket, Loader2, Clock, ArrowLeft, Reply
 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
@@ -33,6 +31,8 @@ export default function SupportPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
+  const [replies, setReplies] = useState<any[]>([]);
 
   async function load() {
     if (!user?.id) return;
@@ -42,6 +42,14 @@ export default function SupportPage() {
   }
 
   useEffect(() => { if (user?.id) load(); }, [user?.id]);
+
+  useEffect(() => {
+    if (selectedTicket) {
+      getTicketReplies(selectedTicket.id).then(setReplies);
+    } else {
+      setReplies([]);
+    }
+  }, [selectedTicket]);
 
   async function handleSubmit() {
     if (!subject || !message || !user?.id) return;
@@ -58,6 +66,74 @@ export default function SupportPage() {
     setPriority('medium');
     setSubmitting(false);
     load();
+  }
+
+  if (selectedTicket) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setSelectedTicket(null)} className="p-2 rounded-lg hover:bg-[rgba(0,229,255,0.1)] text-[#94A3B8] hover:text-[#00E5FF] transition-all">
+            <ArrowLeft size={18} />
+          </button>
+          <div>
+            <h2 className="text-xl font-bold font-heading text-white">{selectedTicket.subject}</h2>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="default" style={{
+                background: `${statusColors[selectedTicket.status] || '#94A3B8'}20`,
+                color: statusColors[selectedTicket.status] || '#94A3B8',
+                border: `1px solid ${statusColors[selectedTicket.status] || '#94A3B8'}30`,
+                fontSize: '10px', padding: '2px 8px',
+              }}>{selectedTicket.status === 'in_progress' ? 'In Progress' : selectedTicket.status.charAt(0).toUpperCase() + selectedTicket.status.slice(1)}</Badge>
+              <span className="text-[10px] text-[#94A3B8]">{formatDate(selectedTicket.createdAt)}</span>
+            </div>
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="space-y-4 pt-4">
+            <div className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)]">
+              <div className="flex items-center gap-2 mb-2">
+                <MessageSquare size={14} className="text-[#7B61FF]" />
+                <span className="text-xs text-[#7B61FF]">Your Message</span>
+              </div>
+              <p className="text-sm text-[#94A3B8] leading-relaxed">{selectedTicket.message}</p>
+            </div>
+
+            {replies.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-[#94A3B8]">Replies ({replies.length})</p>
+                {replies.map((r) => (
+                  <div key={r.id} className="p-4 rounded-xl bg-[rgba(0,229,255,0.04)] border border-[rgba(0,229,255,0.08)]">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Reply size={12} className="text-[#00E5FF]" />
+                        <span className="text-xs text-[#00E5FF] font-medium">Admin</span>
+                      </div>
+                      <span className="text-[10px] text-[#94A3B8]">{formatDate(r.createdAt)}</span>
+                    </div>
+                    <p className="text-sm text-white leading-relaxed">{r.message}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {selectedTicket.status !== 'resolved' && selectedTicket.status !== 'closed' && (
+              <div className="p-4 rounded-xl bg-[rgba(255,184,0,0.05)] border border-[rgba(255,184,0,0.12)]">
+                <p className="text-xs text-[#FFB800]">Waiting for admin response. Check back later.</p>
+              </div>
+            )}
+            {(selectedTicket.status === 'resolved' || selectedTicket.status === 'closed') && (
+              <div className="p-4 rounded-xl bg-[rgba(0,255,178,0.05)] border border-[rgba(0,255,178,0.12)]">
+                <div className="flex items-center gap-2">
+                  <CheckCircle size={14} className="text-[#00FFB2]" />
+                  <p className="text-xs text-[#00FFB2]">This ticket is {selectedTicket.status}</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -153,7 +229,7 @@ export default function SupportPage() {
               <h3 className="text-lg font-semibold text-white">My Tickets</h3>
             </div>
           </CardHeader>
-          <CardContent className="space-y-2 max-h-[380px] overflow-y-auto">
+          <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
             {loading ? (
               <div className="flex justify-center py-8"><Loader2 size={20} className="animate-spin text-[#00E5FF]" /></div>
             ) : tickets.length === 0 ? (
@@ -162,7 +238,8 @@ export default function SupportPage() {
                 <p className="text-[#94A3B8] text-sm">No tickets yet</p>
               </div>
             ) : tickets.map((t) => (
-              <div key={t.id} className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)] border border-transparent hover:border-[rgba(0,229,255,0.08)] transition-all">
+              <button key={t.id} onClick={() => setSelectedTicket(t)}
+                className="w-full text-left p-4 rounded-xl bg-[rgba(11,16,32,0.5)] border border-transparent hover:border-[rgba(0,229,255,0.15)] transition-all">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-sm text-white font-medium">{t.subject}</p>
                   <div className="flex items-center gap-1.5">
@@ -185,7 +262,7 @@ export default function SupportPage() {
                   <Clock size={10} className="text-[#94A3B8]" />
                   <span className="text-[10px] text-[#94A3B8]">{formatDate(t.createdAt)}</span>
                 </div>
-              </div>
+              </button>
             ))}
           </CardContent>
         </Card>
