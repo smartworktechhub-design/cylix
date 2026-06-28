@@ -52,7 +52,7 @@ export default function ApexPoolPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold font-heading text-white">Global Apex Pool</h2>
-        <p className="text-sm text-[#94A3B8] mt-1">5% allocation - Unlimited Distribution Network</p>
+        <p className="text-sm text-[#94A3B8] mt-1">10% allocation - Unlimited Distribution Network</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">

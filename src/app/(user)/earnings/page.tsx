@@ -9,7 +9,7 @@ import { getUserByWallet, getUserEarnings } from '@/lib/db';
 import { useAppStore } from '@/stores/app-store';
 import {
   TrendingUp, GitBranch, Gift, Wallet, Activity,
-  ArrowUpRight, Clock, Target, Loader2, Rocket
+  Clock, Loader2, Rocket
 } from 'lucide-react';
 
 const DEMO_WALLET = '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18';
@@ -140,46 +140,7 @@ export default function EarningsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Target size={18} className="text-[#00FFB2]" />
-              <h3 className="text-lg font-semibold text-white font-heading">Milestones</h3>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {[
-              { label: 'Starter Orbit', target: 5000, reward: '500 USDT' },
-              { label: 'Matrix Runner', target: 15000, reward: '1,500 USDT' },
-              { label: 'Apex Elite', target: 25000, reward: '2,500 USDT' },
-              { label: 'Infinity Master', target: 50000, reward: '5,000 USDT' },
-            ].map((milestone) => {
-              const progress = Math.min((earnings.total / milestone.target) * 100, 100);
-              const reached = earnings.total >= milestone.target;
-              return (
-                <div key={milestone.label} className={`p-3 rounded-xl border ${
-                  reached
-                    ? 'bg-[rgba(0,255,178,0.05)] border-[rgba(0,255,178,0.15)]'
-                    : 'bg-[rgba(11,16,32,0.5)] border-transparent'
-                }`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-xs font-medium ${reached ? 'text-[#00FFB2]' : 'text-[#94A3B8]'}`}>
-                      {milestone.label}
-                    </span>
-                    <span className="text-xs font-mono text-[#00FFB2]">+{milestone.reward}</span>
-                  </div>
-                  <Progress value={earnings.total} max={milestone.target} />
-                  <div className="flex items-center gap-1 mt-1">
-                    {reached && <ArrowUpRight size={10} className="text-[#00FFB2]" />}
-                    <span className={`text-[10px] ${reached ? 'text-[#00FFB2]' : 'text-[#94A3B8]'}`}>
-                      {reached ? 'Unlocked' : `${formatCurrency(earnings.total)} / ${formatCurrency(milestone.target)}`}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+
       </div>
     </div>
   );
