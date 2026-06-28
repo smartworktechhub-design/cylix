@@ -295,6 +295,8 @@ export async function processMatrixCommission(purchaserId: string, amount: numbe
       if (!sponsor || (sponsor.directs || 0) < config.directsRequired) continue;
     }
     const commission = (amount * config.percent) / 100;
+    const walletShare = (commission * SLOT_CONFIG.walletSplitPercent) / 100;
+    const ascensionShare = (commission * SLOT_CONFIG.ascensionSplitPercent) / 100;
     await sb().from('matrix_earnings').insert({
       matrix_id: m.id, earned_from: purchaserId,
       level: m.level, amount: commission,
@@ -311,9 +313,21 @@ export async function processMatrixCommission(purchaserId: string, amount: numbe
       user_id: m.sponsor_id, type: 'matrix_earning',
       amount: commission, description: `L${m.level} from ${purchaser?.referral_code || purchaserId.slice(0, 8)}`,
     });
-    await sb().from('users').update({
-      'total_earned;': 'total_earned + ' + commission,
-    }).eq('id', m.sponsor_id);
+    if (ascensionShare > 0) {
+      await sb().from('users').update({
+        'ascension_balance;': 'ascension_balance + ' + ascensionShare,
+      }).eq('id', m.sponsor_id);
+      await sb().from('transactions').insert({
+        user_id: m.sponsor_id, type: 'ascension_credit',
+        amount: ascensionShare,
+        description: `50% ascension from L${m.level} matrix commission`,
+      });
+    }
+    if (walletShare > 0) {
+      await sb().from('users').update({
+        'total_earned;': 'total_earned + ' + walletShare,
+      }).eq('id', m.sponsor_id);
+    }
   }
 }
 
@@ -581,6 +595,8 @@ async function claimApexPoolForUser(userId: string, distId: string): Promise<voi
     .select('amount').eq('distribution_id', distId).eq('user_id', userId).single();
   if (!q) return;
   const amount = Number(q.amount);
+  const walletShare = (amount * SLOT_CONFIG.walletSplitPercent) / 100;
+  const ascensionShare = (amount * SLOT_CONFIG.ascensionSplitPercent) / 100;
   await sb().from('apex_pool_qualifiers').update({ claimed: true }).eq('distribution_id', distId).eq('user_id', userId);
   await sb().from('earnings').insert({
     user_id: userId, type: 'pool', amount, source: 'Apex Pool distribution',
@@ -589,9 +605,21 @@ async function claimApexPoolForUser(userId: string, distId: string): Promise<voi
     user_id: userId, type: 'pool_earning', amount,
     description: 'Apex Pool daily distribution',
   });
-  await sb().from('users').update({
-    'total_earned;': 'total_earned + ' + amount,
-  }).eq('id', userId);
+  if (ascensionShare > 0) {
+    await sb().from('users').update({
+      'ascension_balance;': 'ascension_balance + ' + ascensionShare,
+    }).eq('id', userId);
+    await sb().from('transactions').insert({
+      user_id: userId, type: 'ascension_credit',
+      amount: ascensionShare,
+      description: '50% ascension from Apex Pool distribution',
+    });
+  }
+  if (walletShare > 0) {
+    await sb().from('users').update({
+      'total_earned;': 'total_earned + ' + walletShare,
+    }).eq('id', userId);
+  }
 }
 
 // ─── DAILY PROCESSING (CRON / ON-LOGIN TRIGGER) ───
@@ -864,10 +892,20 @@ export async function getAllTransactions(): Promise<Transaction[]> {
 }
 
 export async function approveWithdrawal(id: string): Promise<boolean> {
+  const { data: wd } = await sb().from('withdrawals').select('user_id, amount').eq('id', id).single();
+  if (!wd) return false;
   const { error } = await sb().from('withdrawals').update({
     status: 'approved', processed_at: new Date().toISOString(),
   }).eq('id', id);
-  return !error;
+  if (error) return false;
+  await sb().from('users').update({
+    'total_earned;': 'total_earned - ' + Number(wd.amount),
+  }).eq('id', wd.user_id);
+  await sb().from('notifications').insert({
+    user_id: wd.user_id, type: 'withdrawal', title: 'Withdrawal Approved',
+    message: `$${Number(wd.amount)} withdrawal has been approved.`,
+  });
+  return true;
 }
 
 export async function rejectWithdrawal(id: string): Promise<boolean> {

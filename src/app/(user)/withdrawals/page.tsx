@@ -6,49 +6,48 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
-import { formatCurrency, formatDate, getStatusColor, getStatusBg } from '@/lib/utils';
-import { getUserByWallet, getWithdrawals, getUserEarnings } from '@/lib/db';
-import { useWeb3Store } from '@/stores/web3-store';
+import { formatCurrency, formatDate } from '@/lib/utils';
+import { getWithdrawals, getUserEarnings, requestWithdrawal } from '@/lib/db';
+import { useAppStore } from '@/stores/app-store';
+import { useInitData } from '@/lib/use-data';
 import {
   Wallet, Clock, Shield, Info, ArrowUpRight, CheckCircle2,
   XCircle, AlertCircle, Copy, ExternalLink, DollarSign, Banknote, Loader2
 } from 'lucide-react';
-
-const DEMO_WALLET = '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18';
 
 const minWithdrawal = 50;
 const maxWithdrawal = 5000;
 const processingTime = '24-48 hours';
 
 export default function WithdrawalsPage() {
-  const { address } = useWeb3Store();
+  const { user } = useAppStore();
+  const { loading: initLoading } = useInitData();
   const [amount, setAmount] = useState('');
   const [withdrawalHistory, setWithdrawalHistory] = useState<any[]>([]);
   const [availableBalance, setAvailableBalance] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     async function load() {
+      if (!user) return;
       try {
-        const user = await getUserByWallet(DEMO_WALLET);
-        if (user) {
-          const [withdrawals, earnings] = await Promise.all([
-            getWithdrawals(user.id),
-            getUserEarnings(user.id),
-          ]);
-          setWithdrawalHistory(withdrawals);
-          setAvailableBalance(earnings.total);
-        }
+        const [withdrawals, earnings] = await Promise.all([
+          getWithdrawals(user.id),
+          getUserEarnings(user.id),
+        ]);
+        setWithdrawalHistory(withdrawals);
+        setAvailableBalance(earnings.total);
       } finally {
         setLoading(false);
       }
     }
     load();
-  }, []);
+  }, [user]);
 
-  const walletDisplay = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '0x1a2...b3c4';
+  const walletDisplay = user?.wallet ? `${user.wallet.slice(0, 6)}...${user.wallet.slice(-4)}` : 'Not Connected';
 
-  if (loading) {
+  if (loading || initLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-[#00E5FF]" />
@@ -123,7 +122,23 @@ export default function WithdrawalsPage() {
               </div>
             </div>
 
-            <Button variant="primary" className="w-full" disabled={!amount || Number(amount) < minWithdrawal || Number(amount) > maxWithdrawal || Number(amount) > availableBalance}>
+            <Button variant="primary" className="w-full" disabled={!amount || Number(amount) < minWithdrawal || Number(amount) > maxWithdrawal || Number(amount) > availableBalance || submitting || !user}
+              loading={submitting}
+              onClick={async () => {
+                if (!user || !amount) return;
+                setSubmitting(true);
+                const success = await requestWithdrawal(user.id, Number(amount), user.wallet);
+                if (success) {
+                  setAmount('');
+                  const [withdrawals, earnings] = await Promise.all([
+                    getWithdrawals(user.id),
+                    getUserEarnings(user.id),
+                  ]);
+                  setWithdrawalHistory(withdrawals);
+                  setAvailableBalance(earnings.total);
+                }
+                setSubmitting(false);
+              }}>
               <Wallet size={16} />
               Request Withdrawal
             </Button>
