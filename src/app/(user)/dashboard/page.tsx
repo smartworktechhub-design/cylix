@@ -166,7 +166,7 @@ export default function DashboardPage() {
   if (needsReferral) {
     return (
       <div className="min-h-screen bg-[#050816] flex items-center justify-center p-4">
-        <div className="max-w-sm w-full rounded-2xl bg-[rgba(18,26,43,0.6)] border border-[rgba(0,229,255,0.08)] p-6 text-center">
+        <div className="max-w-sm w-full rounded-2xl bg-[rgba(28,38,58,0.6)] border border-[rgba(0,229,255,0.08)] p-6 text-center">
           <div className="w-12 h-12 rounded-xl bg-[rgba(0,229,255,0.1)] flex items-center justify-center mx-auto mb-4">
             <Users size={20} className="text-[#00E5FF]" />
           </div>
@@ -234,7 +234,7 @@ export default function DashboardPage() {
               <p className="text-lg font-bold text-white font-mono">{formatCompact(totalEarnings)}</p>
               <p className="text-[8px] text-[#00E5FF] mt-0.5">+{formatCurrency(dailyYield)}/day</p>
             </div>
-            <div className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)]" style={{ background: 'rgba(18,26,43,0.6)' }}>
+            <div className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)]" style={{ background: 'rgba(28,38,58,0.6)' }}>
               <p className="text-[8px] text-[#4A5568] uppercase tracking-wider mb-1">Available</p>
               <p className="text-lg font-bold text-[#00FFB2] font-mono">{formatCompact(availableBalance)}</p>
               <p className="text-[8px] text-[#4A5568] mt-0.5">{formatCurrency(user?.ascensionBalance || 0)} vault</p>
@@ -422,7 +422,7 @@ export default function DashboardPage() {
         </div>
 
         {matrixView === 'explorer' ? (
-          <div className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3 overflow-x-auto" style={{ background: 'rgba(11,16,32,0.5)' }}>
+          <div className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3 overflow-x-auto" style={{ background: 'rgba(22,32,52,0.6)' }}>
             <div className="flex flex-wrap gap-3 mb-3">
               <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full" style={{ background: '#00E5FF', boxShadow: '0 0 6px rgba(0,229,255,0.4)' }} /><span className="text-[7px] text-[#4A5568]">Self</span></div>
               <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#00E5FF]" /><span className="text-[7px] text-[#4A5568]">Direct</span></div>
@@ -508,7 +508,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           /* ====== MATRIX ACTIVITY ====== */
-          <div className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3" style={{ background: 'rgba(11,16,32,0.5)' }}>
+          <div className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3" style={{ background: 'rgba(22,32,52,0.6)' }}>
             <p className="text-[7px] text-[#4A5568] uppercase tracking-wider font-semibold mb-2">Matrix Activity History</p>
             {recentTxns.length > 0 ? (
               <div className="divide-y divide-[rgba(0,229,255,0.03)]">
@@ -585,7 +585,7 @@ export default function DashboardPage() {
           <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Package Progress</h2>
           <div className="flex-1 h-px bg-gradient-to-r from-[rgba(123,97,255,0.15)] to-transparent" />
         </div>
-        <div className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3" style={{ background: 'rgba(11,16,32,0.5)' }}>
+        <div className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3" style={{ background: 'rgba(22,32,52,0.6)' }}>
           {activeSlots.length > 0 ? (
             <div className="space-y-4">
               <p className="text-[7px] text-[#4A5568] uppercase tracking-wider">{activeSlots.length} Active Package{activeSlots.length > 1 ? 's' : ''}</p>
@@ -649,7 +649,7 @@ export default function DashboardPage() {
           <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Live Feed</h2>
           <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.15)] to-transparent" />
         </div>
-        <div className="rounded-xl border border-[rgba(0,229,255,0.06)] overflow-hidden" style={{ background: 'rgba(11,16,32,0.5)' }}>
+        <div className="rounded-xl border border-[rgba(0,229,255,0.06)] overflow-hidden" style={{ background: 'rgba(22,32,52,0.6)' }}>
           {recentJoins.length > 0 ? (
             <div className="divide-y divide-[rgba(0,229,255,0.03)]">
               {recentJoins.map((j: any, i: number) => (
