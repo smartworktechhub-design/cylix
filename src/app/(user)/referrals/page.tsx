@@ -11,15 +11,15 @@ import { useInitData } from '@/lib/use-data';
 import { useAccount } from 'wagmi';
 import {
   Users, Copy, Check, Link, DollarSign, TrendingUp,
-  Layers, ChevronRight, UserPlus, Loader2
+  UserPlus, Loader2
 } from 'lucide-react';
+import { MATRIX_LEVELS } from '@/lib/constants';
 
-const commissionTiers = [
-  { level: 'Level 1', commission: '5%', requirement: 'Direct Referrals' },
-  { level: 'Level 2', commission: '3%', requirement: 'Team Members' },
-  { level: 'Level 3', commission: '2%', requirement: 'Downline' },
-  { level: 'Level 4', commission: '1%', requirement: 'Extended Network' },
-];
+const commissionTiers = MATRIX_LEVELS.map((ml) => ({
+  level: `Level ${ml.level}`,
+  commission: `${ml.percent}%`,
+  requirement: ml.directsRequired > 0 ? `${ml.directsRequired}+ Direct Referrals` : 'No Minimum',
+}));
 
 export default function ReferralsPage() {
   const { user, referrals: storeReferrals } = useAppStore();
@@ -100,23 +100,35 @@ export default function ReferralsPage() {
         <Card>
           <CardHeader>
             <h3 className="text-lg font-semibold text-white">Commission Structure</h3>
+            <p className="text-xs text-[#94A3B8] mt-1">
+              40% of all purchases distributed across 11 binary matrix levels
+            </p>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {commissionTiers.map((tier) => (
-                <div key={tier.level} className="flex items-center justify-between p-3 rounded-xl bg-[rgba(11,16,32,0.5)]">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[rgba(123,97,255,0.1)] flex items-center justify-center">
-                      <Layers size={14} className="text-[#7B61FF]" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {commissionTiers.map((tier) => {
+                const ml = MATRIX_LEVELS.find((m) => `Level ${m.level}` === tier.level)!;
+                const hue = ml.level <= 3 ? 187 : ml.level <= 7 ? 260 : 38;
+                return (
+                  <div key={tier.level} className="flex items-center justify-between p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(255,255,255,0.03)]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full" style={{ background: `hsl(${hue}, 100%, 60%)` }} />
+                      <div>
+                        <p className="text-sm font-medium text-white">{tier.level}</p>
+                        <p className="text-xs text-[#94A3B8]">{tier.requirement}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-white">{tier.level}</p>
-                      <p className="text-xs text-[#94A3B8]">{tier.requirement}</p>
-                    </div>
+                    <span className="text-lg font-bold font-mono text-[#00FFB2]">{tier.commission}</span>
                   </div>
-                  <span className="text-lg font-bold font-mono text-[#00FFB2]">{tier.commission}</span>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+            <div className="mt-4 p-3 rounded-xl bg-[rgba(0,229,255,0.05)] border border-[rgba(0,229,255,0.1)]">
+              <p className="text-xs text-[#94A3B8]">
+                Funds split: <span className="text-[#00E5FF]">50% Yield Reserve</span> &bull;
+                <span className="text-[#7B61FF]"> 40% Matrix Commissions</span> &bull;
+                <span className="text-[#FFB800]"> 10% Apex Pool</span>
+              </p>
             </div>
           </CardContent>
         </Card>
