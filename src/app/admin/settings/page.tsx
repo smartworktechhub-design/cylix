@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { Save, Wallet, Network, DollarSign, Shield, Sliders } from 'lucide-react';
+import { Save, Wallet, Network, DollarSign, Sliders } from 'lucide-react';
+import { TREASURY_WALLET } from '@/lib/constants';
 
 export default function AdminSettings() {
-  const [treasuryWallet, setTreasuryWallet] = useState('0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18');
+  const [treasuryWallet, setTreasuryWallet] = useState(TREASURY_WALLET);
   const [chainId, setChainId] = useState('56');
   const [rpcUrl, setRpcUrl] = useState('https://bsc-dataseed.binance.org/');
   const [depositFee, setDepositFee] = useState('0.5');

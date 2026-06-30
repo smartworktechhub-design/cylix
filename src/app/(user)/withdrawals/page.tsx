@@ -12,7 +12,7 @@ import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
 import {
   Wallet, Clock, Shield, Info, ArrowUpRight, CheckCircle2,
-  XCircle, AlertCircle, Copy, ExternalLink, DollarSign, Banknote, Loader2
+  AlertCircle, Copy, ExternalLink, DollarSign, Banknote, Loader2
 } from 'lucide-react';
 
 const minWithdrawal = 50;

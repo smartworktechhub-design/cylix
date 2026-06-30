@@ -10,7 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import {
-  Vault, Shield, TrendingUp, CheckCircle2, XCircle, ArrowUpDown,
+  Vault, CheckCircle2, XCircle, ArrowUpDown,
   Clock, ToggleLeft, Target, Orbit, ArrowUpRight, Loader2, Wallet
 } from 'lucide-react';
 import Link from 'next/link';

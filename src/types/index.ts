@@ -134,6 +134,46 @@ export interface ApexPoolDistribution {
   safetyReserve: number;
 }
 
+export interface ChampionsEntry {
+  userId: string;
+  wallet: string;
+  score: number;
+  rank: number;
+  reward: number;
+  referrals24h: number;
+  purchases24h: number;
+  volume24h: number;
+}
+
+export interface ChampionsPoolState {
+  totalFund: number;
+  lastDistribution: string;
+  nextDistributionTime: string;
+  todayDistribution: number;
+  lifetimeDistribution: number;
+  leaderboard: ChampionsEntry[];
+  topCount: number;
+}
+
+export interface CommunityPoolState {
+  totalFund: number;
+  lastDistribution: string;
+  nextDistributionTime: string;
+  todayDistribution: number;
+  lifetimeDistribution: number;
+  qualifiedCount: number;
+  perPerson: number;
+  history: CommunityDistRecord[];
+}
+
+export interface CommunityDistRecord {
+  id: string;
+  totalFund: number;
+  qualifiedCount: number;
+  perPerson: number;
+  distributedAt: string;
+}
+
 export interface AscensionVault {
   balance: number;
   autoUpgrade: boolean;

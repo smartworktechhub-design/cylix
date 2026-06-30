@@ -1,18 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { formatCurrency, formatNumber } from '@/lib/utils';
-import { getUserByWallet, getUserEarnings } from '@/lib/db';
+import { formatCurrency } from '@/lib/utils';
 import { useAppStore } from '@/stores/app-store';
+import { useInitData } from '@/lib/use-data';
 import {
   TrendingUp, GitBranch, Gift, Wallet, Activity,
-  Clock, Loader2, Rocket
+  Loader2, Rocket
 } from 'lucide-react';
-
-const DEMO_WALLET = '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18';
 
 const earningCards = [
   { key: 'daily' as const, label: 'Daily Earnings', icon: TrendingUp, color: '#00E5FF', desc: 'Slot daily yield payouts' },
@@ -23,25 +20,10 @@ const earningCards = [
 ];
 
 export default function EarningsPage() {
-  const { earnings, setEarnings } = useAppStore();
-  const [loading, setLoading] = useState(true);
+  const { earnings } = useAppStore();
+  const { loading: initLoading } = useInitData();
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const user = await getUserByWallet(DEMO_WALLET);
-        if (user) {
-          const data = await getUserEarnings(user.id);
-          setEarnings(data);
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [setEarnings]);
-
-  if (loading) {
+  if (initLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-[#00E5FF]" />

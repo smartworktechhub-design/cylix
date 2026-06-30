@@ -41,6 +41,16 @@ export const APEX_POOL = {
   distributionInterval: 24,
 };
 
+export const POOL_SPLIT = {
+  championsPercent: 50,
+  communityPercent: 50,
+};
+
+export const CHAMPIONS_POOL = {
+  topWinners: 10,
+  scoreWeights: { referral: 10, purchase: 5, volume: 0.001 },
+};
+
 export const SLOT_CONFIG = {
   dailyYieldPercent: 3,
   maxCapMultiplier: 2,

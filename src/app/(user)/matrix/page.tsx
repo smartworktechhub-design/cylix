@@ -10,7 +10,7 @@ import { useInitData } from '@/lib/use-data';
 import { MATRIX_LEVELS } from '@/lib/constants';
 import {
   GitBranch, Users, Wallet, User, Loader2,
-  Network, ChevronDown, ChevronRight, X
+  Network, ChevronRight, X
 } from 'lucide-react';
 
 const PLACEMENT_LABELS: Record<string, string> = {

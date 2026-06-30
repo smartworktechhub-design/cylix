@@ -6,9 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { formatCurrency, formatNumber, shortenAddress } from '@/lib/utils';
 import { getLeaderboard } from '@/lib/db';
+import { useAppStore } from '@/stores/app-store';
 import {
-  Trophy, Medal, Crown, TrendingUp, Users,
-  UserPlus, Award, Star, Loader2
+  Trophy, Medal, Crown,
+  Star, Loader2
 } from 'lucide-react';
 
 const tabs = ['Top Earners', 'Team Size', 'Referrals'];
@@ -25,9 +26,8 @@ function getRankDisplay(rank: number) {
   return <span className="font-mono text-[#94A3B8] font-bold">#{rank}</span>;
 }
 
-const currentUserWallet = '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18';
-
 export default function LeaderboardPage() {
+  const { user } = useAppStore();
   const [activeTab, setActiveTab] = useState('Top Earners');
   const [loading, setLoading] = useState(true);
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
@@ -112,7 +112,7 @@ export default function LeaderboardPage() {
             </TableHead>
             <TableBody>
               {sortedData.map((entry) => {
-                const isYou = entry.wallet === currentUserWallet;
+                const isYou = user?.wallet?.toLowerCase() === entry.wallet?.toLowerCase();
                 return (
                   <TableRow key={entry.rank} className={isYou ? 'bg-[rgba(0,229,255,0.03)]' : ''}>
                     <TableCell>{getRankDisplay(entry.rank)}</TableCell>

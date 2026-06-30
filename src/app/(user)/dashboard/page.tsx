@@ -4,17 +4,17 @@ import { useState, useEffect } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
 import { getMatrixStats, getMatrixTree, setUserSponsor, getRecentJoins } from '@/lib/db';
-import { SLOTS, SLOT_CONFIG, REBUY_MAX, APP_VERSION } from '@/lib/constants';
+import { SLOTS, REBUY_MAX, APP_VERSION } from '@/lib/constants';
 import { useAccount } from 'wagmi';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUsdtBalance } from '@/lib/usdt';
 import {
   Loader2, Users, GitBranch, TrendingUp, Orbit,
-  ArrowUpRight, Shield, Coins, Copy, CheckCheck,
+  ArrowUpRight, Shield, Crown, Copy, CheckCheck,
   Link as LinkIcon, Lock, Activity, User,
   Timer, Trophy, Layers, ChevronRight,
-  ExternalLink, EyeOff, RotateCcw, Globe, UserPlus,
+  EyeOff, UserPlus,
 } from 'lucide-react';
 
 const cn = (...classes: (string | boolean | undefined | null)[]) => classes.filter(Boolean).join(' ');
@@ -546,35 +546,23 @@ export default function DashboardPage() {
           <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Global Apex Pool</h2>
           <div className="flex-1 h-px bg-gradient-to-r from-[rgba(255,184,0,0.15)] to-transparent" />
         </div>
-        <div className="rounded-xl border border-[rgba(255,184,0,0.06)] p-3" style={{ background: 'linear-gradient(135deg, rgba(255,184,0,0.02), rgba(255,92,122,0.02))' }}>
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Pool Balance</p>
-              <p className="text-xl font-bold font-mono text-[#FFB800]">{formatCompact(earnings.pool || 0)}</p>
-              <p className="text-[7px] text-[#4A5568] mt-0.5">Unlimited Distribution Network</p>
+        <div className="grid grid-cols-2 gap-2">
+          <Link href="/apex-pool" className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3 block" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.02), rgba(123,97,255,0.02))' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Crown size={10} className="text-[#00E5FF]" />
+              <span className="text-[7px] font-bold text-[#00E5FF] uppercase tracking-wider">Champions Pool</span>
             </div>
-            <div className="text-right">
-              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Qualified</p>
-              <p className="text-lg font-bold font-mono text-white">{matrixStats?.total || 0}</p>
-              <p className="text-[7px] text-[#4A5568] mt-0.5">Members</p>
+            <p className="text-sm font-bold font-mono text-white">{formatCompact(adminStats?.poolFund ? adminStats.poolFund / 2 : 0)}</p>
+            <p className="text-[6px] text-[#4A5568] mt-0.5">Top {10} daily performers</p>
+          </Link>
+          <Link href="/apex-pool" className="rounded-xl border border-[rgba(123,97,255,0.06)] p-3 block" style={{ background: 'linear-gradient(135deg, rgba(123,97,255,0.02), rgba(0,229,255,0.02))' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Users size={10} className="text-[#7B61FF]" />
+              <span className="text-[7px] font-bold text-[#7B61FF] uppercase tracking-wider">Community Pool</span>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex items-center gap-2 rounded-lg p-2" style={{ background: 'rgba(255,184,0,0.04)' }}>
-              <Timer size={12} className="text-[#FFB800]" />
-              <div>
-                <p className="text-[7px] text-[#4A5568]">Next Distribution</p>
-                <p className="text-[9px] font-mono text-white">~12h 34m</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 rounded-lg p-2" style={{ background: 'rgba(0,255,178,0.04)' }}>
-              <Coins size={12} className="text-[#00FFB2]" />
-              <div>
-                <p className="text-[7px] text-[#4A5568]">Per Qualifier</p>
-                <p className="text-[9px] font-mono text-[#00FFB2]">{formatCurrency(earnings.pool > 0 ? earnings.pool / Math.max(matrixStats?.total || 1, 1) : 0)}</p>
-              </div>
-            </div>
-          </div>
+            <p className="text-sm font-bold font-mono text-white">{formatCompact(adminStats?.poolFund ? adminStats.poolFund / 2 : 0)}</p>
+            <p className="text-[6px] text-[#4A5568] mt-0.5">1+ active direct required</p>
+          </Link>
         </div>
       </div>
 

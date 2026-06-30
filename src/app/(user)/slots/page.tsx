@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
-import { purchaseSlot, getRebuyCount } from '@/lib/db';
+import { purchaseSlot } from '@/lib/db';
 import { SLOTS, SLOT_CONFIG, TREASURY_WALLET, USDT_ADDRESS, USDT_DECIMALS, REBUY_MAX } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
 import { useAccount, useSwitchChain } from 'wagmi';
@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Loader2, Orbit, TrendingUp, Shield, Sparkles,
   Copy, CheckCheck, ExternalLink, Coins, Wallet, CheckCircle2, XCircle, Clock,
-  Lock, LockKeyhole, RotateCcw,
+  LockKeyhole, RotateCcw,
 } from 'lucide-react';
 import Link from 'next/link';
 
