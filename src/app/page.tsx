@@ -175,9 +175,6 @@ export default function ComingSoonPage() {
 
       <div className="relative z-10 flex flex-col items-center text-center max-w-lg mx-auto w-full">
 
-        <img src="/logo.png" alt="CYLIX" className="w-[210px] h-[210px] md:w-[255px] md:h-[255px] object-contain"
-          style={{ marginBottom: '-8px' }} />
-
         <h1 className="text-5xl md:text-7xl font-black tracking-[0.15em] mb-0"
           style={{
             fontFamily: "'Orbitron',sans-serif",
