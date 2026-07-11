@@ -1,173 +1,321 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount } from 'wagmi';
-import { useRouter } from 'next/navigation';
-import { ArrowRight, Wallet, Shield, BarChart3, Users, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
-export default function HomePage() {
-  const { isConnected } = useAccount();
-  const router = useRouter();
-  const [referralCode, setReferralCode] = useState('');
-  const [error, setError] = useState('');
-  const [mounted, setMounted] = useState(false);
+const LAUNCH = new Date('2026-07-13T17:45:00+05:30');
+const LANGS = [
+  'Launching Soon', 'जल्द आ रहा है', 'Próximamente', 'Bientôt',
+  'Bald verfügbar', '間もなく開始', '即将推出', 'قريباً',
+  'Скоро запуск', 'Em Breve',
+];
 
-  useEffect(() => setMounted(true), []);
+function calc() {
+  const d = LAUNCH.getTime() - Date.now();
+  if (d <= 0) return { d: 0, h: 0, m: 0, s: 0 };
+  return {
+    d: Math.floor(d / 86400000),
+    h: Math.floor((d / 3600000) % 24),
+    m: Math.floor((d / 60000) % 60),
+    s: Math.floor((d / 1000) % 60),
+  };
+}
+
+function FlipDigit({ value, color }: { value: number; color: string }) {
+  const [prev, setPrev] = useState(value);
+  const [flip, setFlip] = useState(false);
+
   useEffect(() => {
-    const ref = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref') : null;
-    if (ref) setReferralCode(ref.toUpperCase());
-  }, []);
-  useEffect(() => {
-    if (isConnected && mounted) {
-      if (referralCode.trim()) {
-        localStorage.setItem('cylix_ref', referralCode.trim().toUpperCase());
-      }
-      router.push('/dashboard');
+    if (value !== prev) {
+      setFlip(true);
+      const t = setTimeout(() => { setPrev(value); setFlip(false); }, 300);
+      return () => clearTimeout(t);
     }
-  }, [isConnected, mounted, referralCode, router]);
+  }, [value, prev]);
+
+  const display = String(value).padStart(2, '0');
+
+  return (
+    <div className="relative w-[68px] h-[80px] md:w-[80px] md:h-[96px] rounded-2xl overflow-hidden"
+      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', backdropFilter: 'blur(8px)' }}>
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none"
+        style={{ background: 'rgba(255,255,255,0.01)' }} />
+      <span className="relative z-10 flex items-center justify-center h-full text-3xl md:text-4xl font-bold transition-transform duration-300"
+        style={{
+          fontFamily: "'Rajdhani',sans-serif", color, textShadow: `0 0 20px ${color}20`,
+          transform: flip ? 'rotateX(90deg)' : 'rotateX(0deg)',
+          transformStyle: 'preserve-3d',
+        }}>
+        {display}
+      </span>
+      <div className="absolute bottom-0 left-0 right-0 h-[1px]"
+        style={{ background: 'rgba(255,255,255,0.03)' }} />
+    </div>
+  );
+}
+
+export default function ComingSoonPage() {
+  const [t, setT] = useState(calc());
+  const [mounted, setMounted] = useState(false);
+  const [displayText, setDisplayText] = useState('');
+  const [email, setEmail] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastColor, setToastColor] = useState('#00FFB2');
+  const [showCursor, setShowCursor] = useState(true);
+
+  const liRef = useRef(0);
+  const charIdxRef = useRef(0);
+  const isDeletingRef = useRef(false);
+  const timerRef = useRef<number>(0);
+  const tickRef = useRef<() => void>(() => {});
+
+  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => { const iv = setInterval(() => setT(calc()), 1000); return () => clearInterval(iv); }, []);
+
+  // Typewriter
+  useEffect(() => {
+    if (!mounted) return;
+
+    function tick() {
+      const cur = LANGS[liRef.current];
+      if (!isDeletingRef.current) {
+        if (charIdxRef.current < cur.length) {
+          charIdxRef.current++;
+          setDisplayText(cur.slice(0, charIdxRef.current));
+          timerRef.current = window.setTimeout(tick, 50 + Math.random() * 30);
+        } else {
+          isDeletingRef.current = true;
+          timerRef.current = window.setTimeout(tick, 2000);
+        }
+      } else {
+        if (charIdxRef.current > 0) {
+          charIdxRef.current--;
+          setDisplayText(cur.slice(0, charIdxRef.current));
+          timerRef.current = window.setTimeout(tick, 25);
+        } else {
+          isDeletingRef.current = false;
+          liRef.current = (liRef.current + 1) % LANGS.length;
+          charIdxRef.current = 0;
+          timerRef.current = window.setTimeout(tick, 150);
+        }
+      }
+    }
+    tickRef.current = tick;
+
+    // Start typing from second language immediately
+    setDisplayText('');
+    charIdxRef.current = 0;
+    isDeletingRef.current = false;
+    liRef.current = 0;
+    timerRef.current = window.setTimeout(tick, 500);
+
+    return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
+  }, [mounted]);
+
+  // Cursor blink
+  useEffect(() => {
+    const iv = setInterval(() => setShowCursor(c => !c), 530);
+    return () => clearInterval(iv);
+  }, []);
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-[#050816] flex items-center justify-center">
-        <Loader2 size={24} className="animate-spin text-[#00E5FF]" />
+      <div className="min-h-screen bg-[#090B14] flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-[#00CFFF] border-t-transparent animate-spin" />
       </div>
     );
   }
 
+  const units = [
+    { label: 'DAYS', value: t.d, color: '#00CFFF' },
+    { label: 'HOURS', value: t.h, color: '#7B2DFF' },
+    { label: 'MINS', value: t.m, color: '#00F5FF' },
+    { label: 'SECS', value: t.s, color: '#FFD700' },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#050816]">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[rgba(0,229,255,0.08)]">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center">
-            <span className="text-[#050816] font-bold text-sm font-heading">C</span>
-          </div>
-          <span className="text-lg font-bold font-heading tracking-wider text-white">CYLIX</span>
-        </div>
-        <ConnectButton.Custom>
-          {({ openConnectModal, openAccountModal, mounted: rkMounted, authenticationStatus, account }) => {
-            const ready = rkMounted && authenticationStatus !== 'loading';
-            const connected = ready && account && !authenticationStatus;
-            return (
-              <div className={!rkMounted ? 'w-36 h-10 rounded-xl bg-[rgba(148,163,184,0.05)]' : ''}>
-                {!ready ? <div className="w-36 h-10 rounded-xl bg-[rgba(148,163,184,0.05)]" /> :
-                  connected ? (
-                    <button onClick={openAccountModal}
-                      className="flex items-center gap-2 h-10 px-4 rounded-xl bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.15)] text-white text-sm font-semibold hover:bg-[rgba(0,229,255,0.12)] transition-all">
-                      <div className="w-5 h-5 rounded-full bg-[#00E5FF] flex items-center justify-center">
-                        <Wallet size={10} className="text-[#050816]" />
-                      </div>
-                      {account.displayName}
-                    </button>
-                  ) : (
-                    <button onClick={openConnectModal}
-                      className="flex items-center gap-2 h-10 px-5 rounded-xl bg-[#00E5FF] text-[#050816] text-sm font-semibold hover:bg-[#00E5FF]/90 transition-all">
-                      <Wallet size={16} />
-                      Connect Wallet
-                    </button>
-                  )}
-              </div>
-            );
-          }}
-        </ConnectButton.Custom>
-      </nav>
+    <div className="min-h-screen bg-[#090B14] flex flex-col items-center justify-center relative overflow-hidden px-4">
 
-      <main className="max-w-6xl mx-auto px-6 pt-20 pb-32">
-        <div className="text-center max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[rgba(0,229,255,0.1)] border border-[rgba(0,229,255,0.15)] mb-6">
-            <div className="w-2 h-2 rounded-full bg-[#00FFB2]" />
-            <span className="text-xs text-[#00E5FF] font-medium">BNB Smart Chain</span>
-          </div>
-          <h1 className="text-4xl md:text-6xl font-bold font-heading text-white leading-tight mb-6">
-            Premium <span className="text-gradient">Orbit Investment</span> Platform
-          </h1>
-          <p className="text-lg text-[#94A3B8] mb-10 max-w-xl mx-auto">
-            Connect your wallet, choose your Orbit package, and start earning daily returns.
-          </p>
+      {/* Background — floating orbs */}
+      <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(0,207,255,0.04) 0%, transparent 70%)', animation: 'orbFloat 12s ease-in-out infinite alternate' }} />
+      <div className="absolute bottom-[-200px] right-[-200px] w-[500px] h-[500px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(123,45,255,0.03) 0%, transparent 70%)', animation: 'orbFloat 10s ease-in-out infinite alternate-reverse' }} />
+      <div className="absolute top-1/3 right-[-100px] w-[300px] h-[300px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(0,245,255,0.02) 0%, transparent 70%)', animation: 'orbFloat 14s ease-in-out infinite alternate' }} />
 
-          <div className="max-w-md mx-auto space-y-4">
-            <div className="rounded-2xl bg-[rgba(18,26,43,0.6)] border border-[rgba(0,229,255,0.08)] p-4">
-              <label className="block text-sm text-[#94A3B8] mb-2">
-                Referral Code <span className="text-[#FF5C7A]">*</span>
-              </label>
-              <input
-                value={referralCode}
-                onChange={(e) => { setReferralCode(e.target.value.toUpperCase()); setError(''); }}
-                placeholder="Enter referral code (required)"
-                className="w-full h-12 px-4 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#94A3B8]/50 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)]"
-              />
-              {error && <p className="text-[10px] text-[#FF5C7A] mt-1">{error}</p>}
-            </div>
-            <ConnectButton.Custom>
-              {({ openConnectModal, openAccountModal, mounted: rkMounted, authenticationStatus, account }) => {
-                const ready = rkMounted && authenticationStatus !== 'loading';
-                const connected = ready && account && !authenticationStatus;
-                return (
-                  <div className={!rkMounted ? 'h-12 rounded-xl bg-[rgba(148,163,184,0.05)] animate-pulse' : ''}>
-                    {!ready ? <div className="h-12 rounded-xl bg-[rgba(148,163,184,0.05)] animate-pulse" /> :
-                      connected ? (
-                        <button onClick={openAccountModal}
-                          className="w-full h-12 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] font-semibold text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2">
-                          <Wallet size={16} />
-                          {account.displayName}
-                        </button>
-                      ) : (
-                        <button onClick={openConnectModal}
-                          className="w-full h-12 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] font-semibold text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2">
-                          Connect Wallet to Start
-                          <ArrowRight size={16} />
-                        </button>
-                      )}
-                  </div>
-                );
-              }}
-            </ConnectButton.Custom>
+      {/* Particles */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {Array.from({ length: 30 }).map((_, i) => (
+          <div key={i} className="absolute rounded-full"
+            style={{
+              left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`,
+              width: `${2 + Math.random() * 3}px`, height: `${2 + Math.random() * 3}px`,
+              background: i % 3 === 0 ? 'rgba(0,207,255,0.15)' : i % 3 === 1 ? 'rgba(123,45,255,0.12)' : 'rgba(0,245,255,0.1)',
+              animation: `particleFloat ${8 + Math.random() * 12}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 8}s`,
+            }} />
+        ))}
+      </div>
+
+      {/* Twinkling stars */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {Array.from({ length: 50 }).map((_, i) => (
+          <div key={i} className="absolute rounded-full bg-white"
+            style={{
+              left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`,
+              width: `${1 + Math.random()}px`, height: `${1 + Math.random()}px`,
+              opacity: 0.04,
+              animation: `twinkle ${2 + Math.random() * 4}s ease-in-out infinite alternate`,
+              animationDelay: `${Math.random() * 5}s`,
+            }} />
+        ))}
+      </div>
+
+      <div className="relative z-10 flex flex-col items-center text-center max-w-lg mx-auto w-full">
+
+        {/* Logo — 255px, chipka */}
+        <img src="/logo.png" alt="CYLIX" className="w-[210px] h-[210px] md:w-[255px] md:h-[255px] object-contain"
+          style={{ marginBottom: '-8px' }}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+
+        {/* Title */}
+        <h1 className="text-5xl md:text-7xl font-black tracking-[0.15em] mb-0"
+          style={{
+            fontFamily: "'Orbitron',sans-serif",
+            background: 'linear-gradient(135deg, #00CFFF 0%, #7B2DFF 100%)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>
+          CYLIX
+        </h1>
+
+        {/* Subtitle */}
+        <p className="text-sm tracking-[0.5em] text-white/60 font-medium uppercase mb-0"
+          style={{ fontFamily: "'Rajdhani',sans-serif" }}>
+          Matrix DeFi
+        </p>
+
+        {/* Typewriter glass */}
+        <div className="inline-flex flex-col items-center gap-2 mt-4 mb-4 px-5 py-3 rounded-2xl"
+          style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.04)',
+            backdropFilter: 'blur(8px)',
+          }}>
+          <span className="text-lg md:text-xl font-semibold text-white min-h-[28px]"
+            style={{ fontFamily: "'Space Grotesk',sans-serif" }}>
+            {displayText}
+            <span className="text-[#00CFFF] ml-0.5" style={{ opacity: showCursor ? 1 : 0, transition: 'opacity 0.1s' }}>|</span>
+          </span>
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.04)' }}>
+            <div className="w-1.5 h-1.5 rounded-full bg-[#00CFFF] animate-pulse" />
+            <span className="text-[9px] tracking-[0.2em] text-white/30 font-semibold uppercase"
+              style={{ fontFamily: "'Rajdhani',sans-serif" }}>
+              English
+            </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-24">
-          {[
-            { icon: Shield, title: 'Secure & Transparent', desc: 'All transactions verified on BNB Smart Chain.' },
-            { icon: BarChart3, title: 'Daily Earnings', desc: 'Earn daily returns on your investment.' },
-            { icon: Users, title: 'Team Building', desc: 'Binary matrix system. Build your team.' },
-          ].map((f) => {
-            const Icon = f.icon;
-            return (
-              <div key={f.title} className="rounded-2xl bg-[rgba(18,26,43,0.6)] border border-[rgba(0,229,255,0.08)] p-6 text-center hover:border-[rgba(0,229,255,0.2)] transition-all">
-                <div className="w-12 h-12 rounded-xl bg-[rgba(0,229,255,0.1)] flex items-center justify-center mx-auto mb-4">
-                  <Icon size={24} className="text-[#00E5FF]" />
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-2">{f.title}</h3>
-                <p className="text-sm text-[#94A3B8] leading-relaxed">{f.desc}</p>
-              </div>
-            );
-          })}
+        {/* Autoflow badge */}
+        <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full"
+          style={{ background: 'rgba(123,45,255,0.06)', border: '1px solid rgba(123,45,255,0.12)' }}>
+          <div className="w-1.5 h-1.5 rounded-full bg-[#7B2DFF] animate-pulse" />
+          <span className="text-[10px] tracking-[0.2em] text-[#7B2DFF] font-bold uppercase"
+            style={{ fontFamily: "'Rajdhani',sans-serif" }}>
+            Autoflow Ecosystem
+          </span>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16">
-          {[
-            { label: 'Total Invested', value: '$2.4M+' },
-            { label: 'Active Users', value: '2,483' },
-            { label: 'Daily Payouts', value: '$18.5K' },
-            { label: 'Slots', value: '11 Orbits' },
-          ].map((s) => (
-            <div key={s.label} className="rounded-2xl bg-[rgba(18,26,43,0.6)] border border-[rgba(0,229,255,0.08)] p-5 text-center">
-              <p className="text-2xl font-bold font-mono text-gradient">{s.value}</p>
-              <p className="text-xs text-[#94A3B8] mt-1">{s.label}</p>
+        {/* Timer with flip */}
+        <div className="flex gap-3 md:gap-5 mb-10">
+          {units.map(u => (
+            <div key={u.label} className="flex flex-col items-center gap-2">
+              <FlipDigit value={u.value} color={u.color} />
+              <span className="text-[9px] md:text-[10px] tracking-[0.2em] text-white/30 font-semibold uppercase"
+                style={{ fontFamily: "'Rajdhani',sans-serif" }}>
+                {u.label}
+              </span>
             </div>
           ))}
         </div>
-      </main>
 
-      <footer className="border-t border-[rgba(0,229,255,0.08)] py-6 px-6">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <span className="text-sm text-[#94A3B8]">CYLIX &copy; 2026</span>
-          <div className="flex items-center gap-4 text-xs text-[#94A3B8]">
-            <span>BNB Smart Chain</span>
-            <span>BEP20 USDT</span>
-          </div>
+        {/* Email */}
+        <div className="w-full max-w-sm">
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            if (!email.trim() || submitting) return;
+            setSubmitting(true);
+            try {
+              const r = await fetch('/api/launch-subscribe', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email.trim() }),
+              });
+              const d = await r.json();
+              if (r.ok) { setEmail(''); setToastMsg("You're on the list!"); setToastColor('#00FFB2'); }
+              else { setToastMsg(d.error || 'Something went wrong'); setToastColor('#FF6B6B'); }
+            } catch { setToastMsg('Network error'); setToastColor('#FF6B6B'); }
+            setSubmitting(false); setToast(true); setTimeout(() => setToast(false), 3000);
+          }}
+            className="flex items-center gap-2 p-1 rounded-xl"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              className="flex-1 bg-transparent text-white text-sm px-3 py-2.5 placeholder:text-white/20 focus:outline-none" />
+            <button type="submit" disabled={submitting}
+              className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #00CFFF, #7B2DFF)', color: '#090B14' }}>
+              {submitting ? <span className="w-3.5 h-3.5 rounded-full border-2 border-[#090B14] border-t-transparent animate-spin" />
+                : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>}
+              {submitting ? '' : 'Notify'}
+            </button>
+          </form>
         </div>
-      </footer>
+
+        {/* Tagline */}
+        <p className="text-[11px] text-white/30 leading-relaxed max-w-sm mt-6 text-center"
+          style={{ fontFamily: "'Inter',sans-serif" }}>
+          The countdown has begun. Built for Automation, Transparency, and Community-Driven Growth.<br />
+          <span className="text-[#00CFFF] font-semibold">Be Ready. Be Early. Be CYLIX.</span>
+        </p>
+      </div>
+
+      {/* Toast */}
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-xl text-xs font-medium transition-all duration-400 pointer-events-none z-[100]"
+        style={{ background: `${toastColor}0a`, border: `1px solid ${toastColor}15`, color: toastColor, opacity: toast ? 1 : 0, transform: toast ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(20px)' }}>
+        {toastMsg}
+      </div>
+
+      {/* Footer */}
+      <div className="absolute bottom-0 left-0 right-0 px-6 py-4 flex items-center justify-center gap-3">
+        <a href="https://t.me/cylixdefi" target="_blank" rel="noopener noreferrer"
+          className="flex items-center justify-center w-8 h-8 rounded-full transition-all hover:bg-white/5"
+          title="Telegram">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,0.25)">
+            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+          </svg>
+        </a>
+        <span className="text-white/10">&middot;</span>
+        <span className="text-[10px] text-white/20 tracking-wider">&copy; 2026 CYLIX</span>
+      </div>
+
+      <style jsx>{`
+        @keyframes orbFloat {
+          0% { transform: translate(0, 0) scale(1); }
+          100% { transform: translate(40px, -30px) scale(1.1); }
+        }
+        @keyframes twinkle {
+          0% { opacity: 0.02; }
+          100% { opacity: 0.08; }
+        }
+        @keyframes particleFloat {
+          0%, 100% { transform: translateY(0) translateX(0); opacity: 0.1; }
+          25% { transform: translateY(-30px) translateX(15px); opacity: 0.2; }
+          50% { transform: translateY(-15px) translateX(-10px); opacity: 0.08; }
+          75% { transform: translateY(-40px) translateX(20px); opacity: 0.15; }
+        }
+      `}</style>
     </div>
   );
 }
