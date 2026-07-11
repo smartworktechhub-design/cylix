@@ -1,12 +1,19 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const LAUNCH = new Date('2026-07-13T17:45:00+05:30');
-const LANGS = [
-  'Launching Soon', 'जल्द आ रहा है', 'Próximamente', 'Bientôt',
-  'Bald verfügbar', '間もなく開始', '即将推出', 'قريباً',
-  'Скоро запуск', 'Em Breve',
+const LANGS: { text: string; lang: string }[] = [
+  { text: 'Launching Soon', lang: 'English' },
+  { text: 'जल्द आ रहा है', lang: 'Hindi' },
+  { text: 'Próximamente', lang: 'Spanish' },
+  { text: 'Bientôt', lang: 'French' },
+  { text: 'Bald verfügbar', lang: 'German' },
+  { text: '間もなく開始', lang: 'Japanese' },
+  { text: '即将推出', lang: 'Chinese' },
+  { text: 'قريباً', lang: 'Arabic' },
+  { text: 'Скоро запуск', lang: 'Russian' },
+  { text: 'Em Breve', lang: 'Portuguese' },
 ];
 
 function calc() {
@@ -57,6 +64,7 @@ export default function ComingSoonPage() {
   const [t, setT] = useState(calc());
   const [mounted, setMounted] = useState(false);
   const [displayText, setDisplayText] = useState('');
+  const [currentLang, setCurrentLang] = useState('English');
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(false);
@@ -68,21 +76,20 @@ export default function ComingSoonPage() {
   const charIdxRef = useRef(0);
   const isDeletingRef = useRef(false);
   const timerRef = useRef<number>(0);
-  const tickRef = useRef<() => void>(() => {});
 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => { const iv = setInterval(() => setT(calc()), 1000); return () => clearInterval(iv); }, []);
 
-  // Typewriter
   useEffect(() => {
     if (!mounted) return;
 
     function tick() {
       const cur = LANGS[liRef.current];
       if (!isDeletingRef.current) {
-        if (charIdxRef.current < cur.length) {
+        if (charIdxRef.current < cur.text.length) {
           charIdxRef.current++;
-          setDisplayText(cur.slice(0, charIdxRef.current));
+          setDisplayText(cur.text.slice(0, charIdxRef.current));
+          setCurrentLang(cur.lang);
           timerRef.current = window.setTimeout(tick, 50 + Math.random() * 30);
         } else {
           isDeletingRef.current = true;
@@ -91,7 +98,7 @@ export default function ComingSoonPage() {
       } else {
         if (charIdxRef.current > 0) {
           charIdxRef.current--;
-          setDisplayText(cur.slice(0, charIdxRef.current));
+          setDisplayText(cur.text.slice(0, charIdxRef.current));
           timerRef.current = window.setTimeout(tick, 25);
         } else {
           isDeletingRef.current = false;
@@ -101,10 +108,9 @@ export default function ComingSoonPage() {
         }
       }
     }
-    tickRef.current = tick;
 
-    // Start typing from second language immediately
     setDisplayText('');
+    setCurrentLang(LANGS[0].lang);
     charIdxRef.current = 0;
     isDeletingRef.current = false;
     liRef.current = 0;
@@ -113,7 +119,6 @@ export default function ComingSoonPage() {
     return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
   }, [mounted]);
 
-  // Cursor blink
   useEffect(() => {
     const iv = setInterval(() => setShowCursor(c => !c), 530);
     return () => clearInterval(iv);
@@ -137,15 +142,11 @@ export default function ComingSoonPage() {
   return (
     <div className="min-h-screen bg-[#090B14] flex flex-col items-center justify-center relative overflow-hidden px-4">
 
-      {/* Background — floating orbs */}
       <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] rounded-full pointer-events-none"
         style={{ background: 'radial-gradient(circle, rgba(0,207,255,0.04) 0%, transparent 70%)', animation: 'orbFloat 12s ease-in-out infinite alternate' }} />
       <div className="absolute bottom-[-200px] right-[-200px] w-[500px] h-[500px] rounded-full pointer-events-none"
         style={{ background: 'radial-gradient(circle, rgba(123,45,255,0.03) 0%, transparent 70%)', animation: 'orbFloat 10s ease-in-out infinite alternate-reverse' }} />
-      <div className="absolute top-1/3 right-[-100px] w-[300px] h-[300px] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(0,245,255,0.02) 0%, transparent 70%)', animation: 'orbFloat 14s ease-in-out infinite alternate' }} />
 
-      {/* Particles */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {Array.from({ length: 30 }).map((_, i) => (
           <div key={i} className="absolute rounded-full"
@@ -159,7 +160,6 @@ export default function ComingSoonPage() {
         ))}
       </div>
 
-      {/* Twinkling stars */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {Array.from({ length: 50 }).map((_, i) => (
           <div key={i} className="absolute rounded-full bg-white"
@@ -175,12 +175,9 @@ export default function ComingSoonPage() {
 
       <div className="relative z-10 flex flex-col items-center text-center max-w-lg mx-auto w-full">
 
-        {/* Logo — 255px, chipka */}
         <img src="/logo.png" alt="CYLIX" className="w-[210px] h-[210px] md:w-[255px] md:h-[255px] object-contain"
-          style={{ marginBottom: '-8px' }}
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          style={{ marginBottom: '-8px' }} />
 
-        {/* Title */}
         <h1 className="text-5xl md:text-7xl font-black tracking-[0.15em] mb-0"
           style={{
             fontFamily: "'Orbitron',sans-serif",
@@ -190,13 +187,11 @@ export default function ComingSoonPage() {
           CYLIX
         </h1>
 
-        {/* Subtitle */}
         <p className="text-sm tracking-[0.5em] text-white/60 font-medium uppercase mb-0"
           style={{ fontFamily: "'Rajdhani',sans-serif" }}>
           Matrix DeFi
         </p>
 
-        {/* Typewriter glass */}
         <div className="inline-flex flex-col items-center gap-2 mt-4 mb-4 px-5 py-3 rounded-2xl"
           style={{
             background: 'rgba(255,255,255,0.02)',
@@ -212,13 +207,12 @@ export default function ComingSoonPage() {
             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.04)' }}>
             <div className="w-1.5 h-1.5 rounded-full bg-[#00CFFF] animate-pulse" />
             <span className="text-[9px] tracking-[0.2em] text-white/30 font-semibold uppercase"
-              style={{ fontFamily: "'Rajdhani',sans-serif" }}>
-              English
+              style={{ fontFamily: "'Rajdhani',sans-serif", transition: 'all 0.3s' }}>
+              {currentLang}
             </span>
           </div>
         </div>
 
-        {/* Autoflow badge */}
         <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full"
           style={{ background: 'rgba(123,45,255,0.06)', border: '1px solid rgba(123,45,255,0.12)' }}>
           <div className="w-1.5 h-1.5 rounded-full bg-[#7B2DFF] animate-pulse" />
@@ -228,7 +222,6 @@ export default function ComingSoonPage() {
           </span>
         </div>
 
-        {/* Timer with flip */}
         <div className="flex gap-3 md:gap-5 mb-10">
           {units.map(u => (
             <div key={u.label} className="flex flex-col items-center gap-2">
@@ -241,7 +234,6 @@ export default function ComingSoonPage() {
           ))}
         </div>
 
-        {/* Email */}
         <div className="w-full max-w-sm">
           <form onSubmit={async (e) => {
             e.preventDefault();
@@ -273,7 +265,6 @@ export default function ComingSoonPage() {
           </form>
         </div>
 
-        {/* Tagline */}
         <p className="text-[11px] text-white/30 leading-relaxed max-w-sm mt-6 text-center"
           style={{ fontFamily: "'Inter',sans-serif" }}>
           The countdown has begun. Built for Automation, Transparency, and Community-Driven Growth.<br />
@@ -281,13 +272,11 @@ export default function ComingSoonPage() {
         </p>
       </div>
 
-      {/* Toast */}
       <div className="fixed bottom-24 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-xl text-xs font-medium transition-all duration-400 pointer-events-none z-[100]"
         style={{ background: `${toastColor}0a`, border: `1px solid ${toastColor}15`, color: toastColor, opacity: toast ? 1 : 0, transform: toast ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(20px)' }}>
         {toastMsg}
       </div>
 
-      {/* Footer */}
       <div className="absolute bottom-0 left-0 right-0 px-6 py-4 flex items-center justify-center gap-3">
         <a href="https://t.me/cylixdefi" target="_blank" rel="noopener noreferrer"
           className="flex items-center justify-center w-8 h-8 rounded-full transition-all hover:bg-white/5"
