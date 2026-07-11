@@ -16,6 +16,8 @@ function createDummyClient(): SupabaseClient {
   return dummy;
 }
 
+let adminInstance: SupabaseClient | null = null;
+
 export function getSupabase(): SupabaseClient {
   if (!supabaseInstance) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -28,4 +30,13 @@ export function getSupabase(): SupabaseClient {
     }
   }
   return supabaseInstance;
+}
+
+export function getServiceSupabase(): SupabaseClient {
+  if (!adminInstance) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    adminInstance = createClient(url, key);
+  }
+  return adminInstance;
 }
