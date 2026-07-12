@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/supabase';
+import { getServiceSupabase } from '@/lib/supabase';
 
 export async function POST(req: Request) {
   try {
@@ -8,7 +8,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
     }
 
-    const sb = getSupabase();
+    const sb = getServiceSupabase();
     const { data: admin, error } = await sb
       .from('admins')
       .select('id, email, name, role, password_hash, is_active')
