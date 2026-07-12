@@ -16,7 +16,8 @@ export function BanScreen({ reason, walletAddress, userId, onLogout }: BanScreen
   const [submitted, setSubmitted] = useState(false);
 
   const handleAppeal = async () => {
-    if (!appealText.trim() || !walletAddress || !userId) return;
+    if (!appealText.trim()) return;
+    if (!walletAddress || !userId) return;
     setSubmitting(true);
     try {
       const res = await fetch('/api/ban-appeal', {
@@ -78,8 +79,8 @@ export function BanScreen({ reason, walletAddress, userId, onLogout }: BanScreen
             )}
             <button
               onClick={handleAppeal}
-              disabled={submitting || !appealText.trim()}
-              className="w-full py-2.5 rounded-xl text-sm font-bold transition-all bg-[rgba(0,229,255,0.1)] border border-[rgba(0,229,255,0.2)] text-[#00E5FF] hover:bg-[rgba(0,229,255,0.2)] disabled:opacity-30 disabled:cursor-not-allowed"
+              disabled={submitting}
+              className="w-full py-3 rounded-xl text-sm font-bold transition-all bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? <Loader2 size={14} className="animate-spin mx-auto" /> : 'Submit Appeal'}
             </button>
