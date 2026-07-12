@@ -14,6 +14,7 @@ function mapUser(u: any): User {
     ascensionBalance: Number(u.ascension_balance),
     displayName: u.display_name || '',
     twoFAEnabled: u.two_factor_enabled || false,
+    roiEnabled: u.roi_enabled !== false,
   };
 }
 
@@ -1002,6 +1003,43 @@ export async function getRecentJoins(limit = 10): Promise<any[]> {
 export async function getAllUsers(): Promise<any[]> {
   const { data } = await sb().from('users').select('*').order('created_at', { ascending: false });
   return (data || []).map(mapUser);
+}
+
+export async function searchUsers(query: string): Promise<any[]> {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const { data } = await sb().from('users').select('*').or(
+    `id.eq.${q},referral_code.ilike.${q},wallet.ilike.%${q}%`
+  ).limit(20);
+  return (data || []).map(mapUser);
+}
+
+export async function toggleROI(userId: string): Promise<boolean> {
+  const { data: user } = await sb().from('users').select('roi_enabled').eq('id', userId).single();
+  if (!user) return false;
+  const newVal = user.roi_enabled === false ? true : false;
+  const { error } = await sb().from('users').update({ roi_enabled: newVal }).eq('id', userId);
+  return !error;
+}
+
+export async function adminActivateSlot(userId: string, slotId: string): Promise<UserSlot | null> {
+  const slot = SLOTS.find(s => s.id === slotId);
+  if (!slot) return null;
+  const { data: existing } = await sb().from('user_slots')
+    .select('id, status').eq('user_id', userId).eq('slot_id', slotId).eq('status', 'active').maybeSingle();
+  if (existing) return null;
+  const { data, error } = await sb().from('user_slots').insert({
+    user_id: userId, slot_id: slot.id, slot_name: slot.name,
+    slot_orbit: slot.orbit, invested: slot.price,
+    earned: 0, daily_earned: slot.dailyYield, max_cap: slot.maxCap,
+    progress: 0, status: 'active',
+  }).select().single();
+  if (error || !data) return null;
+  await sb().from('transactions').insert({
+    user_id: userId, type: 'slot_purchase', amount: slot.price,
+    description: `Admin activated ${slot.name} slot`,
+  });
+  return mapSlot(data);
 }
 
 export async function getAllWithdrawals(): Promise<Withdrawal[]> {

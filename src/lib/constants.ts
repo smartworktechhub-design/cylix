@@ -77,6 +77,7 @@ export const NAV_LINKS = [
 
 export const ADMIN_NAV_LINKS = [
   { href: '/admin', label: 'Dashboard', icon: 'LayoutDashboard' },
+  { href: '/admin/user-lookup', label: 'User Lookup', icon: 'Search' },
   { href: '/admin/users', label: 'Users', icon: 'Users' },
   { href: '/admin/slots', label: 'Slots', icon: 'Package' },
   { href: '/admin/matrix', label: 'Matrix', icon: 'GitBranch' },

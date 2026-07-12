@@ -105,6 +105,7 @@ export interface User {
   displayName?: string;
   twoFAEnabled?: boolean;
   ipAddress?: string;
+  roiEnabled?: boolean;
 }
 
 export interface LeaderboardEntry {
