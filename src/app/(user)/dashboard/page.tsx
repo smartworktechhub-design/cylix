@@ -16,6 +16,8 @@ import {
   Timer, Trophy, Layers, ChevronRight,
   EyeOff, UserPlus,
 } from 'lucide-react';
+import { BanScreen } from '@/components/ui/ban-screen';
+import { useDisconnect } from 'wagmi';
 
 const cn = (...classes: (string | boolean | undefined | null)[]) => classes.filter(Boolean).join(' ');
 
@@ -50,8 +52,9 @@ const PLACEMENT_LABELS: Record<string, string> = {
 
 export default function DashboardPage() {
   const { user, slots, earnings, vault, transactions, adminStats, needsReferral, setNeedsReferral } = useAppStore();
-  const { loading } = useInitData();
+  const { loading, isBanned, banReason } = useInitData();
   const { isConnected, address } = useAccount();
+  const { disconnect } = useDisconnect();
   const pathname = usePathname();
   const { balance: usdtBalance } = useUsdtBalance(address);
   const [matrixStats, setMatrixStats] = useState<any>(null);
@@ -161,6 +164,10 @@ export default function DashboardPage() {
         <Loader2 size={36} className="animate-spin text-[#00E5FF]" />
       </div>
     );
+  }
+
+  if (isBanned) {
+    return <BanScreen reason={banReason} onLogout={() => disconnect()} />;
   }
 
   if (needsReferral) {

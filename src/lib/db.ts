@@ -15,6 +15,7 @@ function mapUser(u: any): User {
     displayName: u.display_name || '',
     twoFAEnabled: u.two_factor_enabled || false,
     roiEnabled: u.roi_enabled !== false,
+    banReason: u.ban_reason || '',
   };
 }
 

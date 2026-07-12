@@ -10,6 +10,8 @@ export function useInitData() {
   const { setUser, setSlots, setEarnings, setVault, setTransactions, setWithdrawals, setNotifications, setReferrals, setActivities, setAdminStats, setNeedsReferral } = useAppStore();
   const { address, isConnected } = useAccount();
   const [loading, setLoading] = useState(true);
+  const [isBanned, setIsBanned] = useState(false);
+  const [banReason, setBanReason] = useState('');
 
   useEffect(() => {
     const timeout = setTimeout(() => setLoading(false), 8000);
@@ -35,6 +37,12 @@ export function useInitData() {
         }
         if (!user) {
           setNeedsReferral(true);
+          setLoading(false);
+          return;
+        }
+        if (user.isActive === false) {
+          setIsBanned(true);
+          setBanReason((user as any).banReason || 'Your account has been suspended.');
           setLoading(false);
           return;
         }
@@ -73,5 +81,5 @@ export function useInitData() {
     load();
   }, [address, isConnected]);
 
-  return { loading };
+  return { loading, isBanned, banReason };
 }

@@ -106,6 +106,7 @@ export interface User {
   twoFAEnabled?: boolean;
   ipAddress?: string;
   roiEnabled?: boolean;
+  banReason?: string;
 }
 
 export interface LeaderboardEntry {
