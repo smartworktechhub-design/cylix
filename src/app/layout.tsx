@@ -22,6 +22,7 @@ const rajdhani = Rajdhani({
 export const metadata: Metadata = {
   title: 'CYLIX - Premium Investment Platform',
   description: 'Premium Web2 + Web3 hybrid investment platform on BNB Smart Chain',
+  icons: { icon: '/logo.png' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

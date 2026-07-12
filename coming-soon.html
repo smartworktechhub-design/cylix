@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CYLIX — Launching Soon</title>
+<link rel="icon" href="/logo.png" type="image/png">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;600;700&family=Rajdhani:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  min-height:100vh;background:#090B14;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:'Inter',sans-serif;overflow:hidden;position:relative;padding:20px;
+}
+
+/* Background animation */
+.orb{position:fixed;border-radius:50%;pointer-events:none}
+.orb-1{width:600px;height:600px;top:-200px;left:-200px;background:radial-gradient(circle,rgba(0,207,255,0.04) 0%,transparent 70%);animation:orbFloat 12s ease-in-out infinite alternate}
+.orb-2{width:500px;height:500px;bottom:-200px;right:-200px;background:radial-gradient(circle,rgba(123,45,255,0.03) 0%,transparent 70%);animation:orbFloat 10s ease-in-out infinite alternate-reverse}
+.orb-3{width:300px;height:300px;top:33%;right:-100px;background:radial-gradient(circle,rgba(0,245,255,0.02) 0%,transparent 70%);animation:orbFloat 14s ease-in-out infinite alternate}
+@keyframes orbFloat{0%{transform:translate(0,0) scale(1)}100%{transform:translate(40px,-30px) scale(1.1)}}
+
+.dots-bg{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.dot{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--dur) ease-in-out infinite alternate}
+@keyframes twinkle{0%{opacity:0.02}100%{opacity:0.08}}
+
+.container{position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;text-align:center;max-width:480px;width:100%}
+
+/* Logo */
+.logo{width:200px;height:200px;object-fit:contain;margin-bottom:0}
+@media(min-width:768px){.logo{width:245px;height:245px}}
+
+/* Title */
+.title{
+  font-family:'Orbitron',sans-serif;font-size:56px;font-weight:900;letter-spacing:0.15em;margin-bottom:4px;
+  background:linear-gradient(135deg,#00CFFF 0%,#7B2DFF 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+@media(max-width:480px){.title{font-size:42px}}
+
+/* Subtitle */
+.subtitle{
+  font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:500;letter-spacing:0.5em;text-transform:uppercase;
+  color:rgba(255,255,255,0.5);margin-bottom:0;
+}
+@media(max-width:480px){.subtitle{letter-spacing:0.3em;font-size:11px}}
+
+/* Typewriter glass */
+.tw-glass{
+  display:inline-flex;flex-direction:column;align-items:center;gap:8px;margin-top:16px;margin-bottom:16px;
+  padding:12px 20px;border-radius:16px;
+  background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);backdrop-filter:blur(8px);
+}
+.tw-text{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;color:#fff}
+.tw-cursor{color:#00CFFF;margin-left:2px;animation:cursorBlink 0.8s step-end infinite}
+@keyframes cursorBlink{0%,100%{opacity:1}50%{opacity:0}}
+.tw-badge{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;
+  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04);
+}
+.tw-badge-dot{width:6px;height:6px;border-radius:50%;background:#00CFFF;animation:pulse 2s ease-in-out infinite}
+.tw-badge-text{font-family:'Rajdhani',sans-serif;font-size:9px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.3)}
+
+/* Autoflow badge */
+.badge{
+  display:inline-flex;align-items:center;gap:8px;margin-bottom:24px;
+  padding:6px 16px;border-radius:999px;
+  background:rgba(123,45,255,0.06);border:1px solid rgba(123,45,255,0.12);
+}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:#7B2DFF;animation:pulse 2s ease-in-out infinite}
+.badge-text{font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#7B2DFF}
+@keyframes pulse{0%,100%{opacity:0.4}50%{opacity:1}}
+
+/* Timer */
+.timer{display:flex;gap:12px;margin-bottom:40px}
+@media(max-width:480px){.timer{gap:8px}}
+.timer-unit{display:flex;flex-direction:column;align-items:center;gap:8px}
+.flip-card{
+  width:68px;height:80px;border-radius:16px;overflow:hidden;position:relative;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);backdrop-filter:blur(8px);
+}
+@media(max-width:480px){.flip-card{width:60px;height:72px}}
+.flip-digit{position:relative;z-index:10;font-family:'Rajdhani',sans-serif;font-size:32px;font-weight:700;line-height:1}
+@media(max-width:480px){.flip-digit{font-size:28px}}
+.timer-label{font-family:'Rajdhani',sans-serif;font-size:9px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.25)}
+
+/* Email form */
+.email-form{width:100%;max-width:380px}
+.form-row{
+  display:flex;align-items:center;gap:8px;padding:4px;border-radius:12px;
+  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+}
+.email-input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-size:13px;padding:10px 12px;font-family:'Inter',sans-serif}
+.email-input::placeholder{color:rgba(255,255,255,0.2)}
+.notify-btn{
+  display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border:none;border-radius:10px;
+  background:linear-gradient(135deg,#00CFFF,#7B2DFF);color:#090B14;font-size:12px;font-weight:700;cursor:pointer;
+  transition:all 0.3s ease;font-family:'Inter',sans-serif;
+}
+.notify-btn:hover{opacity:0.9;transform:translateY(-1px)}
+.notify-btn:disabled{opacity:0.5}
+.notify-btn svg{width:14px;height:14px}
+
+/* Tagline */
+.tagline{font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,0.3);line-height:1.7;max-width:380px;margin-top:24px;text-align:center}
+.tagline span{color:#00CFFF;font-weight:600}
+
+/* Toast */
+.toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(20px);padding:10px 20px;border-radius:12px;font-size:12px;font-weight:500;opacity:0;transition:all 0.4s ease;pointer-events:none;z-index:100}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Footer */
+.footer{position:fixed;bottom:0;left:0;right:0;padding:16px;display:flex;align-items:center;justify-content:center;gap:12px;z-index:10}
+.tg-link{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;text-decoration:none;transition:all 0.3s ease}
+.tg-link:hover{background:rgba(255,255,255,0.05)}
+.footer-dot{color:rgba(255,255,255,0.1)}
+.footer-copy{font-size:10px;color:rgba(255,255,255,0.2);letter-spacing:0.05em}
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+<div class="dots-bg" id="dotsBg"></div>
+
+<div class="container">
+  <img src="/logo.png" alt="CYLIX" class="logo" id="logoImg" onerror="this.style.display='none'">
+  <h1 class="title">CYLIX</h1>
+  <p class="subtitle">Matrix DeFi</p>
+
+  <div class="tw-glass">
+    <span class="tw-text"><span id="twText">Launching Soon</span><span class="tw-cursor">|</span></span>
+    <div class="tw-badge">
+      <div class="tw-badge-dot"></div>
+      <span class="tw-badge-text">English</span>
+    </div>
+  </div>
+
+  <div class="badge">
+    <div class="badge-dot"></div>
+    <span class="badge-text">Autoflow Ecosystem</span>
+  </div>
+
+  <div class="timer">
+    <div class="timer-unit">
+      <div class="flip-card"><span class="flip-digit" id="days" style="color:#00CFFF;text-shadow:0 0 20px rgba(0,207,255,0.2)">00</span></div>
+      <span class="timer-label">Days</span>
+    </div>
+    <div class="timer-unit">
+      <div class="flip-card"><span class="flip-digit" id="hours" style="color:#7B2DFF;text-shadow:0 0 20px rgba(123,45,255,0.2)">00</span></div>
+      <span class="timer-label">Hours</span>
+    </div>
+    <div class="timer-unit">
+      <div class="flip-card"><span class="flip-digit" id="minutes" style="color:#00F5FF;text-shadow:0 0 20px rgba(0,245,255,0.2)">00</span></div>
+      <span class="timer-label">Mins</span>
+    </div>
+    <div class="timer-unit">
+      <div class="flip-card"><span class="flip-digit" id="seconds" style="color:#FFD700;text-shadow:0 0 20px rgba(255,215,0,0.2)">00</span></div>
+      <span class="timer-label">Secs</span>
+    </div>
+  </div>
+
+  <div class="email-form">
+    <form id="emailForm" class="form-row">
+      <input type="email" id="emailInput" placeholder="Enter your email" class="email-input" required>
+      <button type="submit" class="notify-btn" id="notifyBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Notify
+      </button>
+    </form>
+  </div>
+
+  <p class="tagline">
+    The countdown has begun. Built for Automation, Transparency, and Community-Driven Growth.<br>
+    <span>Be Ready. Be Early. Be CYLIX.</span>
+  </p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="footer">
+  <a href="https://t.me/cylixdefi" target="_blank" rel="noopener noreferrer" class="tg-link" title="Telegram">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,0.25)"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+  </a>
+  <span class="footer-dot">&middot;</span>
+  <span class="footer-copy">&copy; 2026 CYLIX</span>
+</div>
+
+<script>
+const LAUNCH = new Date('2026-07-13T17:45:00+05:30');
+const LANGS = ['Launching Soon','जल्द आ रहा है','Próximamente','Bientôt','Bald verfügbar','間もなく開始','即将推出','قريباً','Скоро запуск','Em Breve'];
+const $=id=>document.getElementById(id);
+
+// Stars
+const dotsBg=$('dotsBg');
+for(let i=0;i<40;i++){
+  const d=document.createElement('div');d.className='dot';
+  d.style.left=Math.random()*100+'%';d.style.top=Math.random()*100+'%';
+  d.style.setProperty('--dur',(2+Math.random()*4)+'s');
+  d.style.animationDelay=Math.random()*5+'s';
+  d.style.width=d.style.height=(1+Math.random())+'px';
+  dotsBg.appendChild(d);
+}
+
+// Typewriter
+let li=0,cIdx=0,del=false;
+function tick(){
+  const cur=LANGS[li];
+  if(!del){
+    if(cIdx<cur.length){cIdx++;$('twText').textContent=cur.slice(0,cIdx);setTimeout(tick,55)}
+    else{del=true;setTimeout(tick,1800)}
+  }else{
+    if(cIdx>0){cIdx--;$('twText').textContent=cur.slice(0,cIdx);setTimeout(tick,30)}
+    else{del=false;li=(li+1)%LANGS.length;cIdx=0;setTimeout(tick,200)}
+  }
+}
+setTimeout(tick,1800);
+
+// Timer
+function updateTimer(){
+  const d=LAUNCH.getTime()-Date.now();
+  if(d<=0){['days','hours','minutes','seconds'].forEach(id=>{$(id).textContent='00'})}
+  const v={d:Math.max(0,Math.floor(d/86400000)),h:Math.max(0,Math.floor((d/3600000)%24)),m:Math.max(0,Math.floor((d/60000)%60)),s:Math.max(0,Math.floor((d/1000)%60))};
+  [['days',v.d],['hours',v.h],['minutes',v.m],['seconds',v.s]].forEach(([id,val])=>{const el=$(id);const s=String(val).padStart(2,'0');if(el.textContent!==s)el.textContent=s});
+  requestAnimationFrame(updateTimer);
+}
+updateTimer();
+
+// Email
+const emailForm=$('emailForm'),emailInput=$('emailInput'),toast=$('toast'),notifyBtn=$('notifyBtn');
+function showToast(msg,color='#00FFB2'){toast.textContent=msg;toast.style.color=color;toast.style.background=color+'0a';toast.style.border='1px solid '+color+'15';toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),3000)}
+emailForm.addEventListener('submit',async e=>{
+  e.preventDefault();const em=emailInput.value.trim();if(!em)return;
+  notifyBtn.disabled=true;notifyBtn.innerHTML='<span style="width:14px;height:14px;border:2px solid #090B14;border-top-color:transparent;border-radius:50%;animation:spin 0.6s linear infinite;display:inline-block"></span>';
+  if(location.protocol==='file:'){window.open('mailto:cylixdefi@gmail.com?subject=Launch&body='+encodeURIComponent(em));emailInput.value='';notifyBtn.disabled=false;notifyBtn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Notify';showToast("You're on the list!");return}
+  try{const r=await fetch('/api/launch-subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em})});const d=await r.json();if(r.ok){emailInput.value='';showToast("You're on the list!")}else{showToast(d.error||'Error','#FF6B6B')}}catch{showToast('Network error','#FF6B6B')}
+  notifyBtn.disabled=false;notifyBtn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Notify';
+});
+</script>
+<style>@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>
+</body>
+</html>

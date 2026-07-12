@@ -84,12 +84,11 @@ export const ADMIN_NAV_LINKS = [
   { href: '/admin/earnings', label: 'Earnings', icon: 'TrendingUp' },
   { href: '/admin/withdrawals', label: 'Withdrawals', icon: 'Wallet' },
   { href: '/admin/apex-pool', label: 'Apex Pool', icon: 'Trophy' },
-  { href: '/admin/referrals', label: 'Referrals', icon: 'Users' },
-  { href: '/admin/notifications', label: 'Notifications', icon: 'Bell' },
-  { href: '/admin/support', label: 'Support', icon: 'LifeBuoy' },
+  { href: '/admin/email-blast', label: 'Email Blast', icon: 'Mail' },
+  { href: '/admin/activity-log', label: 'Activity Log', icon: 'Activity' },
+  { href: '/admin/platform-settings', label: 'Settings', icon: 'Settings' },
   { href: '/admin/announcements', label: 'Announcements', icon: 'Megaphone' },
-  { href: '/admin/transactions', label: 'Transactions', icon: 'ArrowLeftRight' },
-  { href: '/admin/settings', label: 'Settings', icon: 'Settings' },
+  { href: '/admin/support', label: 'Support', icon: 'LifeBuoy' },
   { href: '/admin/security', label: 'Security', icon: 'Shield' },
 ];
 

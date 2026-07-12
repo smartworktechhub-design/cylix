@@ -4,9 +4,10 @@ import { useRouter } from 'next/navigation';
 import { useAdminAuth } from '@/lib/admin-auth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Lock, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 
 export default function AdminLoginPage() {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
@@ -14,19 +15,17 @@ export default function AdminLoginPage() {
   const { login } = useAdminAuth();
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setTimeout(() => {
-      const ok = login(password);
-      if (ok) {
-        router.push('/admin');
-      } else {
-        setError('Invalid password');
-      }
-      setLoading(false);
-    }, 500);
+    const result = await login(email, password);
+    if (result.success) {
+      router.push('/admin');
+    } else {
+      setError(result.error || 'Invalid credentials');
+    }
+    setLoading(false);
   };
 
   return (
@@ -43,18 +42,30 @@ export default function AdminLoginPage() {
               <Lock size={28} className="text-[#050816]" />
             </div>
             <h1 className="text-2xl font-bold text-white font-heading">Admin Panel</h1>
-            <p className="text-[#94A3B8] text-sm mt-2">Enter password to continue</p>
+            <p className="text-[#94A3B8] text-sm mt-2">Sign in to your admin account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
+              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                placeholder="Email address"
+                className="w-full bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.12)] rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[rgba(0,229,255,0.3)] transition-colors"
+                autoFocus
+              />
+            </div>
+
+            <div className="relative">
+              <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
               <input
                 type={showPw ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                placeholder="Admin password"
-                className="w-full bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.12)] rounded-xl px-4 pr-10 py-3 text-sm text-white placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[rgba(0,229,255,0.3)] transition-colors font-mono"
-                autoFocus
+                placeholder="Password"
+                className="w-full bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.12)] rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[rgba(0,229,255,0.3)] transition-colors font-mono"
               />
               <button
                 type="button"
@@ -72,8 +83,8 @@ export default function AdminLoginPage() {
               </div>
             )}
 
-            <Button type="submit" variant="primary" className="w-full" loading={loading} disabled={loading || !password}>
-              <Lock size={14} /> Login
+            <Button type="submit" variant="primary" className="w-full" loading={loading} disabled={loading || !email || !password}>
+              <Lock size={14} /> Sign In
             </Button>
           </form>
 

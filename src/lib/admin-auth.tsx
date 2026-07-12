@@ -1,48 +1,71 @@
 'use client';
 import { useState, createContext, useContext, useEffect, ReactNode } from 'react';
 
+interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
 interface AuthCtx {
   isLoggedIn: boolean;
-  login: (password: string) => boolean;
+  admin: AdminUser | null;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   loading: boolean;
 }
 
 const AdminAuthContext = createContext<AuthCtx>({
   isLoggedIn: false,
-  login: () => false,
+  admin: null,
+  login: async () => ({ success: false }),
   logout: () => {},
   loading: true,
 });
 
-export const ADMIN_PASSWORD = 'CYLIX@ADMIN2026';
-
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const session = sessionStorage.getItem('cx_admin_auth');
-    if (session === 'true') setIsLoggedIn(true);
+    const session = sessionStorage.getItem('cx_admin_session');
+    if (session) {
+      try {
+        setAdmin(JSON.parse(session));
+      } catch {
+        sessionStorage.removeItem('cx_admin_session');
+      }
+    }
     setLoading(false);
   }, []);
 
-  const login = (password: string): boolean => {
-    if (password === ADMIN_PASSWORD) {
-      sessionStorage.setItem('cx_admin_auth', 'true');
-      setIsLoggedIn(true);
-      return true;
+  const login = async (email: string, password: string) => {
+    try {
+      const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (res.ok && data.admin) {
+        sessionStorage.setItem('cx_admin_session', JSON.stringify(data.admin));
+        setAdmin(data.admin);
+        return { success: true };
+      }
+      return { success: false, error: data.error || 'Invalid credentials' };
+    } catch {
+      return { success: false, error: 'Network error' };
     }
-    return false;
   };
 
   const logout = () => {
-    sessionStorage.removeItem('cx_admin_auth');
-    setIsLoggedIn(false);
+    sessionStorage.removeItem('cx_admin_session');
+    setAdmin(null);
   };
 
   return (
-    <AdminAuthContext.Provider value={{ isLoggedIn, login, logout, loading }}>
+    <AdminAuthContext.Provider value={{ isLoggedIn: !!admin, admin, login, logout, loading }}>
       {children}
     </AdminAuthContext.Provider>
   );

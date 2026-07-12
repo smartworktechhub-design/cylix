@@ -218,3 +218,10 @@ CREATE INDEX IF NOT EXISTS idx_withdrawals_user ON withdrawals(user_id);
 CREATE INDEX IF NOT EXISTS idx_earnings_user ON earnings(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_apex_pool_distributions_date ON apex_pool_distributions(distributed_at);
+
+-- Launch email subscriptions (coming soon page)
+CREATE TABLE IF NOT EXISTS launch_emails (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
