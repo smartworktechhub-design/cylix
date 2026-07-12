@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatNumber, shortenAddress, formatDate } from '@/lib/utils';
-import { searchUsers, getUserSlots, toggleROI, adminActivateSlot } from '@/lib/db';
+import { searchUsers, getUserSlots, toggleROI, adminActivateSlot, banUser, unbanUser } from '@/lib/db';
 import { getSupabase } from '@/lib/supabase';
 import { SLOTS } from '@/lib/constants';
 import {
@@ -29,6 +29,9 @@ export default function UserLookupPage() {
   const [copied, setCopied] = useState('');
   const [sponsorName, setSponsorName] = useState('');
   const [directsList, setDirectsList] = useState<{ wallet: string; referralCode: string }[]>([]);
+  const [banReason, setBanReason] = useState('');
+  const [showBanInput, setShowBanInput] = useState(false);
+  const [banning, setBanning] = useState(false);
 
   const showToast = (msg: string, color: string) => {
     setToast({ msg, color });
@@ -104,6 +107,30 @@ export default function UserLookupPage() {
     navigator.clipboard.writeText(text);
     setCopied(label);
     setTimeout(() => setCopied(''), 1500);
+  };
+
+  const handleBan = async () => {
+    if (!selected) return;
+    setBanning(true);
+    const success = await banUser(selected.id, banReason || 'Banned by admin');
+    if (success) {
+      setSelected({ ...selected, isActive: false });
+      showToast('User banned', '#FF5C7A');
+      setShowBanInput(false);
+      setBanReason('');
+    }
+    setBanning(false);
+  };
+
+  const handleUnban = async () => {
+    if (!selected) return;
+    setBanning(true);
+    const success = await unbanUser(selected.id);
+    if (success) {
+      setSelected({ ...selected, isActive: true });
+      showToast('User unbanned', '#00FFB2');
+    }
+    setBanning(false);
   };
 
   const activeSlots = slots.filter(s => s.status === 'active');
@@ -201,11 +228,36 @@ export default function UserLookupPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={selected.isActive ? 'success' : 'danger'}>
-                    {selected.isActive ? 'Active' : 'Inactive'}
+                    {selected.isActive ? 'Active' : 'Banned'}
                   </Badge>
                   <Badge variant={selected.roiEnabled !== false ? 'success' : 'warning'}>
                     ROI {selected.roiEnabled !== false ? 'ON' : 'OFF'}
                   </Badge>
+                  {selected.isActive ? (
+                    showBanInput ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={banReason}
+                          onChange={(e) => setBanReason(e.target.value)}
+                          placeholder="Ban reason..."
+                          className="bg-[rgba(11,16,32,0.8)] border border-[rgba(255,92,122,0.2)] rounded-lg px-2 py-1 text-xs text-white w-36 focus:outline-none"
+                        />
+                        <Button variant="danger" size="sm" onClick={handleBan} loading={banning} disabled={banning}>
+                          Confirm
+                        </Button>
+                        <button onClick={() => { setShowBanInput(false); setBanReason(''); }} className="text-[#94A3B8] text-xs hover:text-white">Cancel</button>
+                      </div>
+                    ) : (
+                      <Button variant="danger" size="sm" onClick={() => setShowBanInput(true)}>
+                        Ban User
+                      </Button>
+                    )
+                  ) : (
+                    <Button variant="success" size="sm" onClick={handleUnban} loading={banning} disabled={banning}>
+                      Unban
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardHeader>

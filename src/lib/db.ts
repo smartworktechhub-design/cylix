@@ -1006,12 +1006,20 @@ export async function getAllUsers(): Promise<any[]> {
 }
 
 export async function searchUsers(query: string): Promise<any[]> {
-  const q = query.trim().toLowerCase();
+  const q = query.trim();
   if (!q) return [];
-  const { data } = await sb().from('users').select('*').or(
-    `id.eq.${q},referral_code.ilike.${q},wallet.ilike.%${q}%`
-  ).limit(20);
-  return (data || []).map(mapUser);
+  const results = new Map<string, any>();
+
+  const { data: byId } = await sb().from('users').select('*').eq('id', q).limit(5);
+  (byId || []).forEach(u => results.set(u.id, mapUser(u)));
+
+  const { data: byRef } = await sb().from('users').select('*').ilike('referral_code', q).limit(5);
+  (byRef || []).forEach(u => results.set(u.id, mapUser(u)));
+
+  const { data: byWallet } = await sb().from('users').select('*').ilike('wallet', `%${q}%`).limit(10);
+  (byWallet || []).forEach(u => results.set(u.id, mapUser(u)));
+
+  return Array.from(results.values()).slice(0, 20);
 }
 
 export async function toggleROI(userId: string): Promise<boolean> {
@@ -1040,6 +1048,20 @@ export async function adminActivateSlot(userId: string, slotId: string): Promise
     description: `Admin activated ${slot.name} slot`,
   });
   return mapSlot(data);
+}
+
+export async function banUser(userId: string, reason: string): Promise<boolean> {
+  const { error } = await sb().from('users').update({
+    is_active: false, ban_reason: reason,
+  }).eq('id', userId);
+  return !error;
+}
+
+export async function unbanUser(userId: string): Promise<boolean> {
+  const { error } = await sb().from('users').update({
+    is_active: true, ban_reason: '',
+  }).eq('id', userId);
+  return !error;
 }
 
 export async function getAllWithdrawals(): Promise<Withdrawal[]> {
