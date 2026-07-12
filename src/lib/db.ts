@@ -543,24 +543,37 @@ async function processApexPoolContribution(amount: number): Promise<void> {
 async function getChampionsLeaderboard(): Promise<ChampionsEntry[]> {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { data: users } = await sb().from('users').select('id, wallet');
-  if (!users) return [];
+  if (!users || users.length === 0) return [];
+
+  const userIds = users.map((u: any) => u.id);
+
+  const [{ data: recentRefs }, { data: recentPurchases }, { data: recentVols }] = await Promise.all([
+    sb().from('users').select('sponsor_id').in('sponsor_id', userIds).gte('created_at', since),
+    sb().from('user_slots').select('user_id, invested').in('user_id', userIds).gte('activated_at', since),
+    sb().from('user_slots').select('user_id, invested').in('user_id', userIds).gte('activated_at', since),
+  ]);
+
+  const refCounts: Record<string, number> = {};
+  (recentRefs || []).forEach((r: any) => { refCounts[r.sponsor_id] = (refCounts[r.sponsor_id] || 0) + 1; });
+
+  const purchaseCounts: Record<string, number> = {};
+  const volumes: Record<string, number> = {};
+  (recentPurchases || []).forEach((p: any) => {
+    purchaseCounts[p.user_id] = (purchaseCounts[p.user_id] || 0) + 1;
+    volumes[p.user_id] = (volumes[p.user_id] || 0) + Number(p.invested || 0);
+  });
+
   const entries: ChampionsEntry[] = [];
   for (const u of users) {
-    const { count: referrals } = await sb().from('users')
-      .select('*', { count: 'exact', head: true })
-      .eq('sponsor_id', u.id).gte('created_at', since);
-    const { count: purchases } = await sb().from('user_slots')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', u.id).gte('activated_at', since);
-    const { data: volData } = await sb().from('user_slots')
-      .select('invested').eq('user_id', u.id).gte('activated_at', since);
-    const volume = volData?.reduce((s: number, r: any) => s + Number(r.invested), 0) || 0;
-    const score = (referrals || 0) * CHAMPIONS_POOL.scoreWeights.referral
-      + (purchases || 0) * CHAMPIONS_POOL.scoreWeights.purchase
-      + volume * CHAMPIONS_POOL.scoreWeights.volume;
+    const refs = refCounts[u.id] || 0;
+    const buys = purchaseCounts[u.id] || 0;
+    const vol = volumes[u.id] || 0;
+    const score = refs * CHAMPIONS_POOL.scoreWeights.referral
+      + buys * CHAMPIONS_POOL.scoreWeights.purchase
+      + vol * CHAMPIONS_POOL.scoreWeights.volume;
     if (score > 0) entries.push({
       userId: u.id, wallet: u.wallet, score, rank: 0, reward: 0,
-      referrals24h: referrals || 0, purchases24h: purchases || 0, volume24h: volume,
+      referrals24h: refs, purchases24h: buys, volume24h: vol,
     });
   }
   entries.sort((a, b) => b.score - a.score);
