@@ -41,6 +41,7 @@ export function useInitData() {
           return;
         }
         if (user.isActive === false) {
+          setUser(user as any);
           setIsBanned(true);
           setBanReason((user as any).banReason || 'Your account has been suspended.');
           setLoading(false);
