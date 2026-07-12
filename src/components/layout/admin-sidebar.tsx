@@ -7,7 +7,7 @@ import { ADMIN_NAV_LINKS } from '@/lib/constants';
 import {
   LayoutDashboard, Users, Package, GitBranch, TrendingUp,
   Wallet, Trophy, Megaphone, ArrowLeftRight, Settings,
-  Shield, Bell, LifeBuoy, X, ArrowLeft, Search, Activity, Mail
+  Shield, Bell, LifeBuoy, X, ArrowLeft, Search, Activity, Mail, ShieldOff
 } from 'lucide-react';
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -27,6 +27,7 @@ const iconMap: Record<string, React.ReactNode> = {
   Search: <Search size={18} />,
   Activity: <Activity size={18} />,
   Mail: <Mail size={18} />,
+  ShieldOff: <ShieldOff size={18} />,
 };
 
 interface AdminSidebarProps {

@@ -86,6 +86,7 @@ export const ADMIN_NAV_LINKS = [
   { href: '/admin/apex-pool', label: 'Apex Pool', icon: 'Trophy' },
   { href: '/admin/email-blast', label: 'Email Blast', icon: 'Mail' },
   { href: '/admin/activity-log', label: 'Activity Log', icon: 'Activity' },
+  { href: '/admin/ban-appeals', label: 'Ban Appeals', icon: 'ShieldOff' },
   { href: '/admin/platform-settings', label: 'Settings', icon: 'Settings' },
   { href: '/admin/announcements', label: 'Announcements', icon: 'Megaphone' },
   { href: '/admin/support', label: 'Support', icon: 'LifeBuoy' },

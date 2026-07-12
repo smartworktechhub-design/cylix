@@ -167,7 +167,7 @@ export default function DashboardPage() {
   }
 
   if (isBanned) {
-    return <BanScreen reason={banReason} onLogout={() => disconnect()} />;
+    return <BanScreen reason={banReason} walletAddress={address} userId={user?.id} onLogout={() => disconnect()} />;
   }
 
   if (needsReferral) {
