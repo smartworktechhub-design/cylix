@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { AlertTriangle, ShieldOff, LogOut, Send, CheckCircle2, Loader2 } from 'lucide-react';
-import { getSupabase } from '@/lib/supabase';
 
 interface BanScreenProps {
   reason?: string;
@@ -20,13 +19,12 @@ export function BanScreen({ reason, walletAddress, userId, onLogout }: BanScreen
     if (!appealText.trim() || !walletAddress || !userId) return;
     setSubmitting(true);
     try {
-      await getSupabase().from('ban_appeals').insert({
-        user_id: userId,
-        wallet: walletAddress,
-        reason: appealText.trim(),
-        status: 'pending',
+      const res = await fetch('/api/ban-appeal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, wallet: walletAddress, reason: appealText.trim() }),
       });
-      setSubmitted(true);
+      if (res.ok) setSubmitted(true);
     } catch {
     }
     setSubmitting(false);
