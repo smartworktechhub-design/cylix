@@ -3,10 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
-import { getSupabase } from '@/lib/supabase';
 import { Mail, Download, Copy, CheckCheck, Loader2, Trash2, RefreshCw } from 'lucide-react';
 
 export default function AdminEmailsPage() {
@@ -18,9 +16,13 @@ export default function AdminEmailsPage() {
 
   async function loadEmails() {
     setLoading(true);
-    const sb = getSupabase();
-    const { data } = await sb.from('launch_emails').select('*').order('created_at', { ascending: false });
-    setEmails(data || []);
+    try {
+      const res = await fetch('/api/admin/emails');
+      const json = await res.json();
+      setEmails(json.emails || []);
+    } catch (e) {
+      console.error('Failed to load emails:', e);
+    }
     setLoading(false);
   }
 
@@ -47,8 +49,7 @@ export default function AdminEmailsPage() {
 
   async function deleteEmail(id: string) {
     setDeleting(id);
-    const sb = getSupabase();
-    await sb.from('launch_emails').delete().eq('id', id);
+    await fetch(`/api/admin/emails?id=${id}`, { method: 'DELETE' });
     setEmails(emails.filter(e => e.id !== id));
     setDeleting(null);
   }
