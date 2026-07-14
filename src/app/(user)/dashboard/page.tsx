@@ -220,14 +220,18 @@ export default function DashboardPage() {
           {refError && <p className="text-[#FF5C7A] text-xs mb-3">{refError}</p>}
           <button
             onClick={async () => {
-              if (!refInput.trim() || !user) return;
+              if (!refInput.trim()) return;
               setRefSubmitting(true);
               setRefError('');
               try {
                 const res = await fetch('/api/set-sponsor', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userId: user.id, sponsorCode: refInput.trim().toUpperCase() }),
+                  body: JSON.stringify({
+                    wallet: address,
+                    userId: user?.id || null,
+                    sponsorCode: refInput.trim().toUpperCase(),
+                  }),
                 });
                 const json = await res.json();
                 if (res.ok && json.user) {
