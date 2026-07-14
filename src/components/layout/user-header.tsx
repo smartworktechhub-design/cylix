@@ -20,9 +20,7 @@ export function UserHeader() {
           {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center shadow-lg shadow-[rgba(0,229,255,0.15)]">
-            <span className="text-[#050816] font-black text-xs" style={{ fontFamily: "'Orbitron',sans-serif" }}>C</span>
-          </div>
+          <img src="/logo.png" alt="CYLIX" className="w-7 h-7 rounded-lg object-contain" />
           <span className="text-sm font-bold tracking-wider text-white" style={{ fontFamily: "'Orbitron',sans-serif" }}>CYLIX</span>
           <span className="hidden sm:inline text-[8px] text-[#00E5FF] tracking-[0.2em] uppercase font-medium">Matrix DeFi</span>
         </Link>
