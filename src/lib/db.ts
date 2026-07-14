@@ -1123,3 +1123,109 @@ export async function getRecentActivity(userId: string): Promise<any[]> {
 }
 
 export { sb as getDb };
+
+// ─── CAMPAIGN ───
+
+export async function getActiveCampaign(): Promise<any | null> {
+  try {
+    const { data } = await sb().from('campaigns')
+      .select('*').eq('is_enabled', true)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle();
+    if (!data) return null;
+    if (new Date(data.end_time) < new Date()) return null;
+    return data;
+  } catch { return null; }
+}
+
+export async function getAllCampaigns(): Promise<any[]> {
+  try {
+    const { data } = await sb().from('campaigns')
+      .select('*').order('created_at', { ascending: false });
+    return data || [];
+  } catch { return []; }
+}
+
+export async function createCampaign(name: string, description: string, durationHours: number, rewardPerReferral: number, minReferrals: number): Promise<any | null> {
+  const startTime = new Date().toISOString();
+  const endTime = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
+  try {
+    const { data, error } = await sb().from('campaigns').insert({
+      name, description, duration_hours: durationHours,
+      reward_per_referral: rewardPerReferral,
+      min_referrals_required: minReferrals,
+      start_time: startTime, end_time: endTime, is_enabled: true,
+    }).select().single();
+    if (error) throw error;
+    return data;
+  } catch { return null; }
+}
+
+export async function toggleCampaign(campaignId: string, enabled: boolean): Promise<boolean> {
+  try {
+    const { error } = await sb().from('campaigns').update({ is_enabled: enabled }).eq('id', campaignId);
+    return !error;
+  } catch { return false; }
+}
+
+export async function getCampaignRequests(campaignId?: string): Promise<any[]> {
+  try {
+    let query = sb().from('campaign_requests').select('*, users!campaign_requests_user_id_fkey(wallet, referral_code)');
+    if (campaignId) query = query.eq('campaign_id', campaignId);
+    const { data } = await query.order('created_at', { ascending: false });
+    return data || [];
+  } catch { return []; }
+}
+
+export async function submitCampaignRequest(campaignId: string, userId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { data: existing } = await sb().from('campaign_requests')
+      .select('id').eq('campaign_id', campaignId).eq('user_id', userId).eq('status', 'pending').maybeSingle();
+    if (existing) return { success: false, error: 'You already have a pending request' };
+
+    const { count: directCount } = await sb().from('users')
+      .select('*', { count: 'exact', head: true }).eq('sponsor_id', userId);
+
+    const { data: campaign } = await sb().from('campaigns').select('*').eq('id', campaignId).single();
+    if (!campaign) return { success: false, error: 'Campaign not found' };
+
+    const refs = directCount || 0;
+    if (refs < campaign.min_referrals_required) {
+      return { success: false, error: `Minimum ${campaign.min_referrals_required} verified referrals required. You have ${refs}.` };
+    }
+
+    const reward = refs * campaign.reward_per_referral;
+    const { error } = await sb().from('campaign_requests').insert({
+      campaign_id: campaignId, user_id: userId,
+      verified_refs: refs, reward_amount: reward, status: 'pending',
+    });
+    if (error) throw error;
+    return { success: true };
+  } catch (e: any) { return { success: false, error: e.message }; }
+}
+
+export async function updateCampaignRequest(requestId: string, status: string, adminNote?: string): Promise<boolean> {
+  try {
+    const update: any = { status, reviewed_at: new Date().toISOString() };
+    if (adminNote) update.admin_note = adminNote;
+    if (status === 'paid') update.paid_at = new Date().toISOString();
+    const { error } = await sb().from('campaign_requests').update(update).eq('id', requestId);
+    return !error;
+  } catch { return false; }
+}
+
+export async function getUserDirectCount(userId: string): Promise<number> {
+  try {
+    const { count } = await sb().from('users')
+      .select('*', { count: 'exact', head: true }).eq('sponsor_id', userId);
+    return count || 0;
+  } catch { return 0; }
+}
+
+export async function getUserCampaignRequest(campaignId: string, userId: string): Promise<any | null> {
+  try {
+    const { data } = await sb().from('campaign_requests')
+      .select('*').eq('campaign_id', campaignId).eq('user_id', userId)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle();
+    return data || null;
+  } catch { return null; }
+}

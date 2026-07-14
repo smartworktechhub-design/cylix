@@ -212,3 +212,28 @@ export interface AdminStats {
   poolFund: number;
   totalBlocks: number;
 }
+
+export interface Campaign {
+  id: string;
+  name: string;
+  description: string;
+  rewardPerReferral: number;
+  minReferralsRequired: number;
+  durationHours: number;
+  startTime: string;
+  endTime: string;
+  isEnabled: boolean;
+}
+
+export interface CampaignRequest {
+  id: string;
+  campaignId: string;
+  userId: string;
+  verifiedRefs: number;
+  rewardAmount: number;
+  status: 'pending' | 'approved' | 'rejected' | 'paid';
+  adminNote: string;
+  createdAt: string;
+  reviewedAt: string;
+  paidAt: string;
+}

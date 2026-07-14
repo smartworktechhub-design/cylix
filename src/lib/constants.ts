@@ -82,6 +82,8 @@ export const ADMIN_NAV_LINKS = [
   { href: '/admin/slots', label: 'Slots', icon: 'Package' },
   { href: '/admin/matrix', label: 'Matrix', icon: 'GitBranch' },
   { href: '/admin/earnings', label: 'Earnings', icon: 'TrendingUp' },
+  { href: '/admin/campaigns', label: 'Campaigns', icon: 'Megaphone' },
+  { href: '/admin/campaign-requests', label: 'Reward Requests', icon: 'Gift' },
   { href: '/admin/withdrawals', label: 'Withdrawals', icon: 'Wallet' },
   { href: '/admin/apex-pool', label: 'Apex Pool', icon: 'Trophy' },
   { href: '/admin/email-blast', label: 'Email Blast', icon: 'Mail' },

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
-import { getMatrixStats, getMatrixTree, setUserSponsor, getRecentJoins } from '@/lib/db';
+import { getMatrixStats, getMatrixTree, setUserSponsor, getRecentJoins, getActiveCampaign, getUserDirectCount, getUserCampaignRequest, submitCampaignRequest } from '@/lib/db';
 import { SLOTS, REBUY_MAX, APP_VERSION } from '@/lib/constants';
 import { useAccount } from 'wagmi';
 import Link from 'next/link';
@@ -63,11 +63,26 @@ export default function DashboardPage() {
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [matrixTreeNodes, setMatrixTreeNodes] = useState<any[]>([]);
   const [matrixView, setMatrixView] = useState<'explorer' | 'activity'>('explorer');
+  const [recentJoins, setRecentJoins] = useState<any[]>([]);
+  const [refInput, setRefInput] = useState('');
+  const [campaign, setCampaign] = useState<any>(null);
+  const [userDirectCount, setUserDirectCount] = useState(0);
+  const [userCampaignRequest, setUserCampaignRequest] = useState<any>(null);
+  const [campaignLoading, setCampaignLoading] = useState(false);
+  const [countdown, setCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [showBanner, setShowBanner] = useState(true);
 
   useEffect(() => {
     if (user) {
       getMatrixStats(user.id).then(setMatrixStats);
       getRecentJoins(5).then(setRecentJoins);
+      getActiveCampaign().then(c => {
+        setCampaign(c);
+        if (c && user) {
+          getUserDirectCount(user.id).then(setUserDirectCount);
+          getUserCampaignRequest(c.id, user.id).then(setUserCampaignRequest);
+        }
+      });
       getMatrixTree(user.id).then(tree => {
         if (!tree) return;
         const levels: any[] = [];
@@ -90,6 +105,22 @@ export default function DashboardPage() {
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!campaign) return;
+    function updateCountdown() {
+      const end = new Date(campaign.end_time).getTime();
+      const now = Date.now();
+      const diff = Math.max(0, end - now);
+      const hours = Math.floor(diff / 3600000);
+      const minutes = Math.floor((diff % 3600000) / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      setCountdown({ hours, minutes, seconds });
+    }
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [campaign]);
 
   const activeSlots = slots.filter(s => s.status === 'active');
   const completedSlots = slots.filter(s => s.status === 'completed');
@@ -155,9 +186,6 @@ export default function DashboardPage() {
       default: return null;
     }
   };
-
-  const [recentJoins, setRecentJoins] = useState<any[]>([]);
-  const [refInput, setRefInput] = useState('');
 
   if (loading) {
     return (
@@ -282,6 +310,102 @@ export default function DashboardPage() {
               className="flex items-center gap-1 px-2 py-1 rounded-md bg-[rgba(0,229,255,0.06)] hover:bg-[rgba(0,229,255,0.1)] transition-all text-[8px] text-[#00E5FF] font-semibold shrink-0">
               {refCopied ? <><CheckCheck size={10} /> Copied</> : <><Copy size={10} /> Copy Link</>}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ====== CAMPAIGN BANNER ====== */}
+      {campaign && showBanner && new Date(campaign.end_time) > new Date() && (
+        <div className="px-4 mb-3">
+          <div className="relative rounded-2xl overflow-hidden p-[1px]" style={{ background: 'linear-gradient(135deg, #00E5FF, #7B61FF)' }}>
+            <div className="rounded-2xl p-4 relative" style={{ background: 'linear-gradient(135deg, rgba(9,11,20,0.95), rgba(22,32,52,0.95))' }}>
+              <button onClick={() => setShowBanner(false)} className="absolute top-3 right-3 text-[#4A5568] hover:text-white text-xs">✕</button>
+
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-2 h-2 rounded-full bg-[#00FFB2] animate-pulse" />
+                <span className="text-[8px] font-bold text-[#00E5FF] uppercase tracking-wider">Live Campaign</span>
+              </div>
+
+              <h3 className="text-lg font-bold text-white font-heading mb-1" style={{ fontFamily: "'Orbitron',sans-serif" }}>{campaign.name}</h3>
+              <p className="text-[10px] text-[#94A3B8] mb-3">{campaign.description}</p>
+
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <div className="text-center">
+                  <p className="text-2xl font-bold font-mono text-white">{String(countdown.hours).padStart(2, '0')}</p>
+                  <p className="text-[7px] text-[#4A5568] uppercase">HRS</p>
+                </div>
+                <span className="text-lg text-[#4A5568] font-mono">:</span>
+                <div className="text-center">
+                  <p className="text-2xl font-bold font-mono text-white">{String(countdown.minutes).padStart(2, '0')}</p>
+                  <p className="text-[7px] text-[#4A5568] uppercase">MIN</p>
+                </div>
+                <span className="text-lg text-[#4A5568] font-mono">:</span>
+                <div className="text-center">
+                  <p className="text-2xl font-bold font-mono text-white">{String(countdown.seconds).padStart(2, '0')}</p>
+                  <p className="text-[7px] text-[#4A5568] uppercase">SEC</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="rounded-lg p-2 text-center" style={{ background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.1)' }}>
+                  <p className="text-[7px] text-[#4A5568] uppercase tracking-wider">Reward</p>
+                  <p className="text-sm font-bold font-mono text-[#00FFB2]">{formatCurrency(campaign.reward_per_referral)}/ref</p>
+                </div>
+                <div className="rounded-lg p-2 text-center" style={{ background: 'rgba(123,97,255,0.06)', border: '1px solid rgba(123,97,255,0.1)' }}>
+                  <p className="text-[7px] text-[#4A5568] uppercase tracking-wider">Minimum</p>
+                  <p className="text-sm font-bold font-mono text-[#7B61FF]">{campaign.min_referrals_required} refs</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mb-3 px-1">
+                <div>
+                  <p className="text-[7px] text-[#4A5568] uppercase tracking-wider">Your Directs</p>
+                  <p className="text-sm font-bold font-mono text-white">{userDirectCount}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[7px] text-[#4A5568] uppercase tracking-wider">Eligible For</p>
+                  <p className="text-sm font-bold font-mono text-[#00FFB2]">{formatCurrency(Math.max(0, userDirectCount) * campaign.reward_per_referral)}</p>
+                </div>
+              </div>
+
+              {userCampaignRequest ? (
+                <div className="rounded-lg p-2.5 text-center" style={{ background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.1)' }}>
+                  <p className="text-[9px] font-semibold" style={{
+                    color: userCampaignRequest.status === 'approved' ? '#00FFB2' :
+                           userCampaignRequest.status === 'rejected' ? '#FF5C7A' :
+                           userCampaignRequest.status === 'paid' ? '#00E5FF' : '#FFB800'
+                  }}>
+                    Request {userCampaignRequest.status === 'approved' ? '— Approved' :
+                            userCampaignRequest.status === 'rejected' ? '— Rejected' :
+                            userCampaignRequest.status === 'paid' ? '— Paid' : '— Pending Review'}
+                  </p>
+                </div>
+              ) : (
+                <button
+                  onClick={async () => {
+                    if (!user || !campaign) return;
+                    setCampaignLoading(true);
+                    const result = await submitCampaignRequest(campaign.id, user.id);
+                    if (result.success) {
+                      const updated = await getUserCampaignRequest(campaign.id, user.id);
+                      setUserCampaignRequest(updated);
+                    }
+                    setCampaignLoading(false);
+                  }}
+                  disabled={campaignLoading || userDirectCount < campaign.min_referrals_required}
+                  className={`w-full h-10 rounded-xl font-semibold text-sm transition-all ${
+                    campaignLoading || userDirectCount < campaign.min_referrals_required
+                      ? 'bg-[rgba(0,229,255,0.05)] text-[#4A5568] cursor-not-allowed'
+                      : 'bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] hover:opacity-90'
+                  }`}
+                >
+                  {campaignLoading ? 'Submitting...' :
+                   userDirectCount < campaign.min_referrals_required
+                     ? `Need ${campaign.min_referrals_required - userDirectCount} more referrals`
+                     : 'Request Reward'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
