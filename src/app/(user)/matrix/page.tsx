@@ -10,7 +10,7 @@ import { useInitData } from '@/lib/use-data';
 import { MATRIX_LEVELS } from '@/lib/constants';
 import {
   GitBranch, Users, Wallet, User, Loader2,
-  Network, ChevronRight, X
+  Network, ChevronRight, X, Lock, Unlock,
 } from 'lucide-react';
 
 const PLACEMENT_LABELS: Record<string, string> = {
@@ -64,8 +64,8 @@ export default function MatrixPage() {
 
   const typeCounts = { root: 0, left: 0, right: 0 };
   treeNodes.forEach(n => { typeCounts[n.type as keyof typeof typeCounts]++; });
-  const crosslineCount = Math.max(0, treeNodes.length - typeCounts.root - typeCounts.left - typeCounts.right);
-  const globalCount = Math.max(0, treeNodes.length - typeCounts.root - typeCounts.left - typeCounts.right - crosslineCount);
+  const directCount = typeCounts.left;
+  const isUnlocked = directCount >= 2;
 
   return (
     <div className="space-y-6">
@@ -96,7 +96,7 @@ export default function MatrixPage() {
                 <Users size={16} className="text-[#7B61FF]" />
               </div>
             </div>
-            <p className="text-2xl font-bold font-mono text-white">{treeNodes.length}<span className="text-sm text-[#4A5568]">/{typeCounts.left}</span></p>
+            <p className="text-2xl font-bold font-mono text-white">{treeNodes.length}<span className="text-sm text-[#4A5568]">/{directCount}</span></p>
             <p className="text-xs text-[#94A3B8] mt-1">Total / Direct referrals</p>
           </CardContent>
         </Card>
@@ -139,46 +139,93 @@ export default function MatrixPage() {
               </div>
               <div className="flex flex-wrap gap-3 mb-3">
                 <Badge variant="info" className="text-[10px]">
-                  <User size={10} className="mr-1" />{typeCounts.left} Direct
+                  <User size={10} className="mr-1" />{directCount} Direct
                 </Badge>
                 <Badge variant="warning" className="text-[10px]">
                   <ChevronRight size={10} className="mr-1" />{typeCounts.right} Spillover
                 </Badge>
-                <Badge variant="success" className="text-[10px]">{crosslineCount} Crossline</Badge>
-                <Badge className="text-[10px]">{globalCount} Global</Badge>
+                {!isUnlocked && (
+                  <Badge variant="danger" className="text-[10px]">
+                    <Lock size={10} className="mr-1" />L3-L11 Locked (Need 2 Directs)
+                  </Badge>
+                )}
+                {isUnlocked && (
+                  <Badge variant="success" className="text-[10px]">
+                    <Unlock size={10} className="mr-1" />L3-L11 Unlocked
+                  </Badge>
+                )}
               </div>
               <div className="space-y-1 max-h-[600px] overflow-y-auto">
-                {levels.filter(l => l.nodes.length > 0).map((level: any) => (
-                  <div key={level.level} className="p-2 rounded-lg bg-[rgba(11,16,32,0.3)]">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className={`text-[10px] font-bold font-mono ${level.level <= 2 ? 'text-[#00E5FF]' : 'text-[#7B61FF]'}`}>L{level.level}</span>
-                      <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.05)] to-transparent" />
-                      <span className="text-[9px] text-[#4A5568] font-mono">{level.nodes.length} members</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {level.nodes.map((node: any, i: number) => {
-                        const isSelf = level.level === 1 && i === 0;
-                        const isDirect = node.type === 'left';
-                        const isSpillover = node.type === 'right';
-                        const typeColor = isSelf ? '#00E5FF' : isDirect ? '#00E5FF' : isSpillover ? '#7B61FF' : '#7B61FF';
-                        const glow = isSelf ? '0 0 10px rgba(0,229,255,0.3)' : 'none';
-                        return (
-                          <button key={i} onClick={() => setSelectedNode(node)}
-                            className="transition-all duration-200 hover:scale-110">
-                            <div className="w-7 h-7 rounded-lg border-2 flex items-center justify-center cursor-pointer relative"
-                              style={{
-                                borderColor: typeColor,
-                                background: isSelf ? 'linear-gradient(135deg, #00E5FF, #7B61FF)' : `${typeColor}15`,
-                                boxShadow: glow,
-                              }}>
-                              {isSelf ? <User size={10} className="text-[#050816]" /> : null}
+                {levels.map((level: any) => {
+                  const isLevelLocked = level.level >= 3 && !isUnlocked;
+                  return (
+                    <div key={level.level}
+                      className={`p-2 rounded-lg transition-all duration-300 ${
+                        isLevelLocked
+                          ? 'bg-[rgba(11,16,32,0.2)] opacity-40'
+                          : 'bg-[rgba(11,16,32,0.3)]'
+                      }`}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        {isLevelLocked ? (
+                          <div className="w-5 h-5 rounded flex items-center justify-center bg-[rgba(74,85,104,0.15)]">
+                            <Lock size={10} className="text-[#4A5568]" />
+                          </div>
+                        ) : (
+                          <div className={`w-5 h-5 rounded flex items-center justify-center ${
+                            level.level <= 2 ? 'bg-[rgba(0,229,255,0.12)]' : 'bg-[rgba(0,255,178,0.12)]'
+                          }`}>
+                            <Unlock size={10} className={level.level <= 2 ? 'text-[#00E5FF]' : 'text-[#00FFB2]'} />
+                          </div>
+                        )}
+                        <span className={`text-[10px] font-bold font-mono ${
+                          isLevelLocked ? 'text-[#4A5568]' : level.level <= 2 ? 'text-[#00E5FF]' : 'text-[#00FFB2]'
+                        }`}>L{level.level}</span>
+                        <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.05)] to-transparent" />
+                        {isLevelLocked ? (
+                          <span className="text-[9px] text-[#4A5568] font-mono flex items-center gap-1">
+                            <Lock size={8} /> Locked
+                          </span>
+                        ) : (
+                          <span className="text-[9px] text-[#4A5568] font-mono">{level.nodes.length} members</span>
+                        )}
+                      </div>
+                      {isLevelLocked ? (
+                        <div className="flex items-center justify-center py-3 gap-2">
+                          <div className="relative">
+                            <Lock size={18} className="text-[#4A5568] opacity-40" />
+                            <div className="absolute inset-0 blur-sm">
+                              <Lock size={18} className="text-[#4A5568] opacity-20" />
                             </div>
-                          </button>
-                        );
-                      })}
+                          </div>
+                          <span className="text-[9px] text-[#4A5568]">Get {2 - directCount} more direct referral{2 - directCount !== 1 ? 's' : ''} to unlock</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {level.nodes.map((node: any, i: number) => {
+                            const isSelf = level.level === 1 && i === 0;
+                            const isDirect = node.type === 'left';
+                            const isSpillover = node.type === 'right';
+                            const typeColor = isSelf ? '#00E5FF' : isDirect ? '#00E5FF' : isSpillover ? '#7B61FF' : '#7B61FF';
+                            const glow = isSelf ? '0 0 10px rgba(0,229,255,0.3)' : 'none';
+                            return (
+                              <button key={i} onClick={() => setSelectedNode(node)}
+                                className="transition-all duration-200 hover:scale-110">
+                                <div className="w-7 h-7 rounded-lg border-2 flex items-center justify-center cursor-pointer relative"
+                                  style={{
+                                    borderColor: typeColor,
+                                    background: isSelf ? 'linear-gradient(135deg, #00E5FF, #7B61FF)' : `${typeColor}15`,
+                                    boxShadow: glow,
+                                  }}>
+                                  {isSelf ? <User size={10} className="text-[#050816]" /> : null}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -235,31 +282,54 @@ export default function MatrixPage() {
               const levelNodes = levels[config.level - 1]?.nodes || [];
               const dirCount = levelNodes.filter((n: any) => n.type === 'left').length;
               const spCount = levelNodes.filter((n: any) => n.type === 'right').length;
+              const isLevelLocked = config.level >= 3 && !isUnlocked;
               return (
-                <div key={config.level} className="flex items-center justify-between p-3 rounded-xl bg-[rgba(11,16,32,0.5)]">
+                <div key={config.level}
+                  className={`flex items-center justify-between p-3 rounded-xl transition-all duration-300 ${
+                    isLevelLocked ? 'bg-[rgba(11,16,32,0.2)] opacity-40' : 'bg-[rgba(11,16,32,0.5)]'
+                  }`}>
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${config.level <= 2 ? 'bg-[rgba(0,229,255,0.1)]' : 'bg-[rgba(123,97,255,0.1)]'}`}>
-                      <span className={`text-sm font-bold font-mono ${config.level <= 2 ? 'text-[#00E5FF]' : 'text-[#7B61FF]'}`}>{config.level}</span>
-                    </div>
+                    {isLevelLocked ? (
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[rgba(74,85,104,0.1)]">
+                        <Lock size={14} className="text-[#4A5568]" />
+                      </div>
+                    ) : (
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        config.level <= 2 ? 'bg-[rgba(0,229,255,0.1)]' : 'bg-[rgba(0,255,178,0.1)]'
+                      }`}>
+                        <span className={`text-sm font-bold font-mono ${
+                          config.level <= 2 ? 'text-[#00E5FF]' : 'text-[#00FFB2]'
+                        }`}>{config.level}</span>
+                      </div>
+                    )}
                     <div>
-                      <p className="text-sm text-white font-medium">Level {config.level}</p>
+                      <div className="flex items-center gap-2">
+                        <p className={`text-sm font-medium ${isLevelLocked ? 'text-[#4A5568]' : 'text-white'}`}>Level {config.level}</p>
+                        {isLevelLocked && <span className="text-[8px] text-[#4A5568]">(Locked)</span>}
+                      </div>
                       <div className="flex items-center gap-2 text-[10px]">
-                        <span className="text-[#00E5FF]">{config.percent}% commission</span>
+                        <span className={isLevelLocked ? 'text-[#4A5568]' : 'text-[#00E5FF]'}>{config.percent}% commission</span>
                         {config.directsRequired > 0 && (
                           <span className="text-[#4A5568]">{config.directsRequired} directs req</span>
                         )}
-                        {config.directsRequired === 0 && (
+                        {config.directsRequired === 0 && !isLevelLocked && (
                           <Badge variant="info" className="text-[8px] h-4">Free</Badge>
                         )}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-mono text-white">{formatNumber(levelNodes.length)}</p>
-                    <div className="flex items-center gap-2 text-[10px] justify-end">
-                      <span className="text-[#00E5FF]">{dirCount}D</span>
-                      <span className="text-[#7B61FF]">{spCount}S</span>
-                    </div>
+                    {isLevelLocked ? (
+                      <Lock size={14} className="text-[#4A5568] opacity-40" />
+                    ) : (
+                      <>
+                        <p className="text-sm font-mono text-white">{formatNumber(levelNodes.length)}</p>
+                        <div className="flex items-center gap-2 text-[10px] justify-end">
+                          <span className="text-[#00E5FF]">{dirCount}D</span>
+                          <span className="text-[#7B61FF]">{spCount}S</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               );
