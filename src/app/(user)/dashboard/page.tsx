@@ -301,48 +301,50 @@ export default function DashboardPage() {
       {/* ====== REFERRAL CARD ====== */}
       {refCode && (
         <div className="px-4 mb-4">
-          <div className="relative rounded-2xl overflow-hidden p-[1px]" style={{ background: 'linear-gradient(135deg, #00E5FF, #7B61FF)' }}>
-            <div className="rounded-2xl p-4 relative" style={{ background: 'linear-gradient(135deg, rgba(9,11,20,0.95), rgba(22,32,52,0.95))' }}>
-              <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-3xl" style={{ background: 'rgba(0,229,255,0.06)' }} />
-              <div className="absolute bottom-0 left-0 w-20 h-20 rounded-full blur-3xl" style={{ background: 'rgba(123,97,255,0.06)' }} />
+          <div className="relative rounded-2xl overflow-hidden p-[2px]" style={{ background: 'linear-gradient(135deg, #00E5FF, #7B61FF, #00E5FF)' }}>
+            <div className="rounded-2xl p-5 relative" style={{ background: 'linear-gradient(135deg, rgba(9,11,20,0.97), rgba(22,32,52,0.97))' }}>
+              <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl" style={{ background: 'rgba(0,229,255,0.08)' }} />
+              <div className="absolute bottom-0 left-0 w-28 h-28 rounded-full blur-3xl" style={{ background: 'rgba(123,97,255,0.08)' }} />
 
-              <div className="flex items-center gap-2 mb-3 relative z-10">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center shadow-lg shadow-[rgba(0,229,255,0.15)]">
-                  <LinkIcon size={14} className="text-[#050816]" />
+              <div className="flex items-center gap-3 mb-4 relative z-10">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center shadow-lg shadow-[rgba(0,229,255,0.2)]">
+                  <LinkIcon size={20} className="text-[#050816]" />
                 </div>
                 <div>
-                  <h3 className="text-[10px] font-bold text-white font-heading" style={{ fontFamily: "'Orbitron',sans-serif" }}>INVITE & EARN</h3>
-                  <p className="text-[7px] text-[#94A3B8]">Share your referral link with others</p>
+                  <h3 className="text-sm font-bold text-white" style={{ fontFamily: "'Orbitron',sans-serif" }}>INVITE & EARN</h3>
+                  <p className="text-xs text-[#94A3B8]">Share your referral link with others</p>
                 </div>
               </div>
 
-              <div className="rounded-xl p-3 mb-3 relative z-10" style={{ background: 'rgba(0,229,255,0.04)', border: '1px solid rgba(0,229,255,0.08)' }}>
-                <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Your Referral Code</p>
-                <div className="flex items-center justify-between">
-                  <code className="text-lg font-mono font-bold text-[#00E5FF] tracking-wider">{refCode}</code>
+              <div className="rounded-xl p-4 mb-3 relative z-10" style={{ background: 'rgba(0,229,255,0.05)', border: '1px solid rgba(0,229,255,0.12)' }}>
+                <p className="text-xs text-[#4A5568] uppercase tracking-wider mb-2">Your Referral Code</p>
+                <div className="flex items-center justify-between gap-3">
+                  <code className="text-2xl font-mono font-bold text-[#00E5FF] tracking-widest">{refCode}</code>
                   <button
                     onClick={() => { navigator.clipboard.writeText(refCode); setRefCopied(true); setTimeout(() => setRefCopied(false), 2000); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all" style={{ background: refCopied ? 'rgba(0,255,178,0.1)' : 'rgba(0,229,255,0.08)', border: `1px solid ${refCopied ? 'rgba(0,255,178,0.2)' : 'rgba(0,229,255,0.12)'}` }}>
-                    {refCopied ? <><CheckCheck size={12} className="text-[#00FFB2]" /><span className="text-[9px] font-bold text-[#00FFB2]">Copied!</span></> : <><Copy size={12} className="text-[#00E5FF]" /><span className="text-[9px] font-bold text-[#00E5FF]">Copy Code</span></>}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all shrink-0"
+                    style={{ background: refCopied ? 'rgba(0,255,178,0.15)' : 'rgba(0,229,255,0.1)', border: `1px solid ${refCopied ? 'rgba(0,255,178,0.3)' : 'rgba(0,229,255,0.2)'}` }}>
+                    {refCopied ? <><CheckCheck size={14} className="text-[#00FFB2]" /><span className="text-[#00FFB2]">Copied!</span></> : <><Copy size={14} className="text-[#00E5FF]" /><span className="text-[#00E5FF]">Copy</span></>}
                   </button>
                 </div>
               </div>
 
-              <div className="rounded-xl p-3 relative z-10" style={{ background: 'rgba(123,97,255,0.04)', border: '1px solid rgba(123,97,255,0.08)' }}>
-                <p className="text-[7px] text-[#4A5568] uppercase tracking-wider mb-1">Referral Link</p>
+              <div className="rounded-xl p-4 relative z-10" style={{ background: 'rgba(123,97,255,0.05)', border: '1px solid rgba(123,97,255,0.12)' }}>
+                <p className="text-xs text-[#4A5568] uppercase tracking-wider mb-2">Referral Link</p>
                 <div className="flex items-center gap-2">
-                  <code className="text-[9px] font-mono text-[#94A3B8] truncate flex-1">{`${location.origin}/?ref=${refCode}`}</code>
+                  <code className="text-xs font-mono text-[#94A3B8] truncate flex-1">{`${location.origin}/?ref=${refCode}`}</code>
                   <button
                     onClick={() => { navigator.clipboard.writeText(`${location.origin}/?ref=${refCode}`); setRefCopied(true); setTimeout(() => setRefCopied(false), 2000); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all" style={{ background: refCopied ? 'rgba(0,255,178,0.1)' : 'rgba(123,97,255,0.08)', border: `1px solid ${refCopied ? 'rgba(0,255,178,0.2)' : 'rgba(123,97,255,0.12)'}` }}>
-                    {refCopied ? <><CheckCheck size={12} className="text-[#00FFB2]" /><span className="text-[9px] font-bold text-[#00FFB2]">Copied!</span></> : <><Copy size={12} className="text-[#7B61FF]" /><span className="text-[9px] font-bold text-[#7B61FF]">Copy Link</span></>}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all shrink-0"
+                    style={{ background: refCopied ? 'rgba(0,255,178,0.15)' : 'rgba(123,97,255,0.1)', border: `1px solid ${refCopied ? 'rgba(0,255,178,0.3)' : 'rgba(123,97,255,0.2)'}` }}>
+                    {refCopied ? <><CheckCheck size={14} className="text-[#00FFB2]" /><span className="text-[#00FFB2]">Copied!</span></> : <><Copy size={14} className="text-[#7B61FF]" /><span className="text-[#7B61FF]">Copy</span></>}
                   </button>
                 </div>
               </div>
 
               <div className="mt-3 flex items-center gap-2 relative z-10">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#00FFB2] animate-pulse" />
-                <p className="text-[7px] text-[#94A3B8]">Each referral earns you bonus rewards in the matrix</p>
+                <div className="w-2 h-2 rounded-full bg-[#00FFB2] animate-pulse" />
+                <p className="text-xs text-[#94A3B8]">Each referral earns you bonus rewards in the matrix</p>
               </div>
             </div>
           </div>
