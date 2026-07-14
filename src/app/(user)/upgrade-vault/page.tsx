@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
 import { SLOTS } from '@/lib/constants';
@@ -16,6 +17,7 @@ import {
 import Link from 'next/link';
 
 export default function UpgradeVaultPage() {
+  useEffect(() => { document.title = 'Upgrade Vault — CYLIX'; }, []);
   const { vault, user, slots } = useAppStore();
   const { loading } = useInitData();
 

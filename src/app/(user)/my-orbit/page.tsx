@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
 import { SLOTS } from '@/lib/constants';
@@ -29,6 +30,7 @@ const SLOT_ICONS: Record<string, React.ReactNode> = {
 };
 
 export default function MyOrbitPage() {
+  useEffect(() => { document.title = 'My Orbit — CYLIX'; }, []);
   const { slots } = useAppStore();
   const { loading } = useInitData();
 

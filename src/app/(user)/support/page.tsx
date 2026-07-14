@@ -22,6 +22,7 @@ const priorityColors: Record<string, string> = {
 };
 
 export default function SupportPage() {
+  useEffect(() => { document.title = 'Support — CYLIX'; }, []);
   useInitData();
   const { user } = useAppStore();
   const [subject, setSubject] = useState('');

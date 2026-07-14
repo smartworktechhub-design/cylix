@@ -29,6 +29,7 @@ const tabs: { key: TabType; label: string }[] = [
 ];
 
 export default function AdminWithdrawals() {
+  useEffect(() => { document.title = 'Withdrawals — CYLIX'; }, []);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('pending');

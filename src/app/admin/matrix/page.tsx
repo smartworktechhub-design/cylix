@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,7 @@ const volumeDistribution = [
 ];
 
 export default function AdminMatrix() {
+  useEffect(() => { document.title = 'Matrix View — CYLIX'; }, []);
   const [userSearch, setUserSearch] = useState('');
 
   return (

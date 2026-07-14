@@ -23,6 +23,7 @@ interface SlotStats {
 }
 
 export default function AdminSlotsPage() {
+  useEffect(() => { document.title = 'Slots Overview — CYLIX'; }, []);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<SlotStats[]>([]);
   const [totalActive, setTotalActive] = useState(0);

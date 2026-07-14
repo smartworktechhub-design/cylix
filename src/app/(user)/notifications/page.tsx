@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,7 @@ const typeConfig: Record<string, { icon: typeof Bell; color: string; label: stri
 };
 
 export default function NotificationsPage() {
+  useEffect(() => { document.title = 'Notifications — CYLIX'; }, []);
   const { notifications, setNotifications, markNotificationRead } = useAppStore();
   useInitData();
   const [activeTab, setActiveTab] = useState('All');

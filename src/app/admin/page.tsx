@@ -26,6 +26,7 @@ interface StatCard {
 }
 
 export default function AdminDashboard() {
+  useEffect(() => { document.title = 'Admin Dashboard — CYLIX'; }, []);
   const [loading, setLoading] = useState(true);
   const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
   const [recentUsers, setRecentUsers] = useState<RecentUser[]>([]);

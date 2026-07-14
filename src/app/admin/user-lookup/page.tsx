@@ -16,6 +16,7 @@ import {
 import type { User as UserType, UserSlot } from '@/types';
 
 export default function UserLookupPage() {
+  useEffect(() => { document.title = 'User Lookup — CYLIX'; }, []);
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<UserType[]>([]);

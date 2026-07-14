@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ const auditLog = [
 ];
 
 export default function AdminEarnings() {
+  useEffect(() => { document.title = 'Earnings — CYLIX'; }, []);
   const [adjustmentUser, setAdjustmentUser] = useState('');
   const [adjustmentAmount, setAdjustmentAmount] = useState('');
   const [adjustmentType, setAdjustmentType] = useState('bonus');

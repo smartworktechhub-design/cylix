@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 
 export default function PlatformSettingsPage() {
+  useEffect(() => { document.title = 'Platform Settings — CYLIX'; }, []);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [stats, setStats] = useState({ users: 0, slots: 0, revenue: 0, withdrawals: 0 });

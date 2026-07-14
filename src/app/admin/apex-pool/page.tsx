@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ const distributionRecords = [
 ];
 
 export default function AdminApexPool() {
+  useEffect(() => { document.title = 'Apex Pool — CYLIX'; }, []);
   return (
     <div className="space-y-6">
       <div>

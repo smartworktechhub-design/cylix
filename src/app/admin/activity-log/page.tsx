@@ -37,6 +37,7 @@ const actionColors: Record<string, string> = {
 };
 
 export default function ActivityLogPage() {
+  useEffect(() => { document.title = 'Activity Log — CYLIX'; }, []);
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState<LogEntry[]>([]);
 

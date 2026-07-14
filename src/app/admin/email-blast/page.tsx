@@ -14,6 +14,7 @@ interface Subscriber {
 }
 
 export default function EmailBlastPage() {
+  useEffect(() => { document.title = 'Email Blast — CYLIX'; }, []);
   const [loading, setLoading] = useState(true);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [subject, setSubject] = useState('');

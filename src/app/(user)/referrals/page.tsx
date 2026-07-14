@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ const commissionTiers = MATRIX_LEVELS.map((ml) => ({
 }));
 
 export default function ReferralsPage() {
+  useEffect(() => { document.title = 'Referrals — CYLIX'; }, []);
   const { user, referrals: storeReferrals } = useAppStore();
   const { loading: initLoading } = useInitData();
   const { address } = useAccount();

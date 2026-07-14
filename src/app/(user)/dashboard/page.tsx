@@ -51,6 +51,7 @@ const PLACEMENT_LABELS: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+  useEffect(() => { document.title = 'Dashboard — CYLIX'; }, []);
   const { user, slots, earnings, vault, transactions, adminStats, needsReferral, setNeedsReferral } = useAppStore();
   const { loading, isBanned, banReason } = useInitData();
   const { isConnected, address } = useAccount();

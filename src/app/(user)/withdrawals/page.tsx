@@ -20,6 +20,7 @@ const maxWithdrawal = 5000;
 const processingTime = '24-48 hours';
 
 export default function WithdrawalsPage() {
+  useEffect(() => { document.title = 'Withdrawals — CYLIX'; }, []);
   const { user } = useAppStore();
   const { loading: initLoading } = useInitData();
   const [amount, setAmount] = useState('');

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 export default function ProfilePage() {
+  useEffect(() => { document.title = 'Profile — CYLIX'; }, []);
   const { user } = useAppStore();
   const { address } = useAccount();
   useInitData();

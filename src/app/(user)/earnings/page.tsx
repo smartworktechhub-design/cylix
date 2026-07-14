@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -19,6 +20,7 @@ const earningCards = [
 ];
 
 export default function EarningsPage() {
+  useEffect(() => { document.title = 'Earnings — CYLIX'; }, []);
   const { earnings } = useAppStore();
   const { loading: initLoading } = useInitData();
 

@@ -29,6 +29,7 @@ const SLOT_ICONS: Record<string, React.ReactNode> = {
 };
 
 export default function SlotsPage() {
+  useEffect(() => { document.title = 'Packages — CYLIX'; }, []);
   const { user, slots } = useAppStore();
   const { loading } = useInitData();
   const { address } = useAccount();

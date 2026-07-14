@@ -36,6 +36,7 @@ const typeConfig: Record<string, { icon: typeof ArrowUpRight; color: string; lab
 };
 
 export default function TransactionsPage() {
+  useEffect(() => { document.title = 'Transactions — CYLIX'; }, []);
   const { user } = useAppStore();
   const { address } = useAccount();
   const [activeTab, setActiveTab] = useState('All');

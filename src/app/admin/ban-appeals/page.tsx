@@ -23,6 +23,7 @@ interface Appeal {
 }
 
 export default function BanAppealsPage() {
+  useEffect(() => { document.title = 'Ban Appeals — CYLIX'; }, []);
   const [loading, setLoading] = useState(true);
   const [appeals, setAppeals] = useState<Appeal[]>([]);
   const [processing, setProcessing] = useState<string | null>(null);

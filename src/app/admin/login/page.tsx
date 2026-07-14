@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdminAuth } from '@/lib/admin-auth';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Lock, Mail, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 
 export default function AdminLoginPage() {
+  useEffect(() => { document.title = 'Admin Login — CYLIX'; }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);

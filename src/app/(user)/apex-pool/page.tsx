@@ -22,6 +22,7 @@ const shortenAddress = (addr?: string) => {
 };
 
 export default function ApexPoolPage() {
+  useEffect(() => { document.title = 'Apex Pool — CYLIX'; }, []);
   const [tab, setTab] = useState<PoolTab>('champions');
   const [champions, setChampions] = useState<ChampionsPoolState>({
     totalFund: 0, lastDistribution: '', nextDistributionTime: '',

@@ -18,6 +18,7 @@ const PLACEMENT_LABELS: Record<string, string> = {
 };
 
 export default function MatrixPage() {
+  useEffect(() => { document.title = 'Matrix — CYLIX'; }, []);
   const { user } = useAppStore();
   const { loading } = useInitData();
   const [treeNodes, setTreeNodes] = useState<any[]>([]);

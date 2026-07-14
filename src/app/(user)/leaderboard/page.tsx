@@ -27,6 +27,7 @@ function getRankDisplay(rank: number) {
 }
 
 export default function LeaderboardPage() {
+  useEffect(() => { document.title = 'Leaderboard — CYLIX'; }, []);
   const { user } = useAppStore();
   const [activeTab, setActiveTab] = useState('Top Earners');
   const [loading, setLoading] = useState(true);
