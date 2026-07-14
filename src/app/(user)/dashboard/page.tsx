@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
-import { getMatrixStats, getMatrixTree, setUserSponsor, getRecentJoins, getActiveCampaign, getUserDirectCount, getUserCampaignRequest, submitCampaignRequest } from '@/lib/db';
+import { getMatrixStats, getMatrixTree, getRecentJoins, getActiveCampaign, getUserDirectCount, getUserCampaignRequest, submitCampaignRequest } from '@/lib/db';
 import { SLOTS, REBUY_MAX, APP_VERSION } from '@/lib/constants';
 import { useAccount } from 'wagmi';
 import Link from 'next/link';
@@ -66,6 +66,8 @@ export default function DashboardPage() {
   const [matrixView, setMatrixView] = useState<'explorer' | 'activity'>('explorer');
   const [recentJoins, setRecentJoins] = useState<any[]>([]);
   const [refInput, setRefInput] = useState('');
+  const [refSubmitting, setRefSubmitting] = useState(false);
+  const [refError, setRefError] = useState('');
   const [campaign, setCampaign] = useState<any>(null);
   const [userDirectCount, setUserDirectCount] = useState(0);
   const [userCampaignRequest, setUserCampaignRequest] = useState<any>(null);
@@ -208,24 +210,40 @@ export default function DashboardPage() {
             <Users size={20} className="text-[#00E5FF]" />
           </div>
           <h2 className="text-lg font-bold text-white font-heading mb-2">Referral Code Required</h2>
-          <p className="text-xs text-[#94A3B8] mb-4">Enter your sponsor's referral code to continue</p>
+          <p className="text-xs text-[#94A3B8] mb-4">Enter your sponsor&apos;s referral code to continue</p>
           <input
             value={refInput}
-            onChange={(e) => setRefInput(e.target.value.toUpperCase())}
+            onChange={(e) => { setRefInput(e.target.value.toUpperCase()); setRefError(''); }}
             placeholder="Enter referral code"
-            className="w-full h-11 px-4 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#94A3B8]/50 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)] mb-3"
+            className="w-full h-11 px-4 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#94A3B8]/50 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)] mb-2"
           />
+          {refError && <p className="text-[#FF5C7A] text-xs mb-3">{refError}</p>}
           <button
             onClick={async () => {
               if (!refInput.trim() || !user) return;
-              const updated = await setUserSponsor(user.id, refInput.trim().toUpperCase());
-              if (updated) {
-                useAppStore.getState().setUser(updated as any);
-                setNeedsReferral(false);
+              setRefSubmitting(true);
+              setRefError('');
+              try {
+                const res = await fetch('/api/set-sponsor', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userId: user.id, sponsorCode: refInput.trim().toUpperCase() }),
+                });
+                const json = await res.json();
+                if (res.ok && json.user) {
+                  useAppStore.getState().setUser(json.user as any);
+                  setNeedsReferral(false);
+                } else {
+                  setRefError(json.error || 'Invalid referral code. Please check and try again.');
+                }
+              } catch (e) {
+                setRefError('Something went wrong. Please try again.');
               }
+              setRefSubmitting(false);
             }}
-            className="w-full h-11 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] font-semibold text-sm hover:opacity-90 transition-all">
-            Submit
+            disabled={refSubmitting || !refInput.trim()}
+            className="w-full h-11 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+            {refSubmitting ? <><Loader2 size={14} className="animate-spin" /> Submitting...</> : 'Submit'}
           </button>
         </div>
       </div>
