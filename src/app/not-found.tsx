@@ -43,15 +43,21 @@ export default function NotFound() {
       </div>
 
       <div className="relative z-10 flex flex-col items-center text-center max-w-lg mx-auto">
+        {/* 404 Image */}
+        <div className="mb-6">
+          <img src="/404_1.png" alt="404" className="w-48 h-48 md:w-64 md:h-64 object-contain drop-shadow-[0_0_30px_rgba(0,229,255,0.15)]"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        </div>
+
         {/* Logo */}
         <div className="mb-5">
-          <img src="/logo.png" alt="CYLIX" className="w-16 h-16 md:w-20 md:h-20 object-contain"
+          <img src="/logo-sm.png" alt="CYLIX" className="w-12 h-12 md:w-14 md:h-14 object-contain"
             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
-          <div className="hidden w-[72px] h-[72px] mx-auto rounded-[18px] border-[1.5px] border-[rgba(0,229,255,0.1)] flex items-center justify-center"
+          <div className="hidden w-[52px] h-[52px] mx-auto rounded-[14px] border-[1.5px] border-[rgba(0,229,255,0.1)] flex items-center justify-center"
             style={{
               background: 'linear-gradient(135deg, rgba(0,229,255,0.06), rgba(123,97,255,0.06))',
               fontFamily: "'Orbitron',sans-serif",
-              fontSize: '26px',
+              fontSize: '22px',
               fontWeight: 900,
               backgroundImage: 'linear-gradient(135deg, #00E5FF, #7B61FF)',
               WebkitBackgroundClip: 'text',
@@ -60,19 +66,6 @@ export default function NotFound() {
             C
           </div>
         </div>
-
-        {/* 404 */}
-        <h1 className="text-[120px] md:text-[160px] font-black leading-none"
-          style={{
-            fontFamily: "'Orbitron',sans-serif",
-            background: 'linear-gradient(135deg, #00CFFF, #00F5FF, #7B2DFF)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            textShadow: 'none',
-          }}>
-          404
-        </h1>
 
         <p className="text-white text-lg md:text-xl font-semibold mb-2"
           style={{ fontFamily: "'Space Grotesk',sans-serif" }}>
