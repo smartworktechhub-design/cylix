@@ -66,7 +66,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user) {
       getMatrixStats(user.id).then(setMatrixStats);
-      getRecentJoins(10).then(setRecentJoins);
+      getRecentJoins(5).then(setRecentJoins);
       getMatrixTree(user.id).then(tree => {
         if (!tree) return;
         const levels: any[] = [];
