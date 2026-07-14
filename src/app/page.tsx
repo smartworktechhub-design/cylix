@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-const LAUNCH = new Date('2026-07-14T17:45:00+05:30');
+const LAUNCH = new Date('2026-07-15T13:45:00+05:30');
 const LANGS: { text: string; lang: string }[] = [
   { text: 'Launching Soon', lang: 'English' },
   { text: 'जल्द आ रहा है', lang: 'Hindi' },
