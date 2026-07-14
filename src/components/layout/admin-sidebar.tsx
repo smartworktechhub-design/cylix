@@ -51,7 +51,7 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
       >
         <div className="flex items-center justify-between px-6 h-16 border-b border-[rgba(123,97,255,0.08)]">
           <Link href="/admin" className="flex items-center gap-2">
-            <img src="/logo.png" alt="CYLIX" className="w-8 h-8 rounded-lg object-contain" />
+            <img src="/logo.png" alt="CYLIX" className="w-10 h-10 rounded-lg object-contain" />
             <span className="text-lg font-bold font-heading tracking-wider text-white">CYLIX</span>
           </Link>
           <button onClick={onClose} className="lg:hidden text-[#94A3B8] hover:text-white">
