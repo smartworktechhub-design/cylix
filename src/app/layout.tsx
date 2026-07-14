@@ -20,8 +20,8 @@ const rajdhani = Rajdhani({
 });
 
 export const metadata: Metadata = {
-  title: 'CYLIX - Premium DeFi Platform',
-  description: 'CYLIX MATRIX DeFi — Premium Web3 investment platform on BNB Smart Chain',
+  title: 'CYLIX MATRIX DeFi',
+  description: 'CYLIX MATRIX DeFi — BNB Smart Chain',
   icons: {
     icon: [
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },

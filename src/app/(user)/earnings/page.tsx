@@ -7,14 +7,13 @@ import { formatCurrency } from '@/lib/utils';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
 import {
-  TrendingUp, GitBranch, Gift, Wallet, Activity,
+  TrendingUp, GitBranch, Wallet, Activity,
   Loader2, Rocket
 } from 'lucide-react';
 
 const earningCards = [
   { key: 'daily' as const, label: 'Daily Earnings', icon: TrendingUp, color: '#00E5FF', desc: 'Slot daily yield payouts' },
   { key: 'matrix' as const, label: 'Matrix Commissions', icon: GitBranch, color: '#7B61FF', desc: '11-level unilevel commissions' },
-  { key: 'referral' as const, label: 'Referral Bonuses', icon: Gift, color: '#FF5C7A', desc: 'Direct referral rewards' },
   { key: 'pool' as const, label: 'Apex Pool', icon: Activity, color: '#00FFB2', desc: 'Pool distribution earnings' },
   { key: 'ascension' as const, label: 'Ascension Credits', icon: Rocket, color: '#FFB800', desc: '50% daily yield to vault' },
 ];
@@ -32,7 +31,7 @@ export default function EarningsPage() {
   }
 
   const maxEarning = Math.max(
-    earnings.daily, earnings.matrix, earnings.referral,
+    earnings.daily, earnings.matrix,
     earnings.pool, earnings.ascension, 1
   );
 
