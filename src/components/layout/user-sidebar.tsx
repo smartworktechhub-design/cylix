@@ -48,7 +48,7 @@ export function UserSidebar() {
       >
         <div className="flex items-center justify-between px-6 h-16 border-b border-[rgba(0,229,255,0.08)]">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <img src="/logo-wide.png" alt="CYLIX" className="h-9 w-auto object-contain" />
+            <img src="/logo-square.png" alt="CYLIX" className="w-9 h-9 rounded-lg object-cover cursor-pointer" />
             <span className="text-lg font-bold font-heading tracking-wider text-white">CYLIX</span>
           </Link>
           <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-[#94A3B8] hover:text-white">

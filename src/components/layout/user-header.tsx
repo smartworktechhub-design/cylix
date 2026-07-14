@@ -20,7 +20,7 @@ export function UserHeader() {
           {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
         <Link href="/dashboard" className="flex items-center gap-2">
-          <img src="/logo-wide.png" alt="CYLIX" className="h-8 w-auto object-contain" />
+          <img src="/logo-square.png" alt="CYLIX" className="w-8 h-8 rounded-lg object-cover cursor-pointer" />
           <span className="text-sm font-bold tracking-wider text-white" style={{ fontFamily: "'Orbitron',sans-serif" }}>CYLIX</span>
           <span className="hidden sm:inline text-[8px] text-[#00E5FF] tracking-[0.2em] uppercase font-medium">Matrix DeFi</span>
         </Link>
