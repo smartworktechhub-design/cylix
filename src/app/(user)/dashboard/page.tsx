@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { BanScreen } from '@/components/ui/ban-screen';
 import { useDisconnect } from 'wagmi';
+import { PublicFooter } from '@/components/layout/public-footer';
 
 const cn = (...classes: (string | boolean | undefined | null)[]) => classes.filter(Boolean).join(' ');
 
@@ -809,6 +810,11 @@ export default function DashboardPage() {
             );
           })}
         </div>
+      </div>
+
+      {/* ====== FOOTER ====== */}
+      <div className="px-4 pt-6 pb-20 border-t border-[rgba(0,229,255,0.06)] mt-4">
+        <PublicFooter />
       </div>
     </div>
   );

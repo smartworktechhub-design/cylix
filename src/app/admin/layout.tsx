@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useAdminAuth, AdminAuthProvider } from '@/lib/admin-auth';
 import { AdminSidebar } from '@/components/layout/admin-sidebar';
 import { AdminHeader } from '@/components/layout/admin-header';
-import { PublicFooter } from '@/components/layout/public-footer';
 import { useRouter, usePathname } from 'next/navigation';
 import { Loader2, Lock } from 'lucide-react';
 
@@ -53,12 +52,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
       <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminHeader title={`Admin${admin?.name ? ` — ${admin.name}` : ''}`} onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-          {children}
-          <div className="mt-8 pt-6 border-t border-[rgba(123,97,255,0.06)]">
-            <PublicFooter />
-          </div>
-        </main>
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
       </div>
     </div>
   );
