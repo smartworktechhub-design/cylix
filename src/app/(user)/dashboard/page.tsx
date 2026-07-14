@@ -319,7 +319,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between gap-3">
                   <code className="text-xl font-mono font-bold text-[#00E5FF] tracking-widest">{refCode}</code>
                   <button
-                    onClick={() => { navigator.clipboard.writeText(refCode); setRefCopied(true); setTimeout(() => setRefCopied(false), 2000); }}
+                    onClick={() => { navigator.clipboard.writeText(`${location.origin}/?ref=${refCode}`); setRefCopied(true); setTimeout(() => setRefCopied(false), 2000); }}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg font-semibold text-xs transition-all shrink-0"
                     style={{ background: refCopied ? 'rgba(0,255,178,0.15)' : 'rgba(0,229,255,0.1)', border: `1px solid ${refCopied ? 'rgba(0,255,178,0.3)' : 'rgba(0,229,255,0.2)'}` }}>
                     {refCopied ? <><CheckCheck size={12} className="text-[#00FFB2]" /><span className="text-[#00FFB2]">Copied!</span></> : <><Copy size={12} className="text-[#00E5FF]" /><span className="text-[#00E5FF]">Copy</span></>}
