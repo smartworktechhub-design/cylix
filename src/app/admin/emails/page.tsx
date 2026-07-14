@@ -19,7 +19,7 @@ export default function AdminEmailsPage() {
   async function loadEmails() {
     setLoading(true);
     const sb = getSupabase();
-    const { data } = await sb.from('email_subscribers').select('*').order('created_at', { ascending: false });
+    const { data } = await sb.from('launch_emails').select('*').order('created_at', { ascending: false });
     setEmails(data || []);
     setLoading(false);
   }
@@ -48,7 +48,7 @@ export default function AdminEmailsPage() {
   async function deleteEmail(id: string) {
     setDeleting(id);
     const sb = getSupabase();
-    await sb.from('email_subscribers').delete().eq('id', id);
+    await sb.from('launch_emails').delete().eq('id', id);
     setEmails(emails.filter(e => e.id !== id));
     setDeleting(null);
   }
