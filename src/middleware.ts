@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+const PUBLIC_ROUTES = [
+  '/about', '/privacy-policy', '/terms', '/risk-disclosure', '/disclaimer',
+];
+
 const USER_ROUTES = [
   '/dashboard', '/slots', '/earnings', '/transactions', '/referrals',
   '/withdrawals', '/leaderboard', '/matrix', '/my-orbit', '/notifications',
@@ -38,9 +42,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // === MAIN DOMAIN (cylixdefi.live) → Coming Soon only ===
+  // === MAIN DOMAIN (cylixdefi.live) → Coming Soon + Public Pages ===
   if (host === 'cylixdefi.live' || host === 'www.cylixdefi.live') {
-    if (pathname === '/') {
+    if (pathname === '/' || PUBLIC_ROUTES.some(r => pathname === r)) {
       return NextResponse.next();
     }
     return NextResponse.redirect(new URL('/', request.url));
