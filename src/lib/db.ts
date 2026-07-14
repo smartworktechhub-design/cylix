@@ -1182,13 +1182,19 @@ export async function submitCampaignRequest(campaignId: string, userId: string):
       .select('id').eq('campaign_id', campaignId).eq('user_id', userId).eq('status', 'pending').maybeSingle();
     if (existing) return { success: false, error: 'You already have a pending request' };
 
-    const { count: directCount } = await sb().from('users')
-      .select('*', { count: 'exact', head: true }).eq('sponsor_id', userId).eq('is_active', true);
-
     const { data: campaign } = await sb().from('campaigns').select('*').eq('id', campaignId).single();
     if (!campaign) return { success: false, error: 'Campaign not found' };
 
-    const refs = directCount || 0;
+    // Count direct referrals who have at least 1 active slot
+    const { data: activeRefs } = await sb().from('users')
+      .select('id').eq('sponsor_id', userId);
+    if (!activeRefs || activeRefs.length === 0) return { success: false, error: 'No referrals found' };
+
+    const refIds = activeRefs.map((r: any) => r.id);
+    const { data: slotsData } = await sb().from('user_slots')
+      .select('user_id').in('user_id', refIds).eq('status', 'active');
+    const uniqueActiveRefUsers = new Set((slotsData || []).map((s: any) => s.user_id));
+    const refs = uniqueActiveRefUsers.size;
     if (refs < campaign.min_referrals_required) {
       return { success: false, error: `Minimum ${campaign.min_referrals_required} verified referrals required. You have ${refs}.` };
     }
@@ -1215,9 +1221,14 @@ export async function updateCampaignRequest(requestId: string, status: string, a
 
 export async function getUserDirectCount(userId: string): Promise<number> {
   try {
-    const { count } = await sb().from('users')
-      .select('*', { count: 'exact', head: true }).eq('sponsor_id', userId).eq('is_active', true);
-    return count || 0;
+    const { data: refs } = await sb().from('users')
+      .select('id').eq('sponsor_id', userId);
+    if (!refs || refs.length === 0) return 0;
+    const refIds = refs.map((r: any) => r.id);
+    const { data: slotsData } = await sb().from('user_slots')
+      .select('user_id').in('user_id', refIds).eq('status', 'active');
+    const unique = new Set((slotsData || []).map((s: any) => s.user_id));
+    return unique.size;
   } catch { return 0; }
 }
 
