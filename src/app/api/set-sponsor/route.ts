@@ -85,6 +85,8 @@ async function addToMatrix(sb: any, sponsorId: string, userId: string) {
     .from('matrix_tree').select('id, parent_id, side, level')
     .eq('owner_id', sponsorId).order('level').order('position');
 
+  let placed = false;
+
   if (allNodes && allNodes.length > 0) {
     for (const node of allNodes) {
       if (node.level >= 11) continue;
@@ -94,24 +96,41 @@ async function addToMatrix(sb: any, sponsorId: string, userId: string) {
         await sb.from('matrix_tree').insert({
           user_id: userId, owner_id: sponsorId, parent_id: node.id, side: 'left', level: node.level + 1, position: allNodes.length,
         });
-        return;
+        placed = true;
+        break;
       }
       if (!hasRight) {
         await sb.from('matrix_tree').insert({
           user_id: userId, owner_id: sponsorId, parent_id: node.id, side: 'right', level: node.level + 1, position: allNodes.length,
         });
-        return;
+        placed = true;
+        break;
       }
     }
-    // Fallback
-    const root = allNodes.find((n: any) => n.level === 1);
-    if (root) {
-      const hasLeft = allNodes.some((n: any) => n.parent_id === root.id && n.side === 'left');
-      await sb.from('matrix_tree').insert({
-        user_id: userId, owner_id: sponsorId, parent_id: root.id,
-        side: hasLeft ? 'right' : 'left', level: 2, position: allNodes.length,
-      });
+    if (!placed) {
+      const root = allNodes.find((n: any) => n.level === 1);
+      if (root) {
+        const hasLeft = allNodes.some((n: any) => n.parent_id === root.id && n.side === 'left');
+        await sb.from('matrix_tree').insert({
+          user_id: userId, owner_id: sponsorId, parent_id: root.id,
+          side: hasLeft ? 'right' : 'left', level: 2, position: allNodes.length,
+        });
+      }
     }
+  }
+
+  // Populate matrix_11 for commission tracking
+  const visited = new Set<string>();
+  let curSponsorId: string | null = sponsorId;
+  let lvl = 1;
+  while (curSponsorId && lvl <= 11 && !visited.has(curSponsorId)) {
+    visited.add(curSponsorId);
+    await sb.from('matrix_11').insert({
+      user_id: userId, sponsor_id: curSponsorId, level: lvl,
+    });
+    const { data: uplineRow } = await sb.from('users').select('sponsor_id').eq('id', curSponsorId).single() as { data: { sponsor_id: string | null } | null };
+    curSponsorId = uplineRow?.sponsor_id || null;
+    lvl++;
   }
 }
 
