@@ -1183,7 +1183,7 @@ export async function submitCampaignRequest(campaignId: string, userId: string):
     if (existing) return { success: false, error: 'You already have a pending request' };
 
     const { count: directCount } = await sb().from('users')
-      .select('*', { count: 'exact', head: true }).eq('sponsor_id', userId);
+      .select('*', { count: 'exact', head: true }).eq('sponsor_id', userId).eq('is_active', true);
 
     const { data: campaign } = await sb().from('campaigns').select('*').eq('id', campaignId).single();
     if (!campaign) return { success: false, error: 'Campaign not found' };
@@ -1216,7 +1216,7 @@ export async function updateCampaignRequest(requestId: string, status: string, a
 export async function getUserDirectCount(userId: string): Promise<number> {
   try {
     const { count } = await sb().from('users')
-      .select('*', { count: 'exact', head: true }).eq('sponsor_id', userId);
+      .select('*', { count: 'exact', head: true }).eq('sponsor_id', userId).eq('is_active', true);
     return count || 0;
   } catch { return 0; }
 }
