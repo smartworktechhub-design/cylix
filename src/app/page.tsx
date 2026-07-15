@@ -1,128 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-
-const LAUNCH = new Date('2026-07-15T21:17:00+05:30');
-const LANGS: { text: string; lang: string }[] = [
-  { text: 'Launching Soon', lang: 'English' },
-  { text: 'जल्द आ रहा है', lang: 'Hindi' },
-  { text: 'Próximamente', lang: 'Spanish' },
-  { text: 'Bientôt', lang: 'French' },
-  { text: 'Bald verfügbar', lang: 'German' },
-  { text: '間もなく開始', lang: 'Japanese' },
-  { text: '即将推出', lang: 'Chinese' },
-  { text: 'قريباً', lang: 'Arabic' },
-  { text: 'Скоро запуск', lang: 'Russian' },
-  { text: 'Em Breve', lang: 'Portuguese' },
-];
-
-function calc() {
-  const d = LAUNCH.getTime() - Date.now();
-  if (d <= 0) return { d: 0, h: 0, m: 0, s: 0 };
-  return {
-    d: Math.floor(d / 86400000),
-    h: Math.floor((d / 3600000) % 24),
-    m: Math.floor((d / 60000) % 60),
-    s: Math.floor((d / 1000) % 60),
-  };
-}
-
-function FlipDigit({ value, color }: { value: number; color: string }) {
-  const [prev, setPrev] = useState(value);
-  const [flip, setFlip] = useState(false);
-
-  useEffect(() => {
-    if (value !== prev) {
-      setFlip(true);
-      const t = setTimeout(() => { setPrev(value); setFlip(false); }, 300);
-      return () => clearTimeout(t);
-    }
-  }, [value, prev]);
-
-  const display = String(value).padStart(2, '0');
-
-  return (
-    <div className="relative w-[68px] h-[80px] md:w-[80px] md:h-[96px] rounded-2xl overflow-hidden"
-      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', backdropFilter: 'blur(8px)' }}>
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none"
-        style={{ background: 'rgba(255,255,255,0.01)' }} />
-      <span className="relative z-10 flex items-center justify-center h-full text-3xl md:text-4xl font-bold transition-transform duration-300"
-        style={{
-          fontFamily: "'Rajdhani',sans-serif", color, textShadow: `0 0 20px ${color}20`,
-          transform: flip ? 'rotateX(90deg)' : 'rotateX(0deg)',
-          transformStyle: 'preserve-3d',
-        }}>
-        {display}
-      </span>
-      <div className="absolute bottom-0 left-0 right-0 h-[1px]"
-        style={{ background: 'rgba(255,255,255,0.03)' }} />
-    </div>
-  );
-}
+import { useState, useEffect } from 'react';
 
 export default function ComingSoonPage() {
-  const [t, setT] = useState(calc());
   const [mounted, setMounted] = useState(false);
-  const [displayText, setDisplayText] = useState('');
-  const [currentLang, setCurrentLang] = useState('English');
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const [toastColor, setToastColor] = useState('#00FFB2');
-  const [showCursor, setShowCursor] = useState(true);
-
-  const liRef = useRef(0);
-  const charIdxRef = useRef(0);
-  const isDeletingRef = useRef(false);
-  const timerRef = useRef<number>(0);
 
   useEffect(() => { setMounted(true); }, []);
-  useEffect(() => { const iv = setInterval(() => setT(calc()), 1000); return () => clearInterval(iv); }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-
-    function tick() {
-      const cur = LANGS[liRef.current];
-      if (!isDeletingRef.current) {
-        if (charIdxRef.current < cur.text.length) {
-          charIdxRef.current++;
-          setDisplayText(cur.text.slice(0, charIdxRef.current));
-          setCurrentLang(cur.lang);
-          timerRef.current = window.setTimeout(tick, 50 + Math.random() * 30);
-        } else {
-          isDeletingRef.current = true;
-          timerRef.current = window.setTimeout(tick, 2000);
-        }
-      } else {
-        if (charIdxRef.current > 0) {
-          charIdxRef.current--;
-          setDisplayText(cur.text.slice(0, charIdxRef.current));
-          timerRef.current = window.setTimeout(tick, 25);
-        } else {
-          isDeletingRef.current = false;
-          liRef.current = (liRef.current + 1) % LANGS.length;
-          charIdxRef.current = 0;
-          timerRef.current = window.setTimeout(tick, 150);
-        }
-      }
-    }
-
-    setDisplayText('');
-    setCurrentLang(LANGS[0].lang);
-    charIdxRef.current = 0;
-    isDeletingRef.current = false;
-    liRef.current = 0;
-    timerRef.current = window.setTimeout(tick, 500);
-
-    return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
-  }, [mounted]);
-
-  useEffect(() => {
-    const iv = setInterval(() => setShowCursor(c => !c), 530);
-    return () => clearInterval(iv);
-  }, []);
 
   if (!mounted) {
     return (
@@ -196,21 +84,12 @@ export default function ComingSoonPage() {
           }}>
           <span className="text-lg md:text-xl font-semibold text-white min-h-[28px]"
             style={{ fontFamily: "'Space Grotesk',sans-serif" }}>
-            {displayText}
-            <span className="text-[#00CFFF] ml-0.5" style={{ opacity: showCursor ? 1 : 0, transition: 'opacity 0.1s' }}>|</span>
+            Login Start at 9:45 AM IST
           </span>
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full"
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.04)' }}>
-            <div className="w-1.5 h-1.5 rounded-full bg-[#00CFFF] animate-pulse" />
-            <span className="text-[9px] tracking-[0.2em] text-white/30 font-semibold uppercase"
-              style={{ fontFamily: "'Rajdhani',sans-serif", transition: 'all 0.3s' }}>
-              {currentLang}
-            </span>
-          </div>
         </div>
 
         {/* Autoflow Badge */}
-        <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full"
+        <div className="inline-flex items-center gap-2 mb-2 px-4 py-1.5 rounded-full"
           style={{ background: 'rgba(123,45,255,0.06)', border: '1px solid rgba(123,45,255,0.12)' }}>
           <div className="w-1.5 h-1.5 rounded-full bg-[#7B2DFF] animate-pulse" />
           <span className="text-[10px] tracking-[0.2em] text-[#7B2DFF] font-bold uppercase"
@@ -219,17 +98,38 @@ export default function ComingSoonPage() {
           </span>
         </div>
 
-        {/* Timer */}
-        <div className="flex gap-3 md:gap-5 mb-8">
-          {units.map(u => (
-            <div key={u.label} className="flex flex-col items-center gap-2">
-              <FlipDigit value={u.value} color={u.color} />
-              <span className="text-[9px] md:text-[10px] tracking-[0.2em] text-white/30 font-semibold uppercase"
-                style={{ fontFamily: "'Rajdhani',sans-serif" }}>
-                {u.label}
-              </span>
-            </div>
-          ))}
+        {/* Login Start - Big Highlight */}
+        <div className="inline-flex items-center gap-3 mb-6 px-6 py-3 rounded-2xl"
+          style={{ background: 'linear-gradient(135deg, rgba(0,207,255,0.1) 0%, rgba(123,45,255,0.1) 100%)', border: '1px solid rgba(0,207,255,0.25)' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          <span className="text-lg md:text-xl font-black text-[#FFD700]" style={{ fontFamily: "'Orbitron',sans-serif" }}>
+            Login Start at 9:45 AM IST
+          </span>
+        </div>
+
+        {/* Login Start Time */}
+        <div className="flex flex-col items-center gap-3 mb-8">
+          <div className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl"
+            style={{ background: 'linear-gradient(135deg, rgba(0,207,255,0.08) 0%, rgba(123,45,255,0.08) 100%)', border: '1px solid rgba(0,207,255,0.2)' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00CFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span className="text-xl md:text-2xl font-bold text-[#00CFFF]" style={{ fontFamily: "'Orbitron',sans-serif" }}>
+              Login Start at 9:45 AM IST
+            </span>
+          </div>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full"
+            style={{ background: 'rgba(0,207,255,0.05)', border: '1px solid rgba(0,207,255,0.12)' }}>
+            <div className="w-1.5 h-1.5 rounded-full bg-[#00CFFF] animate-pulse" />
+            <span className="text-[10px] tracking-[0.15em] text-[#00CFFF] font-semibold uppercase"
+              style={{ fontFamily: "'Rajdhani',sans-serif" }}>
+              Login Start at 9:45 AM IST
+            </span>
+          </div>
         </div>
 
 
@@ -284,9 +184,10 @@ export default function ComingSoonPage() {
         </div>
 
         {/* Tagline Text */}
-        <p className="text-[11px] text-white/30 leading-relaxed max-w-sm mt-6 text-center"
+        <p className="text-[11px] text-white/30 leading-relaxed max-w-sm mt-2 text-center"
           style={{ fontFamily: "'Inter',sans-serif" }}>
-          The countdown has begun. Built for Automation, Transparency, and Community-Driven Growth.<br />
+          Login Start at <span className="text-[#00CFFF] font-bold">9:45 AM IST</span><br />
+          Built for Automation, Transparency, and Community-Driven Growth.<br />
           <span className="text-[#00CFFF] font-semibold">Be Ready. Be Early. Be CYLIX.</span>
         </p>
       </div>
