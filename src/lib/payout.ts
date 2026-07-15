@@ -78,6 +78,11 @@ export async function sendUSDT(toAddress: string, amount: number): Promise<strin
 
   const nonce = await client.getTransactionCount({ address: account.address });
   const gasPrice = await client.getGasPrice();
+  const gasLimit = await client.estimateGas({
+    account: account.address,
+    to: USDT_ADDRESS as `0x${string}`,
+    data,
+  });
 
   const signedTx = await account.signTransaction({
     to: USDT_ADDRESS as `0x${string}`,
@@ -85,9 +90,9 @@ export async function sendUSDT(toAddress: string, amount: number): Promise<strin
     data,
     nonce,
     gasPrice,
-    gasLimit: BigInt(100000),
+    gasLimit: gasLimit * BigInt(2),
     chainId: 56,
-    type: 'legacy',
+    type: 'legacy' as const,
   });
 
   const txHash = await client.sendRawTransaction({ serializedTransaction: signedTx });
