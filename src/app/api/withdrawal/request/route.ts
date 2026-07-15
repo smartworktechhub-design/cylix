@@ -3,8 +3,14 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { deductUserBalance, createWithdrawal } from '@/lib/db';
 import { processWithdrawal, MIN_WITHDRAWAL } from '@/lib/withdrawal-engine';
 
+const WITHDRAWALS_OPEN_AT = new Date('2026-07-17T12:00:00+05:30').getTime();
+
 export async function POST(req: Request) {
   try {
+    if (Date.now() < WITHDRAWALS_OPEN_AT) {
+      return NextResponse.json({ error: 'Withdrawals are not open yet. Please wait for the timer to complete.' }, { status: 403 });
+    }
+
     const { userId, amount, wallet } = await req.json();
 
     if (!userId || !amount || !wallet) {

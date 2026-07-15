@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { validateAdminToken } from '../auth/route';
-import { SLOTS } from '@/lib/constants';
+import { SLOTS, MATRIX_LEVELS } from '@/lib/constants';
 
 function generateReferralCode(): string {
   return 'CXL' + Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -93,6 +93,7 @@ export async function POST(req: Request) {
         });
 
         await processMatrixCommission(sb, newUser.id, slot.price);
+        await processApexPoolContribution(sb, slot.price);
       }
     }
 
@@ -118,69 +119,72 @@ export async function POST(req: Request) {
 }
 
 async function processMatrixCommission(sb: any, userId: string, amount: number) {
-  const MATRIX_LEVELS = [
-    { level: 1, percent: 4.0 },
-    { level: 2, percent: 4.0 },
-    { level: 3, percent: 5.0 },
-    { level: 4, percent: 5.0 },
-    { level: 5, percent: 5.0 },
-    { level: 6, percent: 5.0 },
-    { level: 7, percent: 5.0 },
-    { level: 8, percent: 5.0 },
-    { level: 9, percent: 5.0 },
-    { level: 10, percent: 5.0 },
-    { level: 11, percent: 5.0 },
-  ];
-
   const { data: user } = await sb.from('users').select('sponsor_id').eq('id', userId).single();
   if (!user?.sponsor_id) return;
 
-  let walkId: string | null = user.sponsor_id;
-  const visited = new Set<string>();
+  const { data: levels } = await sb.from('matrix_11')
+    .select('id, sponsor_id, level')
+    .eq('user_id', userId);
+  if (!levels) return;
 
-  for (const lvl of MATRIX_LEVELS) {
-    if (!walkId || visited.has(walkId)) break;
-    visited.add(walkId);
-
-    const commission = Math.round(amount * lvl.percent) / 100;
-    if (commission > 0) {
-      const { data: sponsorUser } = await sb.from('users').select('id').eq('id', walkId).single();
-      if (sponsorUser) {
-        const { data: existingEntry } = await sb.from('earnings')
-          .select('id').eq('user_id', walkId).eq('type', 'matrix').eq('source', `L${lvl.level} from slot purchase`).maybeSingle();
-
-        if (!existingEntry) {
-          await sb.from('earnings').insert({
-            user_id: walkId,
-            type: 'matrix',
-            amount: commission,
-            source: `L${lvl.level} from slot purchase`,
-          });
-
-          await sb.from('transactions').insert({
-            user_id: walkId,
-            type: 'matrix_commission',
-            amount: commission,
-            description: `L${lvl.level} matrix commission from downline`,
-          });
-
-          const walletShare = Math.round(commission * 50) / 100;
-          const ascensionShare = Math.round((commission - walletShare) * 100) / 100;
-
-          const { data: sponsorRow } = await sb.from('users').select('total_earned, ascension_balance').eq('id', walkId).single();
-          if (sponsorRow) {
-            await sb.from('users').update({
-              total_earned: Math.round(((Number(sponsorRow.total_earned) || 0) + walletShare) * 100) / 100,
-              ascension_balance: Math.round(((Number(sponsorRow.ascension_balance) || 0) + ascensionShare) * 100) / 100,
-            }).eq('id', walkId);
-          }
-        }
-      }
+  for (const m of levels) {
+    if (!m.sponsor_id) continue;
+    const config = MATRIX_LEVELS.find(l => l.level === m.level);
+    if (!config) continue;
+    if (config.directsRequired > 0) {
+      const { data: sponsor } = await sb.from('users').select('directs').eq('id', m.sponsor_id).single();
+      if (!sponsor || (sponsor.directs || 0) < config.directsRequired) continue;
     }
+    const commission = (amount * config.percent) / 100;
+    const walletShare = Math.round((commission * 50) / 100 * 100) / 100;
+    const ascensionShare = Math.round((commission - walletShare) * 100) / 100;
 
-    const { data: nextUser } = await sb.from('users').select('sponsor_id').eq('id', walkId).single();
-    walkId = nextUser?.sponsor_id || null;
+    await sb.from('matrix_earnings').insert({
+      matrix_id: m.id, earned_from: userId,
+      level: m.level, amount: commission,
+    });
+
+    const { data: mRow } = await sb.from('matrix_11').select('total_earnings').eq('id', m.id).single();
+    await sb.from('matrix_11').update({
+      total_earnings: Number((mRow as any)?.total_earnings || 0) + commission,
+    }).eq('id', m.id);
+
+    await sb.from('earnings').insert({
+      user_id: m.sponsor_id, type: 'matrix', amount: commission,
+      source: `Level ${m.level} commission from slot purchase`,
+    });
+
+    const { data: purchaser } = await sb.from('users').select('referral_code').eq('id', userId).single();
+    await sb.from('transactions').insert({
+      user_id: m.sponsor_id, type: 'matrix_earning',
+      amount: commission, description: `L${m.level} from ${purchaser?.referral_code || userId.slice(0, 8)}`,
+    });
+
+    if (ascensionShare > 0) {
+      const { data: sRow } = await sb.from('users').select('ascension_balance').eq('id', m.sponsor_id).single();
+      await sb.from('users').update({
+        ascension_balance: Math.round(((Number(sRow?.ascension_balance) || 0) + ascensionShare) * 100) / 100,
+      }).eq('id', m.sponsor_id);
+      await sb.from('transactions').insert({
+        user_id: m.sponsor_id, type: 'ascension_credit',
+        amount: ascensionShare,
+        description: `50% ascension from L${m.level} matrix commission`,
+      });
+    }
+    if (walletShare > 0) {
+      const { data: sRow } = await sb.from('users').select('total_earned').eq('id', m.sponsor_id).single();
+      await sb.from('users').update({
+        total_earned: Math.round(((Number(sRow?.total_earned) || 0) + walletShare) * 100) / 100,
+      }).eq('id', m.sponsor_id);
+    }
   }
+}
+
+async function processApexPoolContribution(sb: any, amount: number) {
+  const contribution = Math.round((amount * 10) / 100 * 100) / 100;
+  await sb.from('apex_pool_blocks').insert({
+    block_number: 0, value: contribution, completed: false, distributed: false,
+  });
 }
 
 async function addToMatrix(sb: any, sponsorId: string, userId: string) {

@@ -42,7 +42,6 @@ export default function SlotsPage() {
   const [pendingSlot, setPendingSlot] = useState<string | null>(null);
   const [purchaseStatus, setPurchaseStatus] = useState<'idle' | 'approve' | 'confirm' | 'success' | 'error'>('idle');
   const [purchaseError, setPurchaseError] = useState<string>('');
-  const [depositCopied, setDepositCopied] = useState(false);
 
   const LAUNCH = new Date('2026-07-15T19:17:00+05:30').getTime();
   const [timeLeft, setTimeLeft] = useState({ h: 0, m: 0, s: 0, expired: false });
@@ -406,31 +405,6 @@ export default function SlotsPage() {
         })}
       </div>
 
-      {/* Deposit Address */}
-      <Card>
-        <CardContent className="p-5">
-          <div className="flex items-start gap-4 flex-wrap">
-            <div className="w-10 h-10 rounded-xl bg-[rgba(0,229,255,0.08)] flex items-center justify-center shrink-0">
-              <Wallet size={18} className="text-[#00E5FF]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-semibold text-white mb-1">Deposit Address (BSC)</h4>
-              <p className="text-xs text-[#94A3B8] mb-2">Send USDT (BEP-20) to activate slots automatically.</p>
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(0,229,255,0.06)]">
-                <code className="flex-1 text-xs font-mono text-[#00E5FF] truncate">{TREASURY_WALLET}</code>
-                <button onClick={() => { navigator.clipboard.writeText(TREASURY_WALLET); setDepositCopied(true); setTimeout(() => setDepositCopied(false), 2000); }}
-                  className="w-8 h-8 rounded-lg bg-[rgba(0,229,255,0.08)] hover:bg-[rgba(0,229,255,0.12)] flex items-center justify-center shrink-0">
-                  {depositCopied ? <CheckCheck size={14} className="text-[#00FFB2]" /> : <Copy size={14} className="text-[#00E5FF]" />}
-                </button>
-                <a href={`https://bscscan.com/address/${TREASURY_WALLET}`} target="_blank" rel="noopener noreferrer"
-                  className="w-8 h-8 rounded-lg bg-[rgba(123,97,255,0.08)] hover:bg-[rgba(123,97,255,0.12)] flex items-center justify-center shrink-0">
-                  <ExternalLink size={14} className="text-[#7B61FF]" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

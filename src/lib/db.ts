@@ -151,6 +151,7 @@ export async function createUser(wallet: string, sponsorCode?: string): Promise<
   }
   const { data, error } = await sb().from('users').insert({
     wallet: wallet.toLowerCase(), referral_code: code, sponsor_id: sponsorId,
+    is_active: true,
   }).select().single();
   if (error || !data) return null;
   const user = mapUser(data);
@@ -465,11 +466,12 @@ async function markSlotCapped(s: any, userId?: string, earned?: number): Promise
 }
 
 export async function processSlotEarnings(userId: string): Promise<void> {
-  const { data: user } = await sb().from('users').select('roi_enabled').eq('id', userId).single();
+  const { data: user } = await sb().from('users').select('roi_enabled, last_daily_process').eq('id', userId).single();
   if (user?.roi_enabled === false) return;
 
   const canProcess = await checkDailyProcess(userId);
   if (!canProcess) return;
+  await updateLastDailyProcess(userId);
   const { data: activeSlots } = await sb().from('user_slots')
     .select('*').eq('user_id', userId).eq('status', 'active');
   if (!activeSlots || activeSlots.length === 0) return;
@@ -519,7 +521,6 @@ export async function processSlotEarnings(userId: string): Promise<void> {
   }
   await checkAutoUpgrade(userId);
   await reconcileUserBalances(userId);
-  await updateLastDailyProcess(userId);
 }
 
 export async function getAscensionVault(userId: string): Promise<AscensionVault> {
