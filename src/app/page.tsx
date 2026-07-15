@@ -17,14 +17,7 @@ const LANGS: { text: string; lang: string }[] = [
 ];
 
 function calc() {
-  const d = LAUNCH.getTime() - Date.now();
-  if (d <= 0) return { d: 0, h: 0, m: 0, s: 0 };
-  return {
-    d: Math.floor(d / 86400000),
-    h: Math.floor((d / 3600000) % 24),
-    m: Math.floor((d / 60000) % 60),
-    s: Math.floor((d / 1000) % 60),
-  };
+  return { d: 0, h: 0, m: 0, s: 0 };
 }
 
 function FlipDigit({ value, color }: { value: number; color: string }) {
@@ -232,22 +225,7 @@ export default function ComingSoonPage() {
           ))}
         </div>
 
-        {/* CTA Button */}
-        <a href="https://app.cylixdefi.live"
-          className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl text-base font-bold transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(0,207,255,0.25)] mb-6"
-          style={{
-            background: 'linear-gradient(135deg, #00CFFF 0%, #7B2DFF 100%)',
-            color: '#090B14',
-            fontFamily: "'Orbitron',sans-serif",
-            letterSpacing: '0.1em',
-          }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-            <polyline points="10 17 15 12 10 7" />
-            <line x1="15" y1="12" x2="3" y2="12" />
-          </svg>
-          EXPLORE CYLIX
-        </a>
+
 
         {/* Start with $5 highlight */}
         <div className="inline-flex items-center gap-2 mb-8 px-5 py-2.5 rounded-xl"
