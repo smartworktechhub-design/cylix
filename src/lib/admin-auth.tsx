@@ -50,6 +50,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       if (res.ok && data.admin) {
         sessionStorage.setItem('cx_admin_session', JSON.stringify(data.admin));
+        if (data.token) sessionStorage.setItem('cx_admin_token', data.token);
         setAdmin(data.admin);
         return { success: true };
       }
@@ -61,6 +62,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     sessionStorage.removeItem('cx_admin_session');
+    sessionStorage.removeItem('cx_admin_token');
     setAdmin(null);
   };
 
@@ -73,4 +75,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
 export function useAdminAuth() {
   return useContext(AdminAuthContext);
+}
+
+export function getAdminToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return sessionStorage.getItem('cx_admin_token');
 }

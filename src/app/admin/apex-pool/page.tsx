@@ -8,16 +8,22 @@ import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@
 import { formatCurrency, formatNumber, formatDate } from '@/lib/utils';
 import { getApexPoolState, distributeApexPool } from '@/lib/db';
 import type { ApexPoolState, ApexPoolDistribution } from '@/types';
-import { Trophy, RotateCcw, Users, DollarSign, RefreshCw, Award, Loader2 } from 'lucide-react';
+import { Trophy, RotateCcw, Users, DollarSign, RefreshCw, Award, Loader2, Shield, Target } from 'lucide-react';
 
 export default function AdminApexPool() {
   useEffect(() => { document.title = 'Apex Pool — CYLIX'; }, []);
   const [loading, setLoading] = useState(true);
   const [poolState, setPoolState] = useState<ApexPoolState | null>(null);
   const [distributing, setDistributing] = useState(false);
+  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
     fetchPoolState();
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
   async function fetchPoolState() {
@@ -44,19 +50,50 @@ export default function AdminApexPool() {
     }
   }
 
-  const nextDistTime = poolState?.nextDistributionTime
-    ? new Date(poolState.nextDistributionTime)
-    : null;
-  const now = new Date();
-  const progressPct = nextDistTime && nextDistTime > now
-    ? Math.min(100, ((24 * 60 * 60 - (nextDistTime.getTime() - now.getTime())) / (24 * 60 * 60)) * 100)
-    : poolState?.distributionHistory?.length ? 100 : 0;
+  const getNextMidnightUTC = () => {
+    const nowUTC = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+    return new Date(Date.UTC(
+      nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() + 1,
+      0, 0, 0
+    ));
+  };
+
+  const nextMidnight = getNextMidnightUTC();
+  const diffMs = nextMidnight.getTime() - now.getTime();
+  const diffH = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)));
+  const diffM = Math.max(0, Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)));
+  const diffS = Math.max(0, Math.floor((diffMs % (1000 * 60)) / 1000));
+  const progressPct = Math.min(100, ((24 * 60 * 60 - diffMs) / (24 * 60 * 60)) * 100);
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">Apex Pool</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Premium pool management and distribution</p>
+        <p className="text-[#94A3B8] text-sm mt-1">Auto-distribution at 12:00 AM UTC daily</p>
+      </div>
+
+      {/* Auto-Distribution Banner */}
+      <div className="rounded-xl border border-[rgba(0,229,255,0.15)] p-4"
+        style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.05), rgba(123,97,255,0.05))' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[rgba(0,229,255,0.1)] flex items-center justify-center shrink-0">
+            <Trophy size={20} className="text-[#00E5FF]" />
+          </div>
+          <div className="flex-1">
+            <p className="text-white font-semibold text-sm">Auto-Distribution at 12:00 AM UTC</p>
+            <p className="text-[#94A3B8] text-xs mt-0.5">Cron job triggers daily. Manual trigger available below.</p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-[#94A3B8] text-xs">Time Until Distribution</p>
+            <p className="text-white font-mono font-bold text-lg tabular-nums">
+              {String(diffH).padStart(2, '0')}:{String(diffM).padStart(2, '0')}:{String(diffS).padStart(2, '0')}
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 h-1.5 rounded-full bg-[rgba(0,229,255,0.08)] overflow-hidden">
+          <div className="h-full rounded-full transition-all duration-1000"
+            style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #00E5FF, #7B61FF)' }} />
+        </div>
       </div>
 
       {loading ? (
@@ -143,6 +180,71 @@ export default function AdminApexPool() {
                   <span className="text-[#FFB800] font-mono">{progressPct.toFixed(0)}%</span>
                 </div>
                 <Progress value={progressPct} size="md" />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <h3 className="text-white font-semibold font-heading">Pool Split (10% of Slot Income)</h3>
+                <p className="text-[#94A3B8] text-sm">50% Champions + 50% Active — carry-forward if no qualifiers</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 rounded-xl bg-[rgba(0,229,255,0.05)] border border-[rgba(0,229,255,0.12)]">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Shield size={16} className="text-[#00E5FF]" />
+                    <h4 className="text-[#00E5FF] font-medium text-sm">Champions Pool (5%)</h4>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-[#94A3B8]">Qualification:</span>
+                      <span className="text-white">≥1 direct referral</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#94A3B8]">Activity:</span>
+                      <span className="text-white">New placements under them in 24h</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#94A3B8]">Distribution:</span>
+                      <span className="text-white">Equal share (1/N)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#94A3B8]">Current Fund:</span>
+                      <span className="text-[#00E5FF] font-mono">{formatCurrency(poolState.championsFund)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#94A3B8]">Qualified:</span>
+                      <span className="text-[#00FFB2] font-mono">{formatNumber(poolState.championsQualified)}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 rounded-xl bg-[rgba(123,97,255,0.05)] border border-[rgba(123,97,255,0.12)]">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Target size={16} className="text-[#7B61FF]" />
+                    <h4 className="text-[#7B61FF] font-medium text-sm">Active Pool (5%)</h4>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-[#94A3B8]">Qualification:</span>
+                      <span className="text-white">Active slot + team activity</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#94A3B8]">Activity:</span>
+                      <span className="text-white">New placements under them in 24h</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#94A3B8]">Distribution:</span>
+                      <span className="text-white">Equal share (1/N)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#94A3B8]">Current Fund:</span>
+                      <span className="text-[#7B61FF] font-mono">{formatCurrency(poolState.activeFund)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#94A3B8]">Qualified:</span>
+                      <span className="text-[#00FFB2] font-mono">{formatNumber(poolState.activeQualified)}</span>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

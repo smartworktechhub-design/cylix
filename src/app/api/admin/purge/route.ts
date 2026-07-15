@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
+import { validateAdminToken } from '../auth/route';
 
-export async function POST() {
+export async function POST(request: Request) {
+  const token = request.headers.get('x-admin-token');
+  if (!token || !validateAdminToken(token)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const sb = getServiceSupabase();
 
   const tables = [

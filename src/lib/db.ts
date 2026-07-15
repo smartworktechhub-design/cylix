@@ -1,8 +1,56 @@
 import { getSupabase } from './supabase';
-import { SLOTS, MATRIX_LEVELS, APEX_POOL, SLOT_CONFIG, REBUY_MAX, ALLOCATION, POOL_SPLIT, CHAMPIONS_POOL } from './constants';
+import { SLOTS, MATRIX_LEVELS, APEX_POOL, SLOT_CONFIG, REBUY_MAX, ALLOCATION, POOL_SPLIT, CHAMPIONS_POOL, ACTIVE_POOL } from './constants';
 import type { User, UserSlot, Transaction, Withdrawal, Notification, Earnings, Referral, AdminStats, ApexPoolState, AscensionVault, ChampionsPoolState, CommunityPoolState, ChampionsEntry } from '@/types';
 
 function sb() { return getSupabase(); }
+
+async function incrementField(table: string, userId: string, field: string, amount: number): Promise<void> {
+  const { data: row } = await sb().from(table).select(field).eq('id', userId).single();
+  const current = Number((row as any)?.[field] || 0);
+  const newVal = Math.round((current + amount) * 100) / 100;
+  const { error } = await sb().from(table).update({ [field]: newVal }).eq('id', userId);
+  if (error) {
+    console.error(`incrementField error: ${table}.${field} for ${userId}`, error);
+  }
+}
+
+export async function reconcileUserBalances(userId: string): Promise<void> {
+  const { data: earnings } = await sb().from('earnings').select('type, amount').eq('user_id', userId);
+  if (!earnings) return;
+
+  let dailySum = 0, ascensionSum = 0, matrixSum = 0, poolSum = 0, referralSum = 0;
+  for (const e of earnings) {
+    const amt = Number(e.amount);
+    if (e.type === 'daily') dailySum += amt;
+    else if (e.type === 'ascension') ascensionSum += amt;
+    else if (e.type === 'matrix') matrixSum += amt;
+    else if (e.type === 'pool') poolSum += amt;
+    else if (e.type === 'referral') referralSum += amt;
+  }
+
+  const correctTotalEarned = Math.round((dailySum + matrixSum / 2 + poolSum / 2 + referralSum) * 100) / 100;
+  const correctAscension = Math.round((ascensionSum + matrixSum / 2 + poolSum / 2) * 100) / 100;
+
+  const { data: user } = await sb().from('users').select('total_earned, ascension_balance').eq('id', userId).single();
+  if (!user) return;
+
+  const curTE = Number(user.total_earned || 0);
+  const curAB = Number(user.ascension_balance || 0);
+
+  if (Math.abs(curTE - correctTotalEarned) > 0.01 || Math.abs(curAB - correctAscension) > 0.01) {
+    await sb().from('users').update({
+      total_earned: correctTotalEarned,
+      ascension_balance: correctAscension,
+    }).eq('id', userId);
+  }
+
+  const { data: slots } = await sb().from('user_slots').select('id, invested').eq('user_id', userId);
+  const correctInvested = (slots || []).reduce((s: number, sl: any) => s + Number(sl.invested), 0);
+  const curInv = Number((user as any)?.total_invested || 0);
+  if (Math.abs(curInv - correctInvested) > 0.01) {
+    await sb().from('users').update({ total_invested: correctInvested }).eq('id', userId);
+  }
+}
 
 function mapUser(u: any): User {
   return {
@@ -297,14 +345,15 @@ export async function processMatrixCommission(purchaserId: string, amount: numbe
       if (!sponsor || (sponsor.directs || 0) < config.directsRequired) continue;
     }
     const commission = (amount * config.percent) / 100;
-    const walletShare = (commission * SLOT_CONFIG.walletSplitPercent) / 100;
-    const ascensionShare = (commission * SLOT_CONFIG.ascensionSplitPercent) / 100;
+    const walletShare = Math.round((commission * SLOT_CONFIG.walletSplitPercent) / 100 * 100) / 100;
+    const ascensionShare = Math.round((commission - walletShare) * 100) / 100;
     await sb().from('matrix_earnings').insert({
       matrix_id: m.id, earned_from: purchaserId,
       level: m.level, amount: commission,
     });
+    const { data: mRow } = await sb().from('matrix_11').select('total_earnings').eq('id', m.id).single();
     await sb().from('matrix_11').update({
-      'total_earnings;': 'total_earnings + ' + commission,
+      total_earnings: Number((mRow as any)?.total_earnings || 0) + commission,
     }).eq('id', m.id);
     await sb().from('earnings').insert({
       user_id: m.sponsor_id, type: 'matrix', amount: commission,
@@ -316,9 +365,7 @@ export async function processMatrixCommission(purchaserId: string, amount: numbe
       amount: commission, description: `L${m.level} from ${purchaser?.referral_code || purchaserId.slice(0, 8)}`,
     });
     if (ascensionShare > 0) {
-      await sb().from('users').update({
-        'ascension_balance;': 'ascension_balance + ' + ascensionShare,
-      }).eq('id', m.sponsor_id);
+      await incrementField('users', m.sponsor_id, 'ascension_balance', ascensionShare);
       await sb().from('transactions').insert({
         user_id: m.sponsor_id, type: 'ascension_credit',
         amount: ascensionShare,
@@ -326,9 +373,7 @@ export async function processMatrixCommission(purchaserId: string, amount: numbe
       });
     }
     if (walletShare > 0) {
-      await sb().from('users').update({
-        'total_earned;': 'total_earned + ' + walletShare,
-      }).eq('id', m.sponsor_id);
+      await incrementField('users', m.sponsor_id, 'total_earned', walletShare);
     }
   }
 }
@@ -346,6 +391,7 @@ export async function purchaseSlot(userId: string, slotId: string): Promise<User
   const isLocked = allPurchases?.some(p => p.status === 'locked');
   if (isLocked) return null;
   const rebuyCount = allPurchases?.length || 0;
+  if (rebuyCount > REBUY_MAX) return null;
   const isRebuy = rebuyCount > 0;
   const slotIndex = SLOTS.findIndex(s => s.id === slotId);
   if (!isRebuy && slotIndex > 0) {
@@ -366,8 +412,8 @@ export async function purchaseSlot(userId: string, slotId: string): Promise<User
     user_id: userId, type: txType, amount: slot.price,
     description: isRebuy ? `Re-bought ${slot.name} slot (${rebuyCount + 1}/${REBUY_MAX + 1})` : `Purchased ${slot.name} slot`,
   });
+  await incrementField('users', userId, 'total_invested', slot.price);
   await sb().from('users').update({
-    'total_invested;': 'total_invested + ' + slot.price,
     is_active: true,
   }).eq('id', userId);
   await processMatrixCommission(userId, slot.price);
@@ -418,6 +464,9 @@ async function markSlotCapped(s: any, userId?: string, earned?: number): Promise
 }
 
 export async function processSlotEarnings(userId: string): Promise<void> {
+  const { data: user } = await sb().from('users').select('roi_enabled').eq('id', userId).single();
+  if (user?.roi_enabled === false) return;
+
   const canProcess = await checkDailyProcess(userId);
   if (!canProcess) return;
   const { data: activeSlots } = await sb().from('user_slots')
@@ -433,17 +482,15 @@ export async function processSlotEarnings(userId: string): Promise<void> {
     }
     const actualDaily = Math.min(dailyAmount, maxCap - currentEarned);
     const newEarned = currentEarned + actualDaily;
-    const walletShare = (actualDaily * SLOT_CONFIG.walletSplitPercent) / 100;
-    const ascensionShare = (actualDaily * SLOT_CONFIG.ascensionSplitPercent) / 100;
+    const walletShare = Math.round((actualDaily * SLOT_CONFIG.walletSplitPercent) / 100 * 100) / 100;
+    const ascensionShare = Math.round((actualDaily - walletShare) * 100) / 100;
     await sb().from('user_slots').update({
       earned: newEarned,
       progress: (newEarned / maxCap) * 100,
       last_earning_at: new Date().toISOString(),
     }).eq('id', s.id);
     if (ascensionShare > 0) {
-      await sb().from('users').update({
-        'ascension_balance;': 'ascension_balance + ' + ascensionShare,
-      }).eq('id', userId);
+      await incrementField('users', userId, 'ascension_balance', ascensionShare);
       await sb().from('earnings').insert({
         user_id: userId, type: 'ascension', amount: ascensionShare,
         source: `50% ascension from ${s.slot_name}`,
@@ -455,9 +502,7 @@ export async function processSlotEarnings(userId: string): Promise<void> {
       });
     }
     if (walletShare > 0) {
-      await sb().from('users').update({
-        'total_earned;': 'total_earned + ' + walletShare,
-      }).eq('id', userId);
+      await incrementField('users', userId, 'total_earned', walletShare);
       await sb().from('earnings').insert({
         user_id: userId, type: 'daily', amount: walletShare,
         source: `Daily yield from ${s.slot_name}`,
@@ -472,6 +517,7 @@ export async function processSlotEarnings(userId: string): Promise<void> {
     }
   }
   await checkAutoUpgrade(userId);
+  await reconcileUserBalances(userId);
   await updateLastDailyProcess(userId);
 }
 
@@ -499,7 +545,8 @@ async function checkAutoUpgrade(userId: string): Promise<void> {
   const maxOrbit = owned?.length ? Math.max(...owned.map((o: any) => o.slot_orbit)) : 0;
   const nextAvailable = SLOTS.find(s => s.orbit === maxOrbit + 1);
   if (!nextAvailable || balance < nextAvailable.price) return;
-  await purchaseSlot(userId, nextAvailable.id);
+  const result = await purchaseSlot(userId, nextAvailable.id);
+  if (!result) return;
   await sb().from('users').update({
     ascension_balance: balance - nextAvailable.price,
   }).eq('id', userId);
@@ -510,26 +557,27 @@ async function checkAutoUpgrade(userId: string): Promise<void> {
 }
 
 async function processOrbit11Recycle(userId: string, slotId: string, earned: number): Promise<void> {
-  const halfCycle = earned / 2;
-  await sb().from('users').update({
-    'total_earned;': 'total_earned + ' + halfCycle,
-  }).eq('id', userId);
+  const walletShare = Math.round(earned / 2 * 100) / 100;
+  const rebuyShare = Math.round((earned - walletShare) * 100) / 100;
   await sb().from('user_slots').insert({
     user_id: userId, slot_id: 'orbit-11', slot_name: 'Infinity Core',
     slot_orbit: 11, invested: 0, earned: 0, daily_earned: 3000,
     max_cap: 200000, progress: 0, status: 'active',
   });
   await sb().from('transactions').insert({
-    user_id: userId, type: 'recycle', amount: halfCycle,
-    description: 'Orbit 11 re-cycle: 50% wallet + 50% re-buy',
+    user_id: userId, type: 'recycle', amount: walletShare,
+    description: 'Orbit 11 re-cycle: 50% wallet (credited via daily yield) + 50% re-buy',
   });
   await sb().from('transactions').insert({
-    user_id: userId, type: 'slot_purchase', amount: halfCycle,
+    user_id: userId, type: 'slot_purchase', amount: rebuyShare,
     description: 'Auto re-buy Orbit 11 from re-cycle',
   });
 }
 
-// ─── GLOBAL APEX POOL — Champions (50%) + Community (50%) ───
+// ─── GLOBAL APEX POOL — Champions (50%) + Active (50%) ───
+// Champions: any user with ≥1 direct referral + team activity (new placements in 24h)
+// Active: any active user + team activity (new placements in 24h)
+// Both: equal share; carry-forward if no qualifiers
 
 async function processApexPoolContribution(amount: number): Promise<void> {
   const contribution = (amount * ALLOCATION.poolPercent) / 100;
@@ -538,18 +586,40 @@ async function processApexPoolContribution(amount: number): Promise<void> {
   });
 }
 
+async function hasTeamActivity(userId: string): Promise<boolean> {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count } = await sb().from('matrix_tree')
+    .select('*', { count: 'exact', head: true })
+    .eq('owner_id', userId)
+    .neq('user_id', userId)
+    .gte('created_at', since);
+  return (count || 0) > 0;
+}
+
+async function getActiveOwnerIds(): Promise<Set<string>> {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data } = await sb().from('matrix_tree')
+    .select('owner_id').gte('created_at', since);
+  const ids = new Set<string>();
+  (data || []).forEach((r: any) => {
+    if (r.owner_id) ids.add(r.owner_id);
+  });
+  return ids;
+}
+
 // ─── CHAMPIONS POOL (50% of 10% = 5%) ───
+// Qualification: ≥1 direct referral AND team activity in last 24h
+// Distribution: equal share among all qualifiers
 
 async function getChampionsLeaderboard(): Promise<ChampionsEntry[]> {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { data: users } = await sb().from('users').select('id, wallet');
+  const { data: users } = await sb().from('users').select('id, wallet, directs');
   if (!users || users.length === 0) return [];
 
   const userIds = users.map((u: any) => u.id);
 
-  const [{ data: recentRefs }, { data: recentPurchases }, { data: recentVols }] = await Promise.all([
+  const [{ data: recentRefs }, { data: recentPurchases }] = await Promise.all([
     sb().from('users').select('sponsor_id').in('sponsor_id', userIds).gte('created_at', since),
-    sb().from('user_slots').select('user_id, invested').in('user_id', userIds).gte('activated_at', since),
     sb().from('user_slots').select('user_id, invested').in('user_id', userIds).gte('activated_at', since),
   ]);
 
@@ -564,20 +634,25 @@ async function getChampionsLeaderboard(): Promise<ChampionsEntry[]> {
   });
 
   const entries: ChampionsEntry[] = [];
+  const activeOwners = await getActiveOwnerIds();
   for (const u of users) {
-    const refs = refCounts[u.id] || 0;
+    const hasDirects = (u.directs || 0) > 0;
+    const teamAct = hasDirects ? activeOwners.has(u.id) : false;
+    const qualified = hasDirects && teamAct;
     const buys = purchaseCounts[u.id] || 0;
     const vol = volumes[u.id] || 0;
-    const score = refs * CHAMPIONS_POOL.scoreWeights.referral
-      + buys * CHAMPIONS_POOL.scoreWeights.purchase
-      + vol * CHAMPIONS_POOL.scoreWeights.volume;
-    if (score > 0) entries.push({
+    const score = (refCounts[u.id] || 0) * 10 + buys * 5 + vol * 0.001;
+    let qualifiedReason = '';
+    if (!hasDirects) qualifiedReason = 'No direct referrals';
+    else if (!teamAct) qualifiedReason = 'No team activity in 24h';
+    entries.push({
       userId: u.id, wallet: u.wallet, score, rank: 0, reward: 0,
-      referrals24h: refs, purchases24h: buys, volume24h: vol,
+      referrals24h: refCounts[u.id] || 0, purchases24h: buys, volume24h: vol,
+      qualified, qualifiedReason,
     });
   }
   entries.sort((a, b) => b.score - a.score);
-  return entries.slice(0, CHAMPIONS_POOL.topWinners).map((e, i) => ({ ...e, rank: i + 1 }));
+  return entries.map((e, i) => ({ ...e, rank: i + 1 }));
 }
 
 export async function getChampionsPoolState(): Promise<ChampionsPoolState> {
@@ -597,40 +672,37 @@ export async function getChampionsPoolState(): Promise<ChampionsPoolState> {
     .reduce((s: number, w: any) => s + Number(w.reward), 0) || 0;
   const lifetimeDist = (todayWinners as any[])?.reduce((s: number, w: any) => s + Number(w.reward), 0) || 0;
   const leaderboard = await getChampionsLeaderboard();
+  const qualifiedCount = leaderboard.filter(e => e.qualified).length;
   return { totalFund: half, lastDistribution: lastDist, nextDistributionTime: nextTime,
     todayDistribution: todayDist, lifetimeDistribution: lifetimeDist,
-    leaderboard, topCount: CHAMPIONS_POOL.topWinners };
+    leaderboard, qualifiedCount, totalQualifiedCount: qualifiedCount };
 }
 
 async function distributeChampionsPool(totalFund: number): Promise<void> {
   const leaderboard = await getChampionsLeaderboard();
-  const totalScore = leaderboard.reduce((s, e) => s + e.score, 0);
-  if (totalScore === 0 || leaderboard.length === 0) return;
-  for (const entry of leaderboard) {
-    const reward = (entry.score / totalScore) * totalFund;
-    const walletShare = reward * SLOT_CONFIG.walletSplitPercent / 100;
-    const ascensionShare = reward * SLOT_CONFIG.ascensionSplitPercent / 100;
+  const qualified = leaderboard.filter(e => e.qualified);
+  if (qualified.length === 0) return;
+  const perPerson = totalFund / qualified.length;
+  for (const entry of qualified) {
+    const walletShare = Math.round(perPerson * SLOT_CONFIG.walletSplitPercent / 100 * 100) / 100;
+    const ascensionShare = Math.round((perPerson - walletShare) * 100) / 100;
     await sb().from('champions_pool_winners').insert({
       user_id: entry.userId, distribution_cycle: new Date().toISOString().slice(0, 10),
-      score: entry.score, rank: entry.rank, reward,
+      score: entry.score, rank: entry.rank, reward: perPerson,
     });
     if (walletShare > 0) {
-      await sb().from('users').update({
-        'total_earned;': 'total_earned + ' + walletShare,
-      }).eq('id', entry.userId);
+      await incrementField('users', entry.userId, 'total_earned', walletShare);
     }
     if (ascensionShare > 0) {
-      await sb().from('users').update({
-        'ascension_balance;': 'ascension_balance + ' + ascensionShare,
-      }).eq('id', entry.userId);
+      await incrementField('users', entry.userId, 'ascension_balance', ascensionShare);
     }
     await sb().from('earnings').insert({
-      user_id: entry.userId, type: 'pool', amount: reward,
-      source: `Champions Pool #${entry.rank}`,
+      user_id: entry.userId, type: 'pool', amount: perPerson,
+      source: 'Champions Pool (equal share)',
     });
     await sb().from('transactions').insert({
-      user_id: entry.userId, type: 'pool_earning', amount: reward,
-      description: `Champions Pool #${entry.rank} (score: ${entry.score.toFixed(0)})`,
+      user_id: entry.userId, type: 'pool_earning', amount: perPerson,
+      description: `Champions Pool — ${qualified.length} qualifiers, $${perPerson.toFixed(2)} each`,
     });
     if (ascensionShare > 0) {
       await sb().from('transactions').insert({
@@ -641,14 +713,24 @@ async function distributeChampionsPool(totalFund: number): Promise<void> {
   }
 }
 
-// ─── COMMUNITY POOL (50% of 10% = 5%) ───
+// ─── ACTIVE POOL (50% of 10% = 5%) ───
+// Qualification: user is active (has active slot) AND team activity in last 24h
+// Distribution: equal share among all qualifiers
 
 export async function getCommunityPoolState(): Promise<CommunityPoolState> {
   const { data: pending } = await sb().from('apex_pool_blocks').select('value').eq('distributed', false);
   const totalPending = pending?.reduce((s: number, r: any) => s + Number(r.value), 0) || 0;
   const half = totalPending / 2;
-  const { count: qualifiedCount } = await sb().from('users')
-    .select('*', { count: 'exact', head: true }).gte('directs', 1);
+
+  const { data: activeSlotUsers } = await sb().from('user_slots')
+    .select('user_id').eq('status', 'active');
+  const uniqueUserIds = [...new Set((activeSlotUsers || []).map((s: any) => s.user_id))];
+  const activeOwners = await getActiveOwnerIds();
+  let qualifiedCount = 0;
+  for (const uid of uniqueUserIds) {
+    if (activeOwners.has(uid)) qualifiedCount++;
+  }
+
   const { data: lastDist } = await sb().from('community_pool_distributions')
     .select('*').order('distributed_at', { ascending: false }).limit(1).maybeSingle();
   const lastDistTime = lastDist?.distributed_at || '';
@@ -664,8 +746,7 @@ export async function getCommunityPoolState(): Promise<CommunityPoolState> {
   return {
     totalFund: half, lastDistribution: lastDistTime, nextDistributionTime: nextTime,
     todayDistribution: todayDist, lifetimeDistribution: lifetimeDist,
-    qualifiedCount: qualifiedCount || 0,
-    perPerson: lastDist ? Number(lastDist.per_person) : 0,
+    qualifiedCount, perPerson: lastDist ? Number(lastDist.per_person) : 0,
     history: (allDists || []).map(d => ({
       id: d.id, totalFund: Number(d.total_fund),
       qualifiedCount: d.qualified_count, perPerson: Number(d.per_person),
@@ -675,56 +756,59 @@ export async function getCommunityPoolState(): Promise<CommunityPoolState> {
 }
 
 async function distributeCommunityPool(totalFund: number): Promise<void> {
-  const { data: qualifiers } = await sb().from('users')
-    .select('id').gte('directs', 1);
-  if (!qualifiers || qualifiers.length === 0) return;
+  const { data: activeSlotUsers } = await sb().from('user_slots')
+    .select('user_id').eq('status', 'active');
+  const uniqueUserIds = [...new Set((activeSlotUsers || []).map((s: any) => s.user_id))];
+
+  const qualifiers: { id: string }[] = [];
+  const activeOwners = await getActiveOwnerIds();
+  for (const uid of uniqueUserIds) {
+    if (activeOwners.has(uid)) qualifiers.push({ id: uid });
+  }
+  if (qualifiers.length === 0) return;
   const perPerson = totalFund / qualifiers.length;
   const { data: dist } = await sb().from('community_pool_distributions').insert({
     total_fund: totalFund, qualified_count: qualifiers.length, per_person: perPerson,
   }).select().single();
   if (!dist) return;
   for (const q of qualifiers) {
-    const walletShare = perPerson * SLOT_CONFIG.walletSplitPercent / 100;
-    const ascensionShare = perPerson * SLOT_CONFIG.ascensionSplitPercent / 100;
+    const walletShare = Math.round(perPerson * SLOT_CONFIG.walletSplitPercent / 100 * 100) / 100;
+    const ascensionShare = Math.round((perPerson - walletShare) * 100) / 100;
     await sb().from('community_pool_qualifiers').insert({
       distribution_id: dist.id, user_id: q.id, amount: perPerson, claimed: false,
     });
     if (walletShare > 0) {
-      await sb().from('users').update({
-        'total_earned;': 'total_earned + ' + walletShare,
-      }).eq('id', q.id);
+      await incrementField('users', q.id, 'total_earned', walletShare);
     }
     if (ascensionShare > 0) {
-      await sb().from('users').update({
-        'ascension_balance;': 'ascension_balance + ' + ascensionShare,
-      }).eq('id', q.id);
+      await incrementField('users', q.id, 'ascension_balance', ascensionShare);
     }
     await sb().from('earnings').insert({
       user_id: q.id, type: 'pool', amount: perPerson,
-      source: 'Community Pool distribution',
+      source: 'Active Pool (equal share)',
     });
     await sb().from('transactions').insert({
       user_id: q.id, type: 'pool_earning', amount: perPerson,
-      description: 'Community Pool distribution',
+      description: `Active Pool — ${qualifiers.length} qualifiers, $${perPerson.toFixed(2)} each`,
     });
     if (ascensionShare > 0) {
       await sb().from('transactions').insert({
         user_id: q.id, type: 'ascension_credit', amount: ascensionShare,
-        description: '50% ascension from Community Pool',
+        description: '50% ascension from Active Pool',
       });
     }
   }
 }
 
-// ─── LEGACY APEX POOL STATE (combined, kept for admin) ───
+// ─── APEX POOL STATE (combined) ───
 
 export async function getApexPoolState(): Promise<ApexPoolState> {
   const { data: pending } = await sb().from('apex_pool_blocks').select('value').eq('distributed', false);
   const totalPoolFund = pending?.reduce((s, r) => s + Number(r.value), 0) || 0;
+  const championsFund = totalPoolFund / 2;
+  const activeFund = totalPoolFund / 2;
   const { data: lastDist } = await sb().from('apex_pool_distributions')
     .select('*').order('distributed_at', { ascending: false }).limit(1).maybeSingle();
-  const { count: qualifiedCount } = await sb().from('user_slots')
-    .select('*', { count: 'exact', head: true }).eq('status', 'active');
   const { data: allDists } = await sb().from('apex_pool_distributions')
     .select('*').order('distributed_at', { ascending: false });
   const lifetimeDistribution = allDists?.reduce((s, d) => s + Number(d.total_fund), 0) || 0;
@@ -734,30 +818,40 @@ export async function getApexPoolState(): Promise<ApexPoolState> {
   const nextTime = lastDist
     ? new Date(new Date(lastDist.distributed_at).getTime() + APEX_POOL.distributionInterval * 60 * 60 * 1000).toISOString()
     : new Date().toISOString();
+
+  const { count: activeSlots } = await sb().from('user_slots')
+    .select('*', { count: 'exact', head: true }).eq('status', 'active');
+
   return {
     totalPoolFund, lastDistribution: lastDist?.distributed_at || '',
-    qualifiedCount: qualifiedCount || 0,
-    distributePerPerson: qualifiedCount && qualifiedCount > 0 ? totalPoolFund / qualifiedCount : 0,
+    qualifiedCount: activeSlots || 0,
+    distributePerPerson: activeSlots && activeSlots > 0 ? totalPoolFund / activeSlots : 0,
     todayDistribution, lifetimeDistribution, nextDistributionTime: nextTime,
     distributionHistory: (allDists || []).map(d => ({
       id: d.id, totalFund: Number(d.total_fund),
       qualifiedCount: d.qualified_count, perPerson: Number(d.per_person),
       distributedAt: d.distributed_at, safetyReserve: Number(d.safety_reserve),
     })),
+    championsFund, activeFund,
+    championsQualified: 0, activeQualified: 0,
   };
 }
 
 export async function distributeApexPool(): Promise<void> {
-  const { data: pending } = await sb().from('apex_pool_blocks').select('id, value').eq('distributed', false);
+  const { data: pending } = await sb().from('apex_pool_blocks')
+    .update({ distributed: true })
+    .eq('distributed', false)
+    .select('id, value');
   if (!pending || pending.length === 0) return;
   const totalFund = pending.reduce((s, r) => s + Number(r.value), 0);
+
   const halfFund = totalFund / 2;
   await distributeChampionsPool(halfFund);
   await distributeCommunityPool(halfFund);
+
   await sb().from('apex_pool_distributions').insert({
     total_fund: totalFund, qualified_count: 0, per_person: 0, safety_reserve: 0,
   });
-  await sb().from('apex_pool_blocks').update({ distributed: true }).in('id', pending.map(p => p.id));
 }
 
 // ─── DAILY PROCESSING (CRON / ON-LOGIN TRIGGER) ───
@@ -1095,9 +1189,7 @@ export async function approveWithdrawal(id: string): Promise<boolean> {
     status: 'approved', processed_at: new Date().toISOString(),
   }).eq('id', id);
   if (error) return false;
-  await sb().from('users').update({
-    'total_earned;': 'total_earned - ' + Number(wd.amount),
-  }).eq('id', wd.user_id);
+  await incrementField('users', wd.user_id, 'total_earned', -Number(wd.amount));
   await sb().from('notifications').insert({
     user_id: wd.user_id, type: 'withdrawal', title: 'Withdrawal Approved',
     message: `$${Number(wd.amount)} withdrawal has been approved.`,

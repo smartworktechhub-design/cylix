@@ -125,6 +125,10 @@ export interface ApexPoolState {
   lifetimeDistribution: number;
   nextDistributionTime: string;
   distributionHistory: ApexPoolDistribution[];
+  championsFund: number;
+  activeFund: number;
+  championsQualified: number;
+  activeQualified: number;
 }
 
 export interface ApexPoolDistribution {
@@ -145,6 +149,8 @@ export interface ChampionsEntry {
   referrals24h: number;
   purchases24h: number;
   volume24h: number;
+  qualified: boolean;
+  qualifiedReason: string;
 }
 
 export interface ChampionsPoolState {
@@ -154,7 +160,8 @@ export interface ChampionsPoolState {
   todayDistribution: number;
   lifetimeDistribution: number;
   leaderboard: ChampionsEntry[];
-  topCount: number;
+  qualifiedCount: number;
+  totalQualifiedCount: number;
 }
 
 export interface CommunityPoolState {

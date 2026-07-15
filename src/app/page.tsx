@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-const LAUNCH = new Date('2026-07-15T13:45:00+05:30');
+const LAUNCH = new Date('2026-07-15T17:15:00+05:30');
 const LANGS: { text: string; lang: string }[] = [
   { text: 'Launching Soon', lang: 'English' },
   { text: 'जल्द आ रहा है', lang: 'Hindi' },
@@ -142,11 +142,13 @@ export default function ComingSoonPage() {
   return (
     <div className="min-h-screen bg-[#090B14] flex flex-col items-center justify-center relative overflow-hidden px-4">
 
+      {/* Background Orbs */}
       <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] rounded-full pointer-events-none"
         style={{ background: 'radial-gradient(circle, rgba(0,207,255,0.04) 0%, transparent 70%)', animation: 'orbFloat 12s ease-in-out infinite alternate' }} />
       <div className="absolute bottom-[-200px] right-[-200px] w-[500px] h-[500px] rounded-full pointer-events-none"
         style={{ background: 'radial-gradient(circle, rgba(123,45,255,0.03) 0%, transparent 70%)', animation: 'orbFloat 10s ease-in-out infinite alternate-reverse' }} />
 
+      {/* Particles */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {Array.from({ length: 30 }).map((_, i) => (
           <div key={i} className="absolute rounded-full"
@@ -160,6 +162,7 @@ export default function ComingSoonPage() {
         ))}
       </div>
 
+      {/* Stars */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {Array.from({ length: 50 }).map((_, i) => (
           <div key={i} className="absolute rounded-full bg-white"
@@ -175,21 +178,17 @@ export default function ComingSoonPage() {
 
       <div className="relative z-10 flex flex-col items-center text-center max-w-lg mx-auto w-full">
 
-        <h1 className="text-5xl md:text-7xl font-black tracking-[0.15em] mb-0"
-          style={{
-            fontFamily: "'Orbitron',sans-serif",
-            background: 'linear-gradient(135deg, #00CFFF 0%, #7B2DFF 100%)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          }}>
-          CYLIX
-        </h1>
+        {/* Logo */}
+        <img src="/logo-wide.png" alt="CYLIX" className="w-[260px] md:w-[320px] mb-2 drop-shadow-[0_0_30px_rgba(0,207,255,0.15)]" />
 
+        {/* Tagline */}
         <p className="text-sm tracking-[0.5em] text-white/60 font-medium uppercase mb-0"
           style={{ fontFamily: "'Rajdhani',sans-serif" }}>
           Matrix DeFi
         </p>
 
-        <div className="inline-flex flex-col items-center gap-2 mt-4 mb-4 px-5 py-3 rounded-2xl"
+        {/* Typewriter */}
+        <div className="inline-flex flex-col items-center gap-2 mt-5 mb-4 px-5 py-3 rounded-2xl"
           style={{
             background: 'rgba(255,255,255,0.02)',
             border: '1px solid rgba(255,255,255,0.04)',
@@ -210,6 +209,7 @@ export default function ComingSoonPage() {
           </div>
         </div>
 
+        {/* Autoflow Badge */}
         <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full"
           style={{ background: 'rgba(123,45,255,0.06)', border: '1px solid rgba(123,45,255,0.12)' }}>
           <div className="w-1.5 h-1.5 rounded-full bg-[#7B2DFF] animate-pulse" />
@@ -219,7 +219,8 @@ export default function ComingSoonPage() {
           </span>
         </div>
 
-        <div className="flex gap-3 md:gap-5 mb-10">
+        {/* Timer */}
+        <div className="flex gap-3 md:gap-5 mb-8">
           {units.map(u => (
             <div key={u.label} className="flex flex-col items-center gap-2">
               <FlipDigit value={u.value} color={u.color} />
@@ -231,6 +232,41 @@ export default function ComingSoonPage() {
           ))}
         </div>
 
+        {/* CTA Button */}
+        <a href="https://app.cylixdefi.live"
+          className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl text-base font-bold transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(0,207,255,0.25)] mb-6"
+          style={{
+            background: 'linear-gradient(135deg, #00CFFF 0%, #7B2DFF 100%)',
+            color: '#090B14',
+            fontFamily: "'Orbitron',sans-serif",
+            letterSpacing: '0.1em',
+          }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+            <polyline points="10 17 15 12 10 7" />
+            <line x1="15" y1="12" x2="3" y2="12" />
+          </svg>
+          EXPLORE CYLIX
+        </a>
+
+        {/* Start with $5 highlight */}
+        <div className="inline-flex items-center gap-2 mb-8 px-5 py-2.5 rounded-xl"
+          style={{ background: 'rgba(0,207,255,0.05)', border: '1px solid rgba(0,207,255,0.12)' }}>
+          <span className="text-sm text-white/70" style={{ fontFamily: "'Inter',sans-serif" }}>
+            Start with just
+          </span>
+          <span className="text-lg font-black text-[#00CFFF]" style={{ fontFamily: "'Orbitron',sans-serif" }}>
+            $5
+          </span>
+          <span className="text-sm text-white/70" style={{ fontFamily: "'Inter',sans-serif" }}>
+            &bull; Earn up to
+          </span>
+          <span className="text-lg font-black text-[#7B2DFF]" style={{ fontFamily: "'Orbitron',sans-serif" }}>
+            $100K
+          </span>
+        </div>
+
+        {/* Email Subscribe */}
         <div className="w-full max-w-sm">
           <form onSubmit={async (e) => {
             e.preventDefault();
@@ -250,7 +286,7 @@ export default function ComingSoonPage() {
             className="flex items-center gap-2 p-1 rounded-xl"
             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              placeholder="Enter your email for launch updates"
               className="flex-1 bg-transparent text-white text-sm px-3 py-2.5 placeholder:text-white/20 focus:outline-none" />
             <button type="submit" disabled={submitting}
               className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
@@ -262,6 +298,7 @@ export default function ComingSoonPage() {
           </form>
         </div>
 
+        {/* Tagline Text */}
         <p className="text-[11px] text-white/30 leading-relaxed max-w-sm mt-6 text-center"
           style={{ fontFamily: "'Inter',sans-serif" }}>
           The countdown has begun. Built for Automation, Transparency, and Community-Driven Growth.<br />
@@ -269,11 +306,13 @@ export default function ComingSoonPage() {
         </p>
       </div>
 
+      {/* Toast */}
       <div className="fixed bottom-24 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-xl text-xs font-medium transition-all duration-400 pointer-events-none z-[100]"
         style={{ background: `${toastColor}0a`, border: `1px solid ${toastColor}15`, color: toastColor, opacity: toast ? 1 : 0, transform: toast ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(20px)' }}>
         {toastMsg}
       </div>
 
+      {/* Footer */}
       <div className="absolute bottom-0 left-0 right-0 px-6 py-4 flex flex-col items-center gap-3">
         <div className="flex items-center gap-3">
           <a href="https://t.me/cylixdefi" target="_blank" rel="noopener noreferrer"

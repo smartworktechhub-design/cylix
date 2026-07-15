@@ -30,7 +30,7 @@ export default function ReferralsPage() {
 
   const referrals = user && storeReferrals.length > 0 ? storeReferrals : [];
 
-  const referralCode = user?.referralCode || (address ? 'CXL' + address.slice(2, 6).toUpperCase() : '');
+  const referralCode = user?.referralCode || '';
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://cylix.io';
   const referralLink = `${origin}/?ref=${referralCode}`;
 

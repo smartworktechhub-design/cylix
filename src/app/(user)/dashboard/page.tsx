@@ -134,7 +134,7 @@ export default function DashboardPage() {
   const totalEarnings = earnings.total;
   const availableBalance = Number(user?.totalEarned || 0) - Number(user?.ascensionBalance || 0);
   const dailyYield = activeSlots.reduce((sum, s) => sum + s.dailyEarned, 0);
-  const refCode = user?.referralCode || (address ? 'CXL' + address.slice(2, 6).toUpperCase() : '');
+  const refCode = user?.referralCode || '';
 
   const currentActiveSlotDef = SLOTS.find(s => activeSlotIds.has(s.id));
   const currentActiveSlot = activeSlots.find(s => s.slotId === currentActiveSlotDef?.id);
@@ -321,37 +321,36 @@ export default function DashboardPage() {
       </div>
 
       {/* ====== REFERRAL CARD ====== */}
-      {refCode && (
-        <div className="px-4 mb-3">
-          <div className="relative rounded-2xl overflow-hidden p-[2px]" style={{ background: 'linear-gradient(135deg, #00E5FF, #7B61FF, #00E5FF)' }}>
-            <div className="rounded-2xl p-4 relative" style={{ background: 'linear-gradient(135deg, rgba(9,11,20,0.97), rgba(22,32,52,0.97))' }}>
-              <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-3xl" style={{ background: 'rgba(0,229,255,0.06)' }} />
+      <div className="px-4 mb-3">
+        <div className="relative rounded-2xl overflow-hidden p-[2px]" style={{ background: 'linear-gradient(135deg, #00E5FF, #7B61FF, #00E5FF)' }}>
+          <div className="rounded-2xl p-4 relative" style={{ background: 'linear-gradient(135deg, rgba(9,11,20,0.97), rgba(22,32,52,0.97))' }}>
+            <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-3xl" style={{ background: 'rgba(0,229,255,0.06)' }} />
 
-              <div className="flex items-center gap-3 mb-3 relative z-10">
-                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center shadow-lg shadow-[rgba(0,229,255,0.2)]">
-                  <LinkIcon size={16} className="text-[#050816]" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-white" style={{ fontFamily: "'Orbitron',sans-serif" }}>INVITE & EARN</h3>
-                  <p className="text-[10px] text-[#94A3B8]">Share your referral code with others</p>
-                </div>
+            <div className="flex items-center gap-3 mb-3 relative z-10">
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center shadow-lg shadow-[rgba(0,229,255,0.2)]">
+                <LinkIcon size={16} className="text-[#050816]" />
               </div>
+              <div>
+                <h3 className="text-xs font-bold text-white" style={{ fontFamily: "'Orbitron',sans-serif" }}>INVITE & EARN</h3>
+                <p className="text-[10px] text-[#94A3B8]">Share your referral code with others</p>
+              </div>
+            </div>
 
-              <div className="rounded-xl p-3 relative z-10" style={{ background: 'rgba(0,229,255,0.05)', border: '1px solid rgba(0,229,255,0.12)' }}>
-                <div className="flex items-center justify-between gap-3">
-                  <code className="text-xl font-mono font-bold text-[#00E5FF] tracking-widest">{refCode}</code>
-                  <button
-                    onClick={() => { navigator.clipboard.writeText(`${location.origin}/?ref=${refCode}`); setRefCopied(true); setTimeout(() => setRefCopied(false), 2000); }}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg font-semibold text-xs transition-all shrink-0"
-                    style={{ background: refCopied ? 'rgba(0,255,178,0.15)' : 'rgba(0,229,255,0.1)', border: `1px solid ${refCopied ? 'rgba(0,255,178,0.3)' : 'rgba(0,229,255,0.2)'}` }}>
-                    {refCopied ? <><CheckCheck size={12} className="text-[#00FFB2]" /><span className="text-[#00FFB2]">Copied!</span></> : <><Copy size={12} className="text-[#00E5FF]" /><span className="text-[#00E5FF]">Copy</span></>}
-                  </button>
-                </div>
+            <div className="rounded-xl p-3 relative z-10" style={{ background: 'rgba(0,229,255,0.05)', border: '1px solid rgba(0,229,255,0.12)' }}>
+              <div className="flex items-center justify-between gap-3">
+                <code className="text-xl font-mono font-bold text-[#00E5FF] tracking-widest">{refCode || '...'}</code>
+                <button
+                  disabled={!refCode}
+                  onClick={() => { navigator.clipboard.writeText(`${location.origin}/?ref=${refCode}`); setRefCopied(true); setTimeout(() => setRefCopied(false), 2000); }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg font-semibold text-xs transition-all shrink-0 disabled:opacity-30"
+                  style={{ background: refCopied ? 'rgba(0,255,178,0.15)' : 'rgba(0,229,255,0.1)', border: `1px solid ${refCopied ? 'rgba(0,255,178,0.3)' : 'rgba(0,229,255,0.2)'}` }}>
+                  {refCopied ? <><CheckCheck size={12} className="text-[#00FFB2]" /><span className="text-[#00FFB2]">Copied!</span></> : <><Copy size={12} className="text-[#00E5FF]" /><span className="text-[#00E5FF]">Copy</span></>}
+                </button>
               </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* ====== CAMPAIGN BANNER ====== */}
       {campaign && showBanner && new Date(campaign.end_time) > new Date() && (
@@ -519,17 +518,23 @@ export default function DashboardPage() {
               );
             }
 
+            const isNextBuy = !isOwned && !isLocked && !isCleared && index === lastOwnedIndex + 1;
             return (
               <div key={slotDef.id} className="relative rounded-xl overflow-hidden p-3 flex flex-col items-center text-center"
                 style={{
-                  background: isActive ? `linear-gradient(180deg, ${grad.from}12, transparent)` : `linear-gradient(135deg, ${grad.from}06, ${grad.to}03)`,
-                  border: `1.5px solid ${isActive ? grad.from : `${grad.from}30`}`,
-                  boxShadow: isActive ? `0 0 18px ${grad.from}20` : 'none',
-                  opacity: isActive ? 1 : 0.35,
+                  background: isNextBuy
+                    ? `linear-gradient(135deg, ${grad.from}20, ${grad.to}12)`
+                    : isActive ? `linear-gradient(180deg, ${grad.from}12, transparent)` : `linear-gradient(135deg, ${grad.from}06, ${grad.to}03)`,
+                  border: `1.5px solid ${isNextBuy ? grad.from : isActive ? grad.from : `${grad.from}30`}`,
+                  boxShadow: isNextBuy ? `0 0 20px ${grad.from}30` : isActive ? `0 0 18px ${grad.from}20` : 'none',
+                  opacity: 1,
                   transition: 'all 0.3s ease',
                 }}>
                 {isActive && (
                   <div className="absolute top-1 right-1"><span className="text-[5px] px-1 py-0.5 rounded-full bg-[rgba(0,229,255,0.12)] text-[#00E5FF] font-bold">LIVE</span></div>
+                )}
+                {isNextBuy && (
+                  <div className="absolute top-1 right-1"><span className="text-[5px] px-1 py-0.5 rounded-full bg-[rgba(0,229,255,0.15)] text-[#00E5FF] font-bold">BUY</span></div>
                 )}
                 <p className="text-[10px] font-bold text-white font-heading pr-5">{slotDef.name}</p>
                 <p className="text-[11px] font-mono font-bold text-white mt-0.5">{formatCurrency(slotDef.price)}</p>
@@ -720,15 +725,15 @@ export default function DashboardPage() {
               <span className="text-[7px] font-bold text-[#00E5FF] uppercase tracking-wider">Champions Pool</span>
             </div>
             <p className="text-sm font-bold font-mono text-white">{formatCompact(adminStats?.poolFund ? adminStats.poolFund / 2 : 0)}</p>
-            <p className="text-[6px] text-[#4A5568] mt-0.5">Top {10} daily performers</p>
+            <p className="text-[6px] text-[#4A5568] mt-0.5">≥1 direct + team activity</p>
           </Link>
           <Link href="/apex-pool" className="rounded-xl border border-[rgba(123,97,255,0.06)] p-3 block" style={{ background: 'linear-gradient(135deg, rgba(123,97,255,0.02), rgba(0,229,255,0.02))' }}>
             <div className="flex items-center gap-2 mb-2">
               <Users size={10} className="text-[#7B61FF]" />
-              <span className="text-[7px] font-bold text-[#7B61FF] uppercase tracking-wider">Community Pool</span>
+              <span className="text-[7px] font-bold text-[#7B61FF] uppercase tracking-wider">Active Pool</span>
             </div>
             <p className="text-sm font-bold font-mono text-white">{formatCompact(adminStats?.poolFund ? adminStats.poolFund / 2 : 0)}</p>
-            <p className="text-[6px] text-[#4A5568] mt-0.5">1+ active direct required</p>
+            <p className="text-[6px] text-[#4A5568] mt-0.5">Active + team activity</p>
           </Link>
         </div>
       </div>

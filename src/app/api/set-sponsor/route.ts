@@ -69,7 +69,16 @@ export async function POST(req: Request) {
 }
 
 async function addToMatrix(sb: any, sponsorId: string, userId: string) {
-  // Check if sponsor has a root node
+  const { data: alreadyPlaced } = await sb
+    .from('matrix_tree').select('id')
+    .eq('user_id', userId).eq('owner_id', sponsorId).maybeSingle();
+  if (alreadyPlaced) return;
+
+  const { data: alreadyInM11 } = await sb
+    .from('matrix_11').select('id')
+    .eq('user_id', userId).eq('sponsor_id', sponsorId).maybeSingle();
+  if (alreadyInM11) return;
+
   const { data: existingRoot } = await sb
     .from('matrix_tree').select('id')
     .eq('user_id', sponsorId).eq('owner_id', sponsorId).maybeSingle();

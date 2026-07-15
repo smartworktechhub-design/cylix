@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { validateAdminToken } from '../auth/route';
 
 export async function POST(req: Request) {
   try {
+    const token = req.headers.get('x-admin-token');
+    if (!token || !validateAdminToken(token)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const { title, message, type } = await req.json();
     if (!title || !message) {
       return NextResponse.json({ success: false, error: 'Missing title or message' }, { status: 400 });

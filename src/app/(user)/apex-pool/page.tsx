@@ -9,7 +9,7 @@ import type { ChampionsPoolState, CommunityPoolState } from '@/types';
 import {
   Trophy, Clock, Users, Loader2, Timer,
   DollarSign, TrendingUp, History, UserCheck,
-  Crown, Medal, Zap,
+  Crown, Medal, Zap, Timer as TimerIcon, Info,
 } from 'lucide-react';
 
 type PoolTab = 'champions' | 'community';
@@ -27,7 +27,7 @@ export default function ApexPoolPage() {
   const [champions, setChampions] = useState<ChampionsPoolState>({
     totalFund: 0, lastDistribution: '', nextDistributionTime: '',
     todayDistribution: 0, lifetimeDistribution: 0,
-    leaderboard: [], topCount: 10,
+    leaderboard: [], qualifiedCount: 0, totalQualifiedCount: 0,
   });
   const [community, setCommunity] = useState<CommunityPoolState>({
     totalFund: 0, lastDistribution: '', nextDistributionTime: '',
@@ -35,6 +35,7 @@ export default function ApexPoolPage() {
     qualifiedCount: 0, perPerson: 0, history: [],
   });
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
     async function load() {
@@ -54,6 +55,11 @@ export default function ApexPoolPage() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -62,12 +68,25 @@ export default function ApexPoolPage() {
     );
   }
 
-  const state = tab === 'champions' ? champions : community;
-  const nextDist = state.nextDistributionTime ? new Date(state.nextDistributionTime) : null;
-  const now = new Date();
-  const diffMs = nextDist ? nextDist.getTime() - now.getTime() : 0;
+  const getNextMidnightUTC = () => {
+    const nowUTC = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+    const next = new Date(Date.UTC(
+      nowUTC.getUTCFullYear(),
+      nowUTC.getUTCMonth(),
+      nowUTC.getUTCDate() + 1,
+      0, 0, 0
+    ));
+    return next;
+  };
+
+  const nextMidnight = getNextMidnightUTC();
+  const diffMs = nextMidnight.getTime() - now.getTime();
   const diffH = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)));
   const diffM = Math.max(0, Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)));
+  const diffS = Math.max(0, Math.floor((diffMs % (1000 * 60)) / 1000));
+  const progressPct = Math.min(100, ((24 * 60 * 60 - diffMs) / (24 * 60 * 60)) * 100);
+
+  const state = tab === 'champions' ? champions : community;
 
   return (
     <div className="space-y-6">
@@ -79,6 +98,30 @@ export default function ApexPoolPage() {
           <span className="text-[#7B61FF]">{POOL_SPLIT.communityPercent}% Community</span>
           {' | '}{ALLOCATION.poolPercent}% of purchases
         </p>
+      </div>
+
+      {/* Auto-Distribution Banner */}
+      <div className="rounded-xl border border-[rgba(0,229,255,0.15)] p-4"
+        style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.05), rgba(123,97,255,0.05))' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[rgba(0,229,255,0.1)] flex items-center justify-center shrink-0">
+            <Zap size={20} className="text-[#00E5FF]" />
+          </div>
+          <div className="flex-1">
+            <p className="text-white font-semibold text-sm">Auto-Distribution Daily at 12:00 AM UTC</p>
+            <p className="text-[#94A3B8] text-xs mt-0.5">100% of pool funds distributed automatically. Zero-hold policy.</p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-[#94A3B8] text-xs">Next Distribution</p>
+            <p className="text-white font-mono font-bold text-lg tabular-nums">
+              {String(diffH).padStart(2, '0')}:{String(diffM).padStart(2, '0')}:{String(diffS).padStart(2, '0')}
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 h-1.5 rounded-full bg-[rgba(0,229,255,0.08)] overflow-hidden">
+          <div className="h-full rounded-full transition-all duration-1000"
+            style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #00E5FF, #7B61FF)' }} />
+        </div>
       </div>
 
       {/* Tabs */}
@@ -95,7 +138,7 @@ export default function ApexPoolPage() {
             tab === 'community'
               ? 'bg-[rgba(123,97,255,0.08)] border-[rgba(123,97,255,0.2)] text-[#7B61FF]'
               : 'border-transparent text-[#4A5568] hover:text-white hover:bg-[rgba(123,97,255,0.03)]')}>
-          <Users size={16} /> Community Pool
+          <Users size={16} /> Active Pool
         </button>
       </div>
 
@@ -129,10 +172,10 @@ export default function ApexPoolPage() {
               </div>
             </div>
             <p className="text-2xl font-bold font-mono text-white">
-              {tab === 'champions' ? formatNumber(champions.leaderboard.length) : formatNumber(community.qualifiedCount)}
+              {tab === 'champions' ? formatNumber(champions.qualifiedCount) : formatNumber(community.qualifiedCount)}
             </p>
             <p className="text-xs text-[#94A3B8] mt-1">
-              {tab === 'champions' ? `Top ${champions.topCount} daily performers` : 'Users with 1+ active direct'}
+              {tab === 'champions' ? '≥1 direct + team activity' : 'Active + team activity'}
             </p>
           </CardContent>
         </Card>
@@ -171,7 +214,7 @@ export default function ApexPoolPage() {
             <div className="flex items-center gap-2">
               <Timer size={18} className={tab === 'champions' ? 'text-[#00E5FF]' : 'text-[#7B61FF]'} />
               <h3 className="text-lg font-semibold text-white font-heading">
-                {tab === 'champions' ? 'Champions Pool' : 'Active Community Pool'}
+                {tab === 'champions' ? 'Champions Pool' : 'Active Pool'}
               </h3>
             </div>
           </CardHeader>
@@ -179,18 +222,24 @@ export default function ApexPoolPage() {
             {/* Timer + Info */}
             <div className="p-6 rounded-xl bg-[rgba(11,16,32,0.5)]">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-[#94A3B8]">Next Distribution Timer</span>
+                <span className="text-sm text-[#94A3B8]">Auto-Distribution at 12:00 AM UTC</span>
                 <div className="flex items-center gap-2">
                   <Clock size={14} className={tab === 'champions' ? 'text-[#00E5FF]' : 'text-[#7B61FF]'} />
-                  <span className="text-lg font-mono font-bold text-white">{diffH}h {diffM}m</span>
+                  <span className="text-lg font-mono font-bold text-white tabular-nums">
+                    {String(diffH).padStart(2, '0')}h {String(diffM).padStart(2, '0')}m {String(diffS).padStart(2, '0')}s
+                  </span>
                 </div>
+              </div>
+              <div className="h-1.5 rounded-full bg-[rgba(0,229,255,0.08)] overflow-hidden mb-3">
+                <div className="h-full rounded-full transition-all duration-1000"
+                  style={{ width: `${progressPct}%`, background: tab === 'champions' ? 'linear-gradient(90deg, #00E5FF, #7B61FF)' : 'linear-gradient(90deg, #7B61FF, #00FFB2)' }} />
               </div>
               <div className="flex items-center gap-2">
                 <Zap size={14} className="text-[#94A3B8]" />
                 <span className="text-xs text-[#94A3B8]">
                   {tab === 'champions'
-                    ? `${champions.leaderboard.length} top performers share ${formatCurrency(champions.totalFund)}`
-                    : `${community.qualifiedCount} eligible members share ${formatCurrency(community.totalFund)}`
+                    ? `${champions.qualifiedCount} qualified champions — ${formatCurrency(champions.totalFund)} pool`
+                    : `${community.qualifiedCount} qualified members — ${formatCurrency(community.totalFund)} pool`
                   }
                 </span>
               </div>
@@ -221,10 +270,10 @@ export default function ApexPoolPage() {
                     {champions.leaderboard.map((entry) => {
                       const rankColor = entry.rank === 1 ? '#FFB800' : entry.rank === 2 ? '#94A3B8' : entry.rank === 3 ? '#CD7F32' : '#4A5568';
                       return (
-                        <div key={entry.userId} className="flex items-center justify-between p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(0,229,255,0.03)]">
+                        <div key={entry.userId} className={`flex items-center justify-between p-3 rounded-xl border ${entry.qualified ? 'bg-[rgba(0,255,178,0.02)] border-[rgba(0,255,178,0.08)]' : 'bg-[rgba(11,16,32,0.5)] border-[rgba(0,229,255,0.03)]'}`}>
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
-                              style={{ background: `${rankColor}15`, color: rankColor }}>
+                              style={{ background: entry.qualified ? `${rankColor}20` : `${rankColor}10`, color: entry.qualified ? rankColor : '#4A5568' }}>
                               #{entry.rank}
                             </div>
                             <div>
@@ -239,6 +288,7 @@ export default function ApexPoolPage() {
                           <div className="text-right">
                             <p className="text-sm font-mono font-bold" style={{ color: rankColor }}>{formatCurrency(entry.reward)}</p>
                             <p className="text-[10px] text-[#4A5568]">score: {entry.score.toFixed(0)}</p>
+                            {entry.qualified && <p className="text-[10px] text-[#00FFB2]">qualified</p>}
                           </div>
                         </div>
                       );
@@ -320,44 +370,43 @@ export default function ApexPoolPage() {
           <CardContent>
             {tab === 'champions' ? (
               <div className="space-y-3">
-                <p className="text-xs text-[#94A3B8]">Top {champions.topCount} performers every 24h share the Champions Pool:</p>
+                <p className="text-xs text-[#94A3B8]">Qualification requirements:</p>
                 <div className="space-y-2">
-                  {[
-                    { label: 'Referrals', desc: '10 pts each', icon: Users, color: '#00E5FF' },
-                    { label: 'Package Purchases', desc: '5 pts each', icon: TrendingUp, color: '#00FFB2' },
-                    { label: 'Business Volume', desc: '1 pt per $1K', icon: DollarSign, color: '#FFB800' },
-                  ].map((item) => (
-                    <div key={item.label} className="flex items-center gap-3 p-3 rounded-lg bg-[rgba(11,16,32,0.5)] border border-[rgba(0,229,255,0.03)]">
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${item.color}10` }}>
-                        <item.icon size={14} className={`text-[${item.color}]`} />
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-white">{item.label}</p>
-                        <p className="text-[10px] text-[#4A5568]">{item.desc}</p>
-                      </div>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-[rgba(0,229,255,0.03)] border border-[rgba(0,229,255,0.06)]">
+                    <Users size={16} className="text-[#00E5FF]" />
+                    <div>
+                      <p className="text-xs font-semibold text-white">At least 1 active direct referral</p>
+                      <p className="text-[10px] text-[#4A5568]">Must have sponsored at least one member</p>
                     </div>
-                  ))}
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-[rgba(0,229,255,0.03)] border border-[rgba(0,229,255,0.06)]">
+                    <Zap size={16} className="text-[#00E5FF]" />
+                    <div>
+                      <p className="text-xs font-semibold text-white">Team Activity in 24h</p>
+                      <p className="text-[10px] text-[#4A5568]">New placements under your team in the last 24 hours</p>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-[10px] text-[#4A5568] mt-2">Resets every 24 hours. Rewards auto-distributed.</p>
+                <p className="text-[10px] text-[#4A5568] mt-2">Qualified members share equally. If no one qualifies, funds carry forward.</p>
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-xs text-[#94A3B8]">Requirements to qualify for Community Pool:</p>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-[rgba(0,255,178,0.03)] border border-[rgba(0,255,178,0.06)]">
-                  <UserCheck size={16} className="text-[#00FFB2]" />
+                <p className="text-xs text-[#94A3B8]">Qualification requirements:</p>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-[rgba(123,97,255,0.03)] border border-[rgba(123,97,255,0.06)]">
+                  <UserCheck size={16} className="text-[#7B61FF]" />
                   <div>
-                    <p className="text-xs font-semibold text-white">At least 1 active direct referral</p>
-                    <p className="text-[10px] text-[#4A5568]">Must have sponsored at least one active member</p>
+                    <p className="text-xs font-semibold text-white">Active Slot</p>
+                    <p className="text-[10px] text-[#4A5568]">Must have at least one active package</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-[rgba(0,229,255,0.03)] border border-[rgba(0,229,255,0.06)]">
-                  <Zap size={16} className="text-[#00E5FF]" />
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-[rgba(123,97,255,0.03)] border border-[rgba(123,97,255,0.06)]">
+                  <Zap size={16} className="text-[#7B61FF]" />
                   <div>
-                    <p className="text-xs font-semibold text-white">24h qualifying activity</p>
-                    <p className="text-[10px] text-[#4A5568]">One activity per cycle (referral, purchase, upgrade, or re-buy)</p>
+                    <p className="text-xs font-semibold text-white">Team Activity in 24h</p>
+                    <p className="text-[10px] text-[#4A5568]">New placements under your team in the last 24 hours</p>
                   </div>
                 </div>
-                <p className="text-[10px] text-[#4A5568] mt-2">Rewards shared equally among all eligible members.</p>
+                <p className="text-[10px] text-[#4A5568] mt-2">Qualified members share equally. If no one qualifies, funds carry forward.</p>
               </div>
             )}
 

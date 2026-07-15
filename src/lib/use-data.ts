@@ -49,10 +49,6 @@ export function useInitData() {
         }
         setUser(user as any);
         fetch('/api/user/save-ip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }).catch(() => {});
-        await processSlotEarnings(user.id);
-        try {
-          if (await checkApexPoolDistribution()) await distributeApexPool();
-        } catch (_) { /* pool dist non-critical */ }
         const [slots, txs, wds, notifs, earnings, referrals, vault] = await Promise.all([
           getUserSlots(user.id),
           getTransactions(user.id),
@@ -72,6 +68,15 @@ export function useInitData() {
         setActivities([]);
         const stats = await getAdminStats();
         setAdminStats(stats);
+        processSlotEarnings(user.id).then(() => {
+          getUserSlots(user.id).then(s => setSlots(s as any));
+          getUserEarnings(user.id).then(e => setEarnings(e));
+          getAscensionVault(user.id).then(v => setVault(v));
+          getTransactions(user.id).then(t => setTransactions(t as any));
+        }).catch(() => {});
+        try {
+          if (await checkApexPoolDistribution()) distributeApexPool().catch(() => {});
+        } catch (_) { /* pool dist non-critical */ }
       } catch (err) {
         console.error('Data load error:', err);
       } finally {
