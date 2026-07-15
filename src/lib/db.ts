@@ -1,4 +1,4 @@
-import { getSupabase } from './supabase';
+import { getSupabase, getServiceSupabase } from './supabase';
 import { SLOTS, MATRIX_LEVELS, APEX_POOL, SLOT_CONFIG, REBUY_MAX, ALLOCATION, POOL_SPLIT, CHAMPIONS_POOL, ACTIVE_POOL } from './constants';
 import type { User, UserSlot, Transaction, Withdrawal, Notification, Earnings, Referral, AdminStats, ApexPoolState, AscensionVault, ChampionsPoolState, CommunityPoolState, ChampionsEntry } from '@/types';
 
@@ -1278,7 +1278,7 @@ export async function getActiveCampaign(): Promise<any | null> {
 
 export async function getAllCampaigns(): Promise<any[]> {
   try {
-    const { data } = await sb().from('campaigns')
+    const { data } = await getServiceSupabase().from('campaigns')
       .select('*').order('created_at', { ascending: false });
     return data || [];
   } catch { return []; }
@@ -1288,7 +1288,7 @@ export async function createCampaign(name: string, description: string, duration
   const startTime = new Date().toISOString();
   const endTime = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
   try {
-    const { data, error } = await sb().from('campaigns').insert({
+    const { data, error } = await getServiceSupabase().from('campaigns').insert({
       name, description, duration_hours: durationHours,
       reward_per_referral: rewardPerReferral,
       min_referrals_required: minReferrals,
@@ -1301,14 +1301,14 @@ export async function createCampaign(name: string, description: string, duration
 
 export async function toggleCampaign(campaignId: string, enabled: boolean): Promise<boolean> {
   try {
-    const { error } = await sb().from('campaigns').update({ is_enabled: enabled }).eq('id', campaignId);
+    const { error } = await getServiceSupabase().from('campaigns').update({ is_enabled: enabled }).eq('id', campaignId);
     return !error;
   } catch { return false; }
 }
 
 export async function getCampaignRequests(campaignId?: string): Promise<any[]> {
   try {
-    let query = sb().from('campaign_requests').select('*, users!campaign_requests_user_id_fkey(wallet, referral_code)');
+    let query = getServiceSupabase().from('campaign_requests').select('*, users!campaign_requests_user_id_fkey(wallet, referral_code)');
     if (campaignId) query = query.eq('campaign_id', campaignId);
     const { data } = await query.order('created_at', { ascending: false });
     return data || [];
@@ -1353,7 +1353,7 @@ export async function updateCampaignRequest(requestId: string, status: string, a
     const update: any = { status, reviewed_at: new Date().toISOString() };
     if (adminNote) update.admin_note = adminNote;
     if (status === 'paid') update.paid_at = new Date().toISOString();
-    const { error } = await sb().from('campaign_requests').update(update).eq('id', requestId);
+    const { error } = await getServiceSupabase().from('campaign_requests').update(update).eq('id', requestId);
     return !error;
   } catch { return false; }
 }
