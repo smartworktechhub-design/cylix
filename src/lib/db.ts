@@ -166,11 +166,12 @@ function generateReferralCode(): string {
 }
 
 // ─── 2x11 FORCED BINARY MATRIX WITH ZERO-DEPTH SPILLOVER ───
+// Root is level 0 (1 node), L1=2, L2=4, ..., L11=2048 → total 4095
 
 // Find first empty position in owner's tree using BFS level-order
 async function findEmptyPosition(ownerId: string): Promise<{ parentNodeId: string | null; side: 'left' | 'right'; level: number } | null> {
   const { data: root } = await sb().from('matrix_tree').select('id').eq('user_id', ownerId).eq('owner_id', ownerId).maybeSingle();
-  if (!root) return { parentNodeId: null, side: 'left', level: 1 }; // Tree empty, place as root
+  if (!root) return { parentNodeId: null, side: 'left', level: 0 }; // Tree empty, place as root (level 0)
 
   const { data: allNodes } = await sb().from('matrix_tree')
     .select('id, parent_id, side, level')
@@ -179,31 +180,31 @@ async function findEmptyPosition(ownerId: string): Promise<{ parentNodeId: strin
   if (!allNodes) return null;
 
   // BFS to find first empty left or right child
-  const levelBreaker = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
+  // Level 0 = root, Level 1 = L1 (2 nodes), ..., Level 11 = L11 (2048 nodes)
   for (const node of allNodes) {
-    if (node.level >= 11) continue;
+    if (node.level >= 11) continue; // L11 is the max level
     const hasLeft = allNodes.some((n: any) => n.parent_id === node.id && n.side === 'left');
     const hasRight = allNodes.some((n: any) => n.parent_id === node.id && n.side === 'right');
     if (!hasLeft) return { parentNodeId: node.id, side: 'left', level: node.level + 1 };
     if (!hasRight) return { parentNodeId: node.id, side: 'right', level: node.level + 1 };
   }
 
-  // Also check direct left/right under root at level 2 if BFS missed them
+  // Also check direct left/right under root at level 1 if BFS missed them
   const hasLeft = allNodes.some((n: any) => n.parent_id === root.id && n.side === 'left');
   const hasRight = allNodes.some((n: any) => n.parent_id === root.id && n.side === 'right');
-  if (!hasLeft) return { parentNodeId: root.id, side: 'left', level: 2 };
-  if (!hasRight) return { parentNodeId: root.id, side: 'right', level: 2 };
+  if (!hasLeft) return { parentNodeId: root.id, side: 'left', level: 1 };
+  if (!hasRight) return { parentNodeId: root.id, side: 'right', level: 1 };
 
   return null; // Full tree
 }
 
 export async function addToMatrix(sponsorId: string, userId: string): Promise<void> {
-  // Ensure sponsor has a root node
+  // Ensure sponsor has a root node (level 0)
   const { data: sponsorRoot } = await sb().from('matrix_tree').select('id').eq('user_id', sponsorId).eq('owner_id', sponsorId).maybeSingle();
   if (!sponsorRoot) {
     await sb().from('matrix_tree').insert({
       user_id: sponsorId, owner_id: sponsorId,
-      parent_id: null, side: null, level: 1, position: 1,
+      parent_id: null, side: null, level: 0, position: 1,
     });
   }
 

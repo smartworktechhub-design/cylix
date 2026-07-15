@@ -188,7 +188,7 @@ async function addToMatrix(sb: any, sponsorId: string, userId: string) {
 
   if (!existingRoot) {
     await sb.from('matrix_tree').insert({
-      user_id: sponsorId, owner_id: sponsorId, side: null, level: 1, position: 0,
+      user_id: sponsorId, owner_id: sponsorId, side: null, level: 0, position: 0,
     });
   }
 
@@ -219,12 +219,12 @@ async function addToMatrix(sb: any, sponsorId: string, userId: string) {
       }
     }
     if (!placed) {
-      const root = allNodes.find((n: any) => n.level === 1);
+      const root = allNodes.find((n: any) => n.level === 0);
       if (root) {
         const hasLeft = allNodes.some((n: any) => n.parent_id === root.id && n.side === 'left');
         await sb.from('matrix_tree').insert({
           user_id: userId, owner_id: sponsorId, parent_id: root.id,
-          side: hasLeft ? 'right' : 'left', level: 2, position: allNodes.length,
+          side: hasLeft ? 'right' : 'left', level: 1, position: allNodes.length,
         });
       }
     }
