@@ -2,31 +2,34 @@
 
 import { useState, useEffect } from 'react';
 import { useAccount, useConnect } from 'wagmi';
-import { useAppStore } from '@/stores/app-store';
 import { getUserByWallet } from '@/lib/db';
-import { Orbit, Wallet, ArrowRight, Users, Shield, Globe, Link as LinkIcon, Loader2, CheckCheck, Copy } from 'lucide-react';
+import { Orbit, ArrowRight, Loader2 } from 'lucide-react';
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false);
   const [referralCode, setReferralCode] = useState('');
   const [refError, setRefError] = useState('');
-  const [refSubmitting, setRefSubmitting] = useState(false);
-  const [checking, setChecking] = useState(false);
   const { isConnected, address } = useAccount();
   const { connect, connectors } = useConnect();
-  const { setUser, setNeedsReferral } = useAppStore();
-  const [copied, setCopied] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [showWallets, setShowWallets] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) {
+      setReferralCode(ref.toUpperCase());
+      localStorage.setItem('cylix_ref', ref.toUpperCase());
+    }
+  }, []);
 
   useEffect(() => {
     if (!isConnected || !address) return;
     setChecking(true);
     getUserByWallet(address).then(user => {
-      if (user) {
-        window.location.href = '/dashboard';
-      }
-      setChecking(false);
+      if (user) window.location.href = '/dashboard';
+      else setChecking(false);
     }).catch(() => setChecking(false));
   }, [isConnected, address]);
 
@@ -36,6 +39,7 @@ export default function HomePage() {
       return;
     }
     setRefError('');
+    localStorage.setItem('cylix_ref', referralCode.trim().toUpperCase());
     try {
       connect({ connector: connectors[connectorIndex] });
     } catch {}
@@ -50,218 +54,176 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] flex flex-col">
-      {/* Navbar */}
-      <nav className="border-b border-[rgba(0,229,255,0.08)] backdrop-blur-xl" style={{ background: 'rgba(5,8,22,0.92)' }}>
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center shadow-lg shadow-[rgba(0,229,255,0.15)]">
-              <Orbit size={20} className="text-[#050816]" />
-            </div>
-            <div>
-              <h1 className="text-sm font-bold text-white" style={{ fontFamily: "'Orbitron',sans-serif" }}>CYLIX MATRIX</h1>
-              <p className="text-[8px] text-[#4A5568] uppercase tracking-wider">DeFi Ecosystem</p>
-            </div>
+    <div className="min-h-screen bg-[#050816] flex flex-col relative overflow-hidden">
+      {/* BG */}
+      <div className="absolute top-[-300px] left-[-200px] w-[700px] h-[700px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(0,229,255,0.03) 0%, transparent 70%)' }} />
+      <div className="absolute bottom-[-300px] right-[-200px] w-[600px] h-[600px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(123,97,255,0.025) 0%, transparent 70%)' }} />
+
+      {/* Header */}
+      <header className="relative z-10 px-4 py-4 flex items-center justify-between max-w-lg mx-auto w-full">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center shadow-lg shadow-[rgba(0,229,255,0.12)]">
+            <Orbit size={18} className="text-[#050816]" />
           </div>
-          <div className="flex items-center gap-3">
-            {isConnected && (
-              <a href="/dashboard" className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-[#050816] transition-all hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #00E5FF, #7B61FF)' }}>
-                Dashboard
-                <ArrowRight size={12} />
-              </a>
-            )}
-          </div>
+          <span className="text-sm font-bold text-white tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>CYLIX</span>
         </div>
-      </nav>
+        <span className="text-[8px] px-2 py-1 rounded-full bg-[rgba(0,229,255,0.06)] text-[#00E5FF] font-bold uppercase tracking-wider">Matrix DeFi</span>
+      </header>
 
-      {/* Hero */}
-      <div className="flex-1 flex items-center justify-center px-4 py-12 relative overflow-hidden">
-        {/* BG Effects */}
-        <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(0,229,255,0.04) 0%, transparent 70%)' }} />
-        <div className="absolute bottom-[-200px] right-[-200px] w-[500px] h-[500px] rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(123,97,255,0.03) 0%, transparent 70%)' }} />
-
-        <div className="relative z-10 w-full max-w-md mx-auto">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-5 relative z-10">
+        <div className="w-full max-w-sm">
           {/* Logo */}
-          <div className="text-center mb-8">
-            <img src="/logo-wide.png" alt="CYLIX" className="w-[280px] mx-auto mb-3 drop-shadow-[0_0_30px_rgba(0,229,255,0.15)]" />
-            <p className="text-xs tracking-[0.4em] text-white/40 font-medium uppercase"
-              style={{ fontFamily: "'Rajdhani',sans-serif" }}>
-              Matrix DeFi
+          <div className="text-center mb-10">
+            <img src="/logo-wide.png" alt="CYLIX" className="w-[240px] mx-auto mb-2 drop-shadow-[0_0_40px_rgba(0,229,255,0.12)]" />
+            <p className="text-[10px] tracking-[0.5em] text-white/30 uppercase" style={{ fontFamily: "'Rajdhani',sans-serif" }}>
+              Autoflow Ecosystem
             </p>
           </div>
 
-          {/* Main Box */}
-          <div className="rounded-2xl overflow-hidden p-[1px]" style={{ background: 'linear-gradient(135deg, #00E5FF, #7B61FF, #00E5FF)' }}>
-            <div className="rounded-2xl p-6" style={{ background: 'linear-gradient(135deg, rgba(9,11,20,0.97), rgba(22,32,52,0.97))' }}>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center shadow-lg">
-                  <LinkIcon size={18} className="text-[#050816]" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-white" style={{ fontFamily: "'Orbitron',sans-serif" }}>ENTER WITH REFERRAL</h2>
-                  <p className="text-[10px] text-[#94A3B8]">Referral code is mandatory to join</p>
-                </div>
-              </div>
-
-              {/* Referral Input */}
-              <div className="mb-4">
-                <label className="block text-xs font-medium text-[#94A3B8] mb-2">Referral Code</label>
-                <input
-                  type="text"
-                  value={referralCode}
-                  onChange={(e) => { setReferralCode(e.target.value.toUpperCase()); setRefError(''); }}
-                  placeholder="Enter referral code (e.g. CXLXXXXX)"
-                  className="w-full h-12 px-4 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#94A3B8]/40 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)] transition-all font-mono"
-                />
-                {refError && <p className="text-[#FF5C7A] text-xs mt-2">{refError}</p>}
-              </div>
-
-              {/* Wallet Connect Buttons */}
+          {/* Card */}
+          <div className="rounded-2xl p-[1px] mb-4" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.3), rgba(123,97,255,0.3))' }}>
+            <div className="rounded-2xl p-5" style={{ background: 'rgba(9,11,20,0.95)' }}>
               {isConnected ? (
                 checking ? (
-                  <div className="w-full h-12 rounded-xl flex items-center justify-center gap-2" style={{ background: 'rgba(0,229,255,0.1)' }}>
-                    <Loader2 size={16} className="animate-spin text-[#00E5FF]" />
-                    <span className="text-xs text-[#00E5FF] font-semibold">Checking account...</span>
+                  <div className="text-center py-6">
+                    <Loader2 size={28} className="animate-spin text-[#00E5FF] mx-auto mb-3" />
+                    <p className="text-xs text-[#94A3B8]">Connecting your account...</p>
                   </div>
                 ) : (
-                  <a href="/dashboard" className="w-full h-12 rounded-xl flex items-center justify-center gap-2 text-[#050816] font-semibold text-sm transition-all hover:opacity-90"
-                    style={{ background: 'linear-gradient(135deg, #00E5FF, #7B61FF)' }}>
-                    Go to Dashboard
-                    <ArrowRight size={14} />
-                  </a>
+                  <div className="text-center py-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center mx-auto mb-3">
+                      <Orbit size={22} className="text-[#050816]" />
+                    </div>
+                    <p className="text-xs text-[#94A3B8] mb-4">Connected! Redirecting to dashboard...</p>
+                    <a href="/dashboard" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-[#050816] transition-all hover:opacity-90"
+                      style={{ background: 'linear-gradient(135deg, #00E5FF, #7B61FF)' }}>
+                      Go to Dashboard <ArrowRight size={14} />
+                    </a>
+                  </div>
                 )
               ) : (
-                <div className="space-y-2">
-                  {connectors.map((connector, i) => (
-                    <button
-                      key={connector.uid}
-                      onClick={() => handleConnect(i)}
-                      disabled={!referralCode.trim()}
-                      className="w-full h-12 rounded-xl flex items-center justify-center gap-2.5 font-semibold text-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                      style={{
-                        background: referralCode.trim()
-                          ? 'linear-gradient(135deg, #00E5FF, #7B61FF)'
-                          : 'rgba(0,229,255,0.1)',
-                        color: referralCode.trim() ? '#050816' : '#4A5568',
-                      }}
-                    >
-                      <Wallet size={16} />
-                      Connect {connector.name}
-                    </button>
-                  ))}
-                </div>
+                <>
+                  {/* Referral Input */}
+                  <div className="mb-4">
+                    <input
+                      type="text"
+                      value={referralCode}
+                      onChange={(e) => { setReferralCode(e.target.value.toUpperCase()); setRefError(''); }}
+                      placeholder="Enter referral code"
+                      className="w-full h-12 px-4 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#94A3B8]/40 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)] transition-all font-mono tracking-wider"
+                    />
+                    {refError && <p className="text-[#FF5C7A] text-[11px] mt-1.5">{refError}</p>}
+                  </div>
+
+                  {/* Single Connect Button */}
+                  <button
+                    onClick={() => {
+                      if (!referralCode.trim()) { setRefError('Referral code is required'); return; }
+                      setRefError('');
+                      setShowWallets(true);
+                    }}
+                    className="w-full h-12 rounded-xl font-bold text-sm transition-all hover:opacity-90 flex items-center justify-center gap-2"
+                    style={{
+                      background: referralCode.trim()
+                        ? 'linear-gradient(135deg, #00E5FF, #7B61FF)'
+                        : 'rgba(0,229,255,0.08)',
+                      color: referralCode.trim() ? '#050816' : '#4A5568',
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" />
+                    </svg>
+                    Connect Wallet
+                  </button>
+                </>
               )}
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-3 mt-6">
-            <div className="rounded-xl p-3 text-center border border-[rgba(0,229,255,0.06)]" style={{ background: 'rgba(22,32,52,0.6)' }}>
-              <Shield size={16} className="text-[#00E5FF] mx-auto mb-1.5" />
-              <p className="text-[10px] font-bold text-white">Secure</p>
-              <p className="text-[8px] text-[#4A5568]">BEP20 USDT</p>
+          {/* Small Stats */}
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#00E5FF]" />
+              <span className="text-[9px] text-[#4A5568]">3% Daily</span>
             </div>
-            <div className="rounded-xl p-3 text-center border border-[rgba(123,97,255,0.06)]" style={{ background: 'rgba(22,32,52,0.6)' }}>
-              <Globe size={16} className="text-[#7B61FF] mx-auto mb-1.5" />
-              <p className="text-[10px] font-bold text-white">DeFi</p>
-              <p className="text-[8px] text-[#4A5568]">Decentralized</p>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#7B61FF]" />
+              <span className="text-[9px] text-[#4A5568]">2x11 Matrix</span>
             </div>
-            <div className="rounded-xl p-3 text-center border border-[rgba(0,255,178,0.06)]" style={{ background: 'rgba(22,32,52,0.6)' }}>
-              <Users size={16} className="text-[#00FFB2] mx-auto mb-1.5" />
-              <p className="text-[10px] font-bold text-white">Community</p>
-              <p className="text-[8px] text-[#4A5568]">Driven Growth</p>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#00FFB2]" />
+              <span className="text-[9px] text-[#4A5568]">From $5</span>
             </div>
           </div>
 
-          {/* Features */}
-          <div className="mt-6 space-y-3">
-            <div className="rounded-xl p-4 border border-[rgba(0,229,255,0.06)]" style={{ background: 'rgba(22,32,52,0.4)' }}>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,229,255,0.1)' }}>
-                  <span className="text-xs font-bold text-[#00E5FF]">3%</span>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-white">Daily Yield</p>
-                  <p className="text-[10px] text-[#4A5568]">Up to 200% cap on every slot</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-xl p-4 border border-[rgba(123,97,255,0.06)]" style={{ background: 'rgba(22,32,52,0.4)' }}>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(123,97,255,0.1)' }}>
-                  <span className="text-xs font-bold text-[#7B61FF]">2x11</span>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-white">Forced Binary Matrix</p>
-                  <p className="text-[10px] text-[#4A5568]">4095 positions, BFS spillover</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-xl p-4 border border-[rgba(255,184,0,0.06)]" style={{ background: 'rgba(22,32,52,0.4)' }}>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,184,0,0.1)' }}>
-                  <span className="text-xs font-bold text-[#FFB800]">$5</span>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-white">Start from $5</p>
-                  <p className="text-[10px] text-[#4A5568]">11 levels up to $100K</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Tagline */}
+          <p className="text-center text-[10px] text-white/20 leading-relaxed">
+            Built for Automation, Transparency, and Community-Driven Growth.<br />
+            <span className="text-[#00E5FF]/60">Be Ready. Be Early. Be CYLIX.</span>
+          </p>
         </div>
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-[rgba(0,229,255,0.06)] mt-auto" style={{ background: 'rgba(5,8,22,0.95)' }}>
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center">
-                  <Orbit size={14} className="text-[#050816]" />
-                </div>
-                <span className="text-xs font-bold text-white" style={{ fontFamily: "'Orbitron',sans-serif" }}>CYLIX</span>
-              </div>
-              <p className="text-[10px] text-[#4A5568] leading-relaxed">Decentralized Matrix DeFi Ecosystem for community-driven growth.</p>
+      <footer className="relative z-10 px-4 py-3 text-center">
+        <div className="flex items-center justify-center gap-4 mb-2">
+          <a href="/about" className="text-[9px] text-white/15 hover:text-white/30 transition-colors">About</a>
+          <a href="/privacy-policy" className="text-[9px] text-white/15 hover:text-white/30 transition-colors">Privacy</a>
+          <a href="/terms" className="text-[9px] text-white/15 hover:text-white/30 transition-colors">Terms</a>
+          <a href="/risk-disclosure" className="text-[9px] text-white/15 hover:text-white/30 transition-colors">Risk</a>
+          <a href="/disclaimer" className="text-[9px] text-white/15 hover:text-white/30 transition-colors">Disclaimer</a>
+        </div>
+        <p className="text-[8px] text-white/10">&copy; 2026 CYLIX MATRIX</p>
+      </footer>
+
+      {/* Wallet Connect Modal */}
+      {showWallets && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowWallets(false)} />
+          <div className="relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl overflow-hidden" style={{ background: 'rgba(14,18,32,0.98)', border: '1px solid rgba(0,229,255,0.1)' }}>
+            {/* Handle bar mobile */}
+            <div className="sm:hidden flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-white/10" />
             </div>
-            <div>
-              <p className="text-[10px] font-bold text-white uppercase tracking-wider mb-2">Platform</p>
-              <div className="space-y-1.5">
-                <a href="https://app.cylixdefi.live/dashboard" className="block text-[10px] text-[#94A3B8] hover:text-[#00E5FF] transition-colors">Dashboard</a>
-                <a href="https://app.cylixdefi.live/slots" className="block text-[10px] text-[#94A3B8] hover:text-[#00E5FF] transition-colors">Packages</a>
-                <a href="https://app.cylixdefi.live/matrix" className="block text-[10px] text-[#94A3B8] hover:text-[#00E5FF] transition-colors">Matrix</a>
-                <a href="https://app.cylixdefi.live/earnings" className="block text-[10px] text-[#94A3B8] hover:text-[#00E5FF] transition-colors">Earnings</a>
-                <a href="https://app.cylixdefi.live/referrals" className="block text-[10px] text-[#94A3B8] hover:text-[#00E5FF] transition-colors">Referrals</a>
-                <a href="https://app.cylixdefi.live/withdrawals" className="block text-[10px] text-[#94A3B8] hover:text-[#00E5FF] transition-colors">Withdrawals</a>
+
+            <div className="p-5">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-sm font-bold text-white" style={{ fontFamily: "'Orbitron',sans-serif" }}>Connect Wallet</h3>
+                <button onClick={() => setShowWallets(false)} className="text-[#4A5568] hover:text-white text-lg transition-colors">&times;</button>
               </div>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-white uppercase tracking-wider mb-2">Resources</p>
-              <div className="space-y-1.5">
-                <a href="/about" className="block text-[10px] text-[#94A3B8] hover:text-[#00E5FF] transition-colors">About</a>
-                <a href="/terms" className="block text-[10px] text-[#94A3B8] hover:text-[#00E5FF] transition-colors">Terms of Service</a>
-                <a href="/privacy-policy" className="block text-[10px] text-[#94A3B8] hover:text-[#00E5FF] transition-colors">Privacy Policy</a>
-                <a href="/risk-disclosure" className="block text-[10px] text-[#94A3B8] hover:text-[#00E5FF] transition-colors">Risk Disclosure</a>
-                <a href="/disclaimer" className="block text-[10px] text-[#94A3B8] hover:text-[#00E5FF] transition-colors">Disclaimer</a>
+
+              <div className="space-y-2.5">
+                {connectors.map((connector, i) => (
+                  <button
+                    key={connector.uid}
+                    onClick={() => handleConnect(i)}
+                    className="w-full h-14 rounded-xl flex items-center gap-3 px-4 transition-all hover:bg-[rgba(0,229,255,0.05)]"
+                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center shrink-0">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#050816" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" />
+                      </svg>
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-white">{connector.name}</p>
+                      <p className="text-[9px] text-[#4A5568]">Browser Extension</p>
+                    </div>
+                    <ArrowRight size={14} className="text-[#4A5568] ml-auto" />
+                  </button>
+                ))}
               </div>
+
+              <p className="text-center text-[9px] text-[#4A5568] mt-4">
+                By connecting, you agree to our <a href="/terms" className="text-[#00E5FF] hover:underline">Terms</a>
+              </p>
             </div>
-            <div>
-              <p className="text-[10px] font-bold text-white uppercase tracking-wider mb-2">Community</p>
-              <div className="space-y-1.5">
-                <a href="https://t.me/cylixdefi" target="_blank" rel="noopener noreferrer" className="block text-[10px] text-[#94A3B8] hover:text-[#00E5FF] transition-colors">Telegram</a>
-                <a href="https://youtube.com/@cylixdefi" target="_blank" rel="noopener noreferrer" className="block text-[10px] text-[#94A3B8] hover:text-[#00E5FF] transition-colors">YouTube</a>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-[rgba(0,229,255,0.04)] pt-4 text-center">
-            <p className="text-[9px] text-[#4A5568]">&copy; 2026 CYLIX MATRIX DeFi. All rights reserved.</p>
           </div>
         </div>
-      </footer>
+      )}
     </div>
   );
 }
