@@ -14,7 +14,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { wallet, displayName, sponsorCode, slotId } = await req.json();
+    const { wallet, displayName, sponsorCode, slotId, slotIds, roiEnabled } = await req.json();
 
     if (!wallet || !sponsorCode) {
       return NextResponse.json({ error: 'Wallet address and referral code are required' }, { status: 400 });
@@ -24,8 +24,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid wallet address format' }, { status: 400 });
     }
 
-    if (slotId && !SLOTS.find(s => s.id === slotId)) {
-      return NextResponse.json({ error: 'Invalid slot ID' }, { status: 400 });
+    const selectedSlots: string[] = [];
+    if (slotIds && Array.isArray(slotIds)) {
+      for (const sid of slotIds) {
+        if (SLOTS.find(s => s.id === sid)) selectedSlots.push(sid);
+      }
+    } else if (slotId && SLOTS.find(s => s.id === slotId)) {
+      selectedSlots.push(slotId);
     }
 
     const sb = getServiceSupabase();
@@ -48,7 +53,7 @@ export async function POST(req: Request) {
       sponsor_id: sponsor.id,
       display_name: displayName?.trim() || '',
       is_active: true,
-      roi_enabled: false,
+      roi_enabled: roiEnabled !== false,
     }).select().single();
 
     if (createErr || !newUser) {
@@ -58,9 +63,10 @@ export async function POST(req: Request) {
     await addToMatrix(sb, sponsor.id, newUser.id);
     await updateTeamSize(sb, sponsor.id);
 
-    let slotCreated = null;
-    if (slotId) {
-      const slot = SLOTS.find(s => s.id === slotId)!;
+    let slotNames: string[] = [];
+    let totalInvested = 0;
+    for (const sid of selectedSlots) {
+      const slot = SLOTS.find(s => s.id === sid)!;
 
       const { data: slotData, error: slotErr } = await sb.from('user_slots').insert({
         user_id: newUser.id,
@@ -76,7 +82,8 @@ export async function POST(req: Request) {
       }).select().single();
 
       if (!slotErr && slotData) {
-        slotCreated = slot.name;
+        slotNames.push(slot.name);
+        totalInvested += slot.price;
 
         await sb.from('transactions').insert({
           user_id: newUser.id,
@@ -85,12 +92,12 @@ export async function POST(req: Request) {
           description: `Admin registered with ${slot.name} slot`,
         });
 
-        await sb.from('users').update({
-          total_invested: slot.price,
-        }).eq('id', newUser.id);
-
         await processMatrixCommission(sb, newUser.id, slot.price);
       }
+    }
+
+    if (totalInvested > 0) {
+      await sb.from('users').update({ total_invested: totalInvested }).eq('id', newUser.id);
     }
 
     return NextResponse.json({
@@ -101,8 +108,8 @@ export async function POST(req: Request) {
         referralCode: newCode,
         displayName: displayName || '',
         sponsorId: sponsor.id,
-        roiEnabled: false,
-        slotName: slotCreated,
+        roiEnabled: roiEnabled !== false,
+        slotNames: slotNames,
       },
     });
   } catch (e: any) {
