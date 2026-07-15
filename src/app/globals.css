@@ -20,12 +20,23 @@
   --color-glass-hover: rgba(0, 229, 255, 0.15);
 }
 
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
 body {
   background: var(--color-background);
   color: var(--color-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: contain;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
 @layer base {
@@ -55,22 +66,25 @@ body {
 @layer components {
   .glass-panel {
     background: var(--color-glass);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     border: 1px solid var(--color-glass-border);
     border-radius: 16px;
+    will-change: transform;
   }
 
   .glass-card {
     background: linear-gradient(135deg, rgba(18, 26, 43, 0.8), rgba(11, 16, 32, 0.8));
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     border: 1px solid var(--color-glass-border);
     border-radius: 16px;
-    transition: all 0.3s ease;
+    transition: border-color 0.2s ease;
+    will-change: transform;
   }
 
   .glass-card:hover {
     border-color: rgba(0, 229, 255, 0.25);
-    box-shadow: 0 0 20px rgba(0, 229, 255, 0.05);
   }
 
   .neon-border {
