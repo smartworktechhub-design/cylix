@@ -20,13 +20,6 @@ export default function ComingSoonPage() {
     );
   }
 
-  const units = [
-    { label: 'DAYS', value: t.d, color: '#00CFFF' },
-    { label: 'HOURS', value: t.h, color: '#7B2DFF' },
-    { label: 'MINS', value: t.m, color: '#00F5FF' },
-    { label: 'SECS', value: t.s, color: '#FFD700' },
-  ];
-
   return (
     <div className="min-h-screen bg-[#090B14] flex flex-col items-center justify-center relative overflow-hidden px-4">
 
