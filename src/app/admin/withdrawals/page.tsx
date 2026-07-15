@@ -7,9 +7,12 @@ import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@
 import { formatCurrency, formatDate, shortenAddress } from '@/lib/utils';
 import { getSupabase } from '@/lib/supabase';
 import { approveWithdrawal, rejectWithdrawal } from '@/lib/db';
-import { CheckCircle, XCircle, Clock, DollarSign, Loader2 } from 'lucide-react';
+import {
+  CheckCircle, XCircle, Clock, DollarSign, Loader2, Wallet,
+  Hourglass, AlertTriangle, ExternalLink, RefreshCw, Zap
+} from 'lucide-react';
 
-type TabType = 'pending' | 'approved' | 'rejected';
+type TabType = 'pending' | 'held' | 'processing' | 'completed' | 'rejected';
 
 interface WdRow {
   id: string;
@@ -20,20 +23,36 @@ interface WdRow {
   status: string;
   processedAt: string | null;
   txHash: string | null;
+  heldSince: string | null;
+  retryCount: number;
+  errorMessage: string | null;
+}
+
+interface WalletInfo {
+  walletBalance: number;
+  totalHeld: number;
+  heldCount: number;
+  pendingCount: number;
+  isConfigured: boolean;
 }
 
 const tabs: { key: TabType; label: string }[] = [
   { key: 'pending', label: 'Pending' },
-  { key: 'approved', label: 'Approved' },
+  { key: 'held', label: 'Held' },
+  { key: 'processing', label: 'Processing' },
+  { key: 'completed', label: 'Completed' },
   { key: 'rejected', label: 'Rejected' },
 ];
 
 export default function AdminWithdrawals() {
-  useEffect(() => { document.title = 'Withdrawals — CYLIX'; }, []);
+  useEffect(() => { document.title = 'Withdrawals — CYLIX Admin'; }, []);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('pending');
   const [withdrawals, setWithdrawals] = useState<WdRow[]>([]);
+  const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
+  const [processLoading, setProcessLoading] = useState(false);
+  const [processMsg, setProcessMsg] = useState<string | null>(null);
 
   async function loadWithdrawals() {
     const { data } = await getSupabase()
@@ -52,14 +71,27 @@ export default function AdminWithdrawals() {
         status: String(w.status || ''),
         processedAt: w.processed_at ? String(w.processed_at) : null,
         txHash: w.tx_hash ? String(w.tx_hash) : null,
+        heldSince: w.held_since ? String(w.held_since) : null,
+        retryCount: Number(w.retry_count || 0),
+        errorMessage: w.error_message ? String(w.error_message) : null,
       };
     }));
+  }
+
+  async function loadWalletInfo() {
+    try {
+      const res = await fetch('/api/withdrawal/balance');
+      if (res.ok) {
+        const data = await res.json();
+        setWalletInfo(data);
+      }
+    } catch { /* ignore */ }
   }
 
   useEffect(() => {
     let mounted = true;
     (async () => {
-      await loadWithdrawals();
+      await Promise.all([loadWithdrawals(), loadWalletInfo()]);
       if (mounted) setLoading(false);
     })();
     return () => { mounted = false; };
@@ -79,9 +111,48 @@ export default function AdminWithdrawals() {
     setActionLoading(null);
   }
 
+  async function handleProcessHeld() {
+    setProcessLoading(true);
+    setProcessMsg(null);
+    try {
+      const res = await fetch('/api/withdrawal/process', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${localStorage.getItem('admin_token') || ''}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setProcessMsg(data.message);
+        await Promise.all([loadWithdrawals(), loadWalletInfo()]);
+      } else {
+        setProcessMsg(data.error || 'Failed');
+      }
+    } catch {
+      setProcessMsg('Network error');
+    }
+    setProcessLoading(false);
+  }
+
   const filtered = withdrawals.filter((w) => w.status === activeTab);
   const pendingTotal = withdrawals.filter((w) => w.status === 'pending').reduce((s, w) => s + w.amount, 0);
-  const approvedTotal = withdrawals.filter((w) => w.status === 'approved').reduce((s, w) => s + w.amount, 0);
+  const heldTotal = withdrawals.filter((w) => w.status === 'held').reduce((s, w) => s + w.amount, 0);
+  const completedTotal = withdrawals.filter((w) => w.status === 'completed').reduce((s, w) => s + w.amount, 0);
+
+  const statusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge variant="success">{status}</Badge>;
+      case 'processing':
+        return <Badge variant="info" className="flex items-center gap-1"><Zap size={10} />processing</Badge>;
+      case 'held':
+        return <Badge variant="warning" className="flex items-center gap-1"><Hourglass size={10} />held</Badge>;
+      case 'pending':
+        return <Badge variant="warning">{status}</Badge>;
+      case 'rejected':
+        return <Badge variant="danger">{status}</Badge>;
+      default:
+        return <Badge variant="default">{status}</Badge>;
+    }
+  };
 
   if (loading) {
     return (
@@ -95,33 +166,90 @@ export default function AdminWithdrawals() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">Withdrawal Management</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Process and review withdrawal requests</p>
+        <p className="text-[#94A3B8] text-sm mt-1">Auto-process payouts with hot wallet</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[rgba(255,184,0,0.1)] flex items-center justify-center">
-              <Clock size={20} className="text-[#FFB800]" />
+      {walletInfo && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[rgba(0,229,255,0.1)] flex items-center justify-center">
+                <Wallet size={20} className="text-[#00E5FF]" />
+              </div>
+              <div>
+                <p className="text-[#94A3B8] text-xs">Hot Wallet Balance</p>
+                <p className="text-white font-bold font-mono text-lg">{formatCurrency(walletInfo.walletBalance)}</p>
+                {!walletInfo.isConfigured && (
+                  <p className="text-[#FF5C7A] text-xs">Not configured</p>
+                )}
+              </div>
             </div>
-            <div>
-              <p className="text-[#94A3B8] text-xs">Total Pending Amount</p>
-              <p className="text-white font-bold font-mono text-lg">{formatCurrency(pendingTotal)}</p>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[rgba(255,184,0,0.1)] flex items-center justify-center">
+                <Clock size={20} className="text-[#FFB800]" />
+              </div>
+              <div>
+                <p className="text-[#94A3B8] text-xs">Pending</p>
+                <p className="text-white font-bold font-mono text-lg">{formatCurrency(pendingTotal)}</p>
+                <p className="text-[#94A3B8] text-xs">{walletInfo.pendingCount} requests</p>
+              </div>
             </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[rgba(255,92,122,0.1)] flex items-center justify-center">
+                <Hourglass size={20} className="text-[#FF5C7A]" />
+              </div>
+              <div>
+                <p className="text-[#94A3B8] text-xs">Total On Hold</p>
+                <p className="text-white font-bold font-mono text-lg">{formatCurrency(heldTotal)}</p>
+                <p className="text-[#94A3B8] text-xs">{walletInfo.heldCount} held</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[rgba(0,255,178,0.1)] flex items-center justify-center">
+                <DollarSign size={20} className="text-[#00FFB2]" />
+              </div>
+              <div>
+                <p className="text-[#94A3B8] text-xs">Total Completed</p>
+                <p className="text-white font-bold font-mono text-lg">{formatCurrency(completedTotal)}</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {walletInfo && walletInfo.heldCount > 0 && (
+        <Card className="p-4 border border-[rgba(255,184,0,0.2)]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertTriangle size={20} className="text-[#FFB800]" />
+              <div>
+                <p className="text-white font-medium text-sm">{walletInfo.heldCount} withdrawals on hold</p>
+                <p className="text-[#94A3B8] text-xs">
+                  Total: {formatCurrency(heldTotal)} — will auto-process when wallet is funded
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              loading={processLoading}
+              onClick={handleProcessHeld}
+            >
+              <RefreshCw size={14} />
+              Process Now
+            </Button>
           </div>
+          {processMsg && (
+            <p className="text-xs text-[#00E5FF] mt-2">{processMsg}</p>
+          )}
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[rgba(0,255,178,0.1)] flex items-center justify-center">
-              <DollarSign size={20} className="text-[#00FFB2]" />
-            </div>
-            <div>
-              <p className="text-[#94A3B8] text-xs">Total Approved</p>
-              <p className="text-white font-bold font-mono text-lg">{formatCurrency(approvedTotal)}</p>
-            </div>
-          </div>
-        </Card>
-      </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -153,8 +281,8 @@ export default function AdminWithdrawals() {
                 <TableHeader>Wallet Address</TableHeader>
                 <TableHeader>Date</TableHeader>
                 <TableHeader>Status</TableHeader>
-                {activeTab === 'approved' && <TableHeader>Processed At</TableHeader>}
-                {activeTab === 'pending' && <TableHeader>Actions</TableHeader>}
+                <TableHeader>TX Hash</TableHeader>
+                {(activeTab === 'pending' || activeTab === 'held') && <TableHeader>Actions</TableHeader>}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -165,18 +293,32 @@ export default function AdminWithdrawals() {
                   <TableCell className="font-mono text-xs text-[#94A3B8]">{shortenAddress(w.wallet, 8)}</TableCell>
                   <TableCell className="text-[#94A3B8] text-xs">{formatDate(w.date)}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant={w.status === 'approved' ? 'success' : w.status === 'rejected' ? 'danger' : 'warning'}
-                    >
-                      {w.status}
-                    </Badge>
+                    {statusBadge(w.status)}
+                    {w.status === 'held' && w.errorMessage && (
+                      <p className="text-[10px] text-[#FFB800] mt-1 max-w-[160px] truncate" title={w.errorMessage}>
+                        {w.errorMessage}
+                      </p>
+                    )}
+                    {w.status === 'held' && (
+                      <p className="text-[10px] text-[#94A3B8] mt-1">Retry {w.retryCount}/5</p>
+                    )}
                   </TableCell>
-                  {activeTab === 'approved' && (
-                    <TableCell className="text-[#94A3B8] text-xs">
-                      {w.processedAt ? formatDate(w.processedAt) : '-'}
-                    </TableCell>
-                  )}
-                  {activeTab === 'pending' && (
+                  <TableCell>
+                    {w.txHash ? (
+                      <a
+                        href={`https://bscscan.com/tx/${w.txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[#00E5FF] hover:underline"
+                      >
+                        <span className="text-xs font-mono">{w.txHash.slice(0, 8)}...</span>
+                        <ExternalLink size={10} />
+                      </a>
+                    ) : (
+                      <span className="text-xs text-[#94A3B8]">--</span>
+                    )}
+                  </TableCell>
+                  {(activeTab === 'pending' || activeTab === 'held') && (
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button
@@ -204,7 +346,7 @@ export default function AdminWithdrawals() {
               ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <td colSpan={6} className="text-center text-[#94A3B8] py-8">
+                  <td colSpan={7} className="text-center text-[#94A3B8] py-8">
                     No {activeTab} withdrawals
                   </td>
                 </TableRow>

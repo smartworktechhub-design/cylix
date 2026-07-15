@@ -7,17 +7,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { getWithdrawals, getUserEarnings, requestWithdrawal } from '@/lib/db';
+import { getWithdrawals, getUserEarnings } from '@/lib/db';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
 import {
   Wallet, Clock, Shield, Info, ArrowUpRight, CheckCircle2,
-  AlertCircle, Copy, ExternalLink, DollarSign, Banknote, Loader2
+  AlertCircle, Copy, ExternalLink, DollarSign, Banknote, Loader2,
+  Hourglass, Zap
 } from 'lucide-react';
 
-const minWithdrawal = 50;
-const maxWithdrawal = 5000;
-const processingTime = '24-48 hours';
+const minWithdrawal = 1;
+const processingTime = 'Instant — 24h';
 
 export default function WithdrawalsPage() {
   useEffect(() => { document.title = 'Withdrawals — CYLIX'; }, []);
@@ -28,6 +28,8 @@ export default function WithdrawalsPage() {
   const [availableBalance, setAvailableBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [submitMsg, setSubmitMsg] = useState<string | null>(null);
+  const [submitType, setSubmitType] = useState<'success' | 'info' | 'error' | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -47,6 +49,62 @@ export default function WithdrawalsPage() {
   }, [user]);
 
   const walletDisplay = user?.wallet ? `${user.wallet.slice(0, 6)}...${user.wallet.slice(-4)}` : 'Not Connected';
+
+  async function handleSubmit() {
+    if (!user || !amount) return;
+    setSubmitting(true);
+    setSubmitMsg(null);
+    try {
+      const res = await fetch('/api/withdrawal/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, amount: Number(amount), wallet: user.wallet }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSubmitMsg(data.error || 'Request failed');
+        setSubmitType('error');
+      } else {
+        setAmount('');
+        if (data.status === 'processing') {
+          setSubmitMsg(`Withdrawal processing! TX: ${data.txHash?.slice(0, 10)}...`);
+          setSubmitType('success');
+        } else {
+          setSubmitMsg('Withdrawal queued — will process when funds are available.');
+          setSubmitType('info');
+        }
+        const [withdrawals, earnings] = await Promise.all([
+          getWithdrawals(user.id),
+          getUserEarnings(user.id),
+        ]);
+        setWithdrawalHistory(withdrawals);
+        setAvailableBalance(earnings.total);
+      }
+    } catch {
+      setSubmitMsg('Network error. Please try again.');
+      setSubmitType('error');
+    }
+    setSubmitting(false);
+  }
+
+  const statusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+      case 'approved':
+        return <Badge variant="success" className="text-xs">{status}</Badge>;
+      case 'processing':
+        return <Badge variant="info" className="text-xs flex items-center gap-1"><Zap size={10} />processing</Badge>;
+      case 'held':
+        return <Badge variant="warning" className="text-xs flex items-center gap-1"><Hourglass size={10} />held</Badge>;
+      case 'pending':
+        return <Badge variant="warning" className="text-xs">pending</Badge>;
+      case 'failed':
+      case 'rejected':
+        return <Badge variant="danger" className="text-xs">{status}</Badge>;
+      default:
+        return <Badge variant="default" className="text-xs">{status}</Badge>;
+    }
+  };
 
   if (loading || initLoading) {
     return (
@@ -78,17 +136,16 @@ export default function WithdrawalsPage() {
                 <p className="text-xl font-bold font-mono text-white">{formatCurrency(availableBalance)}</p>
               </div>
               <div className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)]">
-                <p className="text-xs text-[#94A3B8] mb-1">Min / Max</p>
-                <p className="text-xl font-bold font-mono text-white">
-                  {formatCurrency(minWithdrawal)} / {formatCurrency(maxWithdrawal)}
-                </p>
+                <p className="text-xs text-[#94A3B8] mb-1">Minimum Withdrawal</p>
+                <p className="text-xl font-bold font-mono text-white">{formatCurrency(minWithdrawal)}</p>
               </div>
             </div>
 
             <div className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)]">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-[#94A3B8]">Withdrawal Wallet</span>
-                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
+                <span className="text-xs text-[#94A3B8]">Withdrawal Wallet (BEP20)</span>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs"
+                  onClick={() => { navigator.clipboard.writeText(user?.wallet || ''); }}>
                   <Copy size={11} className="mr-1" /> Copy
                 </Button>
               </div>
@@ -105,41 +162,28 @@ export default function WithdrawalsPage() {
                 label="Withdrawal Amount (USDT)"
                 placeholder="Enter amount..."
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => { setAmount(e.target.value); setSubmitMsg(null); }}
                 icon={<DollarSign size={16} />}
                 type="number"
               />
               <div className="flex items-center justify-between mt-2">
-                <span className="text-xs text-[#94A3B8]">Processing time: {processingTime}</span>
+                <span className="text-xs text-[#94A3B8]">Processing: {processingTime}</span>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-[#94A3B8]">Max:</span>
                   <button
                     className="text-xs font-mono text-[#00E5FF] hover:underline"
-                    onClick={() => setAmount(String(Math.min(availableBalance, maxWithdrawal)))}
+                    onClick={() => setAmount(String(Math.floor(availableBalance * 100) / 100))}
                   >
-                    {formatCurrency(Math.min(availableBalance, maxWithdrawal))}
+                    {formatCurrency(Math.floor(availableBalance * 100) / 100)}
                   </button>
                 </div>
               </div>
             </div>
 
-            <Button variant="primary" className="w-full" disabled={!amount || Number(amount) < minWithdrawal || Number(amount) > maxWithdrawal || Number(amount) > availableBalance || submitting || !user}
+            <Button variant="primary" className="w-full"
+              disabled={!amount || Number(amount) < minWithdrawal || Number(amount) > availableBalance || submitting || !user}
               loading={submitting}
-              onClick={async () => {
-                if (!user || !amount) return;
-                setSubmitting(true);
-                const success = await requestWithdrawal(user.id, Number(amount), user.wallet);
-                if (success) {
-                  setAmount('');
-                  const [withdrawals, earnings] = await Promise.all([
-                    getWithdrawals(user.id),
-                    getUserEarnings(user.id),
-                  ]);
-                  setWithdrawalHistory(withdrawals);
-                  setAvailableBalance(earnings.total);
-                }
-                setSubmitting(false);
-              }}>
+              onClick={handleSubmit}>
               <Wallet size={16} />
               Request Withdrawal
             </Button>
@@ -150,6 +194,22 @@ export default function WithdrawalsPage() {
                 <span className="text-xs text-[#FF5C7A]">Minimum withdrawal is {formatCurrency(minWithdrawal)}</span>
               </div>
             )}
+
+            {submitMsg && (
+              <div className={`flex items-center gap-2 p-3 rounded-xl border ${
+                submitType === 'success' ? 'bg-[rgba(0,255,178,0.08)] border-[rgba(0,255,178,0.15)]' :
+                submitType === 'info' ? 'bg-[rgba(0,229,255,0.08)] border-[rgba(0,229,255,0.15)]' :
+                'bg-[rgba(255,92,122,0.08)] border-[rgba(255,92,122,0.15)]'
+              }`}>
+                {submitType === 'success' ? <CheckCircle2 size={14} className="text-[#00FFB2]" /> :
+                 submitType === 'info' ? <Hourglass size={14} className="text-[#00E5FF]" /> :
+                 <AlertCircle size={14} className="text-[#FF5C7A]" />}
+                <span className={`text-xs ${
+                  submitType === 'success' ? 'text-[#00FFB2]' :
+                  submitType === 'info' ? 'text-[#00E5FF]' : 'text-[#FF5C7A]'
+                }`}>{submitMsg}</span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -158,15 +218,15 @@ export default function WithdrawalsPage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Shield size={18} className="text-[#7B61FF]" />
-                <h3 className="text-lg font-semibold text-white font-heading">Requirements</h3>
+                <h3 className="text-lg font-semibold text-white font-heading">Info</h3>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               {[
-                { icon: DollarSign, label: 'Minimum Withdrawal', value: formatCurrency(minWithdrawal), color: '#00E5FF' },
-                { icon: Banknote, label: 'Maximum Withdrawal', value: formatCurrency(maxWithdrawal), color: '#7B61FF' },
-                { icon: Clock, label: 'Processing Time', value: processingTime, color: '#FFB800' },
-                { icon: CheckCircle2, label: 'Network Fee', value: 'Covered by platform', color: '#00FFB2' },
+                { icon: DollarSign, label: 'Minimum', value: formatCurrency(minWithdrawal), color: '#00E5FF' },
+                { icon: Zap, label: 'Processing', value: 'Auto — Instant', color: '#00FFB2' },
+                { icon: Clock, label: 'Hold Status', value: 'Auto-retry when funded', color: '#FFB800' },
+                { icon: CheckCircle2, label: 'Network Fee', value: 'Covered by platform', color: '#7B61FF' },
               ].map((item, i) => {
                 const Icon = item.icon;
                 return (
@@ -188,16 +248,16 @@ export default function WithdrawalsPage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Info size={18} className="text-[#FFB800]" />
-                <h3 className="text-lg font-semibold text-white font-heading">Important Notes</h3>
+                <h3 className="text-lg font-semibold text-white font-heading">Notes</h3>
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
               {[
-                'Withdrawals are processed within 24-48 hours on business days.',
-                'Minimum withdrawal amount is 50 USDT.',
-                'Maximum withdrawal per transaction is 5000 USDT.',
-                'Withdrawals are sent to your connected wallet address.',
-                'Network fees are covered by the platform for all withdrawals.',
+                'Automatic withdrawal — processed instantly when wallet has funds.',
+                'If insufficient funds, withdrawal is held and retried automatically.',
+                'BEP20 (BSC) network only. Ensure your wallet supports BSC.',
+                'Network fees are covered by the platform.',
+                'Minimum withdrawal: 1 USDT.',
               ].map((note, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#94A3B8] mt-1.5 shrink-0" />
@@ -226,7 +286,6 @@ export default function WithdrawalsPage() {
                 <TableHeader>Amount</TableHeader>
                 <TableHeader>Wallet</TableHeader>
                 <TableHeader>Requested</TableHeader>
-                <TableHeader>Processed</TableHeader>
                 <TableHeader>Status</TableHeader>
                 <TableHeader>TX Hash</TableHeader>
               </TableRow>
@@ -238,7 +297,7 @@ export default function WithdrawalsPage() {
                     <span className="text-sm font-mono font-medium text-white">{formatCurrency(wd.amount)}</span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm font-mono text-[#94A3B8]">{wd.wallet}</span>
+                    <span className="text-sm font-mono text-[#94A3B8]">{wd.wallet.slice(0, 6)}...{wd.wallet.slice(-4)}</span>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
@@ -247,39 +306,32 @@ export default function WithdrawalsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {wd.processedAt ? (
-                      <div className="flex items-center gap-1.5">
-                        <Clock size={11} className="text-[#94A3B8]" />
-                        <span className="text-xs text-[#94A3B8]">{formatDate(wd.processedAt)}</span>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-[#94A3B8]">--</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        wd.status === 'completed' ? 'success' :
-                        wd.status === 'processing' ? 'info' :
-                        wd.status === 'pending' ? 'warning' : 'danger'
-                      }
-                      className="text-xs"
-                    >
-                      {wd.status}
-                    </Badge>
+                    {statusBadge(wd.status)}
                   </TableCell>
                   <TableCell>
                     {wd.txHash ? (
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs font-mono text-[#94A3B8]">{wd.txHash}</span>
-                        <ExternalLink size={10} className="text-[#00E5FF] cursor-pointer" />
-                      </div>
+                      <a
+                        href={`https://bscscan.com/tx/${wd.txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[#00E5FF] hover:underline"
+                      >
+                        <span className="text-xs font-mono">{wd.txHash.slice(0, 8)}...</span>
+                        <ExternalLink size={10} />
+                      </a>
                     ) : (
                       <span className="text-xs text-[#94A3B8]">--</span>
                     )}
                   </TableCell>
                 </TableRow>
               ))}
+              {withdrawalHistory.length === 0 && (
+                <TableRow>
+                  <td colSpan={5} className="text-center text-[#94A3B8] py-8">
+                    No withdrawals yet
+                  </td>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

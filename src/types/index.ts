@@ -74,10 +74,13 @@ export interface Withdrawal {
   id: string;
   amount: number;
   wallet: string;
-  status: 'pending' | 'approved' | 'rejected' | 'processing';
+  status: 'pending' | 'approved' | 'rejected' | 'processing' | 'held' | 'completed' | 'failed';
   timestamp: string;
   processedAt?: string;
   txHash?: string;
+  heldSince?: string;
+  retryCount?: number;
+  errorMessage?: string;
 }
 
 export interface Notification {

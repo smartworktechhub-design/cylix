@@ -947,7 +947,11 @@ export async function getWithdrawals(userId: string): Promise<Withdrawal[]> {
 }
 
 export async function requestWithdrawal(userId: string, amount: number, wallet: string): Promise<boolean> {
-  if (amount < 10) return false;
+  if (amount < 1) return false;
+  const { data: user } = await sb().from('users').select('total_earned').eq('id', userId).single();
+  if (!user) return false;
+  if (Number(user.total_earned) < amount) return false;
+  await incrementField('users', userId, 'total_earned', -amount);
   const { error } = await sb().from('withdrawals').insert({
     user_id: userId, amount, wallet, status: 'pending',
   });
@@ -956,6 +960,47 @@ export async function requestWithdrawal(userId: string, amount: number, wallet: 
     user_id: userId, type: 'withdrawal', title: 'Withdrawal Requested',
     message: `$${amount} withdrawal request submitted.`,
   });
+  return true;
+}
+
+export async function createWithdrawal(userId: string, amount: number, wallet: string): Promise<string | null> {
+  const { data, error } = await sb().from('withdrawals').insert({
+    user_id: userId, amount, wallet, status: 'pending',
+  }).select('id').single();
+  if (error || !data) return null;
+  await sb().from('notifications').insert({
+    user_id: userId, type: 'withdrawal', title: 'Withdrawal Requested',
+    message: `$${amount} withdrawal request submitted.`,
+  });
+  return data.id;
+}
+
+export async function updateWithdrawalStatus(id: string, status: string, extra?: Record<string, any>): Promise<boolean> {
+  const update: Record<string, any> = { status, ...extra };
+  if (status === 'approved' || status === 'processing') {
+    update.processed_at = new Date().toISOString();
+  }
+  const { error } = await sb().from('withdrawals').update(update).eq('id', id);
+  return !error;
+}
+
+export async function getHeldWithdrawals(): Promise<Withdrawal[]> {
+  const { data } = await sb().from('withdrawals')
+    .select('*').eq('status', 'held').order('held_since', { ascending: true });
+  return (data || []).map(mapWithdrawal);
+}
+
+export async function getPendingWithdrawals(): Promise<Withdrawal[]> {
+  const { data } = await sb().from('withdrawals')
+    .select('*').eq('status', 'pending').order('created_at', { ascending: true });
+  return (data || []).map(mapWithdrawal);
+}
+
+export async function deductUserBalance(userId: string, amount: number): Promise<boolean> {
+  const { data: user } = await sb().from('users').select('total_earned').eq('id', userId).single();
+  if (!user) return false;
+  if (Number(user.total_earned) < amount) return false;
+  await incrementField('users', userId, 'total_earned', -amount);
   return true;
 }
 
