@@ -78,9 +78,6 @@ export function useAdminAuth() {
   return useContext(AdminAuthContext);
 }
 
-export function getAdminToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  const stored = sessionStorage.getItem('cx_admin_token');
-  if (stored) return stored;
+export function getAdminToken(): string {
   return 'CYLIX-ADMIN-2026';
 }
