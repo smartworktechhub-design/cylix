@@ -111,7 +111,7 @@ function mapNotification(n: any): Notification {
 // ─── USER ───
 
 export async function getUserByWallet(wallet: string): Promise<User | null> {
-  const { data } = await sb().from('users').select('*').eq('wallet', wallet).single();
+  const { data } = await sb().from('users').select('*').eq('wallet', wallet.toLowerCase()).single();
   return data ? mapUser(data) : null;
 }
 
@@ -150,7 +150,7 @@ export async function createUser(wallet: string, sponsorCode?: string): Promise<
     if (sponsor) sponsorId = sponsor.id;
   }
   const { data, error } = await sb().from('users').insert({
-    wallet, referral_code: code, sponsor_id: sponsorId,
+    wallet: wallet.toLowerCase(), referral_code: code, sponsor_id: sponsorId,
   }).select().single();
   if (error || !data) return null;
   const user = mapUser(data);
