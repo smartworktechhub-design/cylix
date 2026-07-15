@@ -68,7 +68,7 @@ export default function ComingSoonPage() {
           Matrix DeFi
         </p>
 
-        {/* Typewriter */}
+        {/* Typewriter - India */}
         <div className="inline-flex flex-col items-center gap-2 mt-5 mb-4 px-5 py-3 rounded-2xl"
           style={{
             background: 'rgba(255,255,255,0.02)',
@@ -77,7 +77,7 @@ export default function ComingSoonPage() {
           }}>
           <span className="text-lg md:text-xl font-semibold text-white min-h-[28px]"
             style={{ fontFamily: "'Space Grotesk',sans-serif" }}>
-            Login Start at 9:45 AM IST
+            India - 9:45 PM IST, 15 Jul
           </span>
         </div>
 
@@ -91,7 +91,7 @@ export default function ComingSoonPage() {
           </span>
         </div>
 
-        {/* Login Start - Big Highlight */}
+        {/* Login Start - Big Highlight - UAE */}
         <div className="inline-flex items-center gap-3 mb-6 px-6 py-3 rounded-2xl"
           style={{ background: 'linear-gradient(135deg, rgba(0,207,255,0.1) 0%, rgba(123,45,255,0.1) 100%)', border: '1px solid rgba(0,207,255,0.25)' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -99,11 +99,11 @@ export default function ComingSoonPage() {
             <polyline points="12 6 12 12 16 14" />
           </svg>
           <span className="text-lg md:text-xl font-black text-[#FFD700]" style={{ fontFamily: "'Orbitron',sans-serif" }}>
-            Login Start at 9:45 AM IST
+            UAE - 8:15 PM GST, 15 Jul
           </span>
         </div>
 
-        {/* Login Start Time */}
+        {/* Login Start Time - US & UK */}
         <div className="flex flex-col items-center gap-3 mb-8">
           <div className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl"
             style={{ background: 'linear-gradient(135deg, rgba(0,207,255,0.08) 0%, rgba(123,45,255,0.08) 100%)', border: '1px solid rgba(0,207,255,0.2)' }}>
@@ -111,8 +111,8 @@ export default function ComingSoonPage() {
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>
-            <span className="text-xl md:text-2xl font-bold text-[#00CFFF]" style={{ fontFamily: "'Orbitron',sans-serif" }}>
-              Login Start at 9:45 AM IST
+            <span className="text-lg md:text-xl font-bold text-[#00CFFF]" style={{ fontFamily: "'Orbitron',sans-serif" }}>
+              USA - 12:15 PM ET, 15 Jul
             </span>
           </div>
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full"
@@ -120,7 +120,7 @@ export default function ComingSoonPage() {
             <div className="w-1.5 h-1.5 rounded-full bg-[#00CFFF] animate-pulse" />
             <span className="text-[10px] tracking-[0.15em] text-[#00CFFF] font-semibold uppercase"
               style={{ fontFamily: "'Rajdhani',sans-serif" }}>
-              Login Start at 9:45 AM IST
+              UK - 5:15 PM BST, 15 Jul
             </span>
           </div>
         </div>
@@ -179,9 +179,8 @@ export default function ComingSoonPage() {
         {/* Tagline Text */}
         <p className="text-[11px] text-white/30 leading-relaxed max-w-sm mt-2 text-center"
           style={{ fontFamily: "'Inter',sans-serif" }}>
-          Login Start at <span className="text-[#00CFFF] font-bold">9:45 AM IST</span><br />
-          Built for Automation, Transparency, and Community-Driven Growth.<br />
-          <span className="text-[#00CFFF] font-semibold">Be Ready. Be Early. Be CYLIX.</span>
+          India 9:45 PM IST &bull; UAE 8:15 PM GST &bull; USA 12:15 PM ET &bull; UK 5:15 PM BST<br />
+          <span className="text-[#00CFFF] font-semibold">15 July 2026 &mdash; Be Ready. Be Early. Be CYLIX.</span>
         </p>
       </div>
 
