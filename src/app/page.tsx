@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-const LAUNCH = new Date('2026-07-15T19:17:00+05:30');
+const LAUNCH = new Date('2026-07-15T21:17:00+05:30');
 const LANGS: { text: string; lang: string }[] = [
   { text: 'Launching Soon', lang: 'English' },
   { text: 'जल्द आ रहा है', lang: 'Hindi' },
@@ -17,7 +17,14 @@ const LANGS: { text: string; lang: string }[] = [
 ];
 
 function calc() {
-  return { d: 0, h: 0, m: 0, s: 0 };
+  const d = LAUNCH.getTime() - Date.now();
+  if (d <= 0) return { d: 0, h: 0, m: 0, s: 0 };
+  return {
+    d: Math.floor(d / 86400000),
+    h: Math.floor((d / 3600000) % 24),
+    m: Math.floor((d / 60000) % 60),
+    s: Math.floor((d / 1000) % 60),
+  };
 }
 
 function FlipDigit({ value, color }: { value: number; color: string }) {
