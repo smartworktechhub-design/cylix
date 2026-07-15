@@ -1,20 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
-import crypto from 'crypto';
-
-const adminSessions = new Map<string, { adminId: string; expiresAt: number }>();
 
 const ADMIN_TOKEN_SECRET = process.env.ADMIN_TOKEN_SECRET || 'CYLIX-ADMIN-2026';
 
 export function validateAdminToken(token: string): boolean {
-  if (token === ADMIN_TOKEN_SECRET) return true;
-  const session = adminSessions.get(token);
-  if (!session) return false;
-  if (Date.now() > session.expiresAt) {
-    adminSessions.delete(token);
-    return false;
-  }
-  return true;
+  return token === ADMIN_TOKEN_SECRET;
 }
 
 export async function POST(req: Request) {
@@ -43,14 +33,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
-    const token = crypto.randomUUID();
-    adminSessions.set(token, {
-      adminId: admin.id,
-      expiresAt: Date.now() + 24 * 60 * 60 * 1000,
-    });
-
     return NextResponse.json({
-      token,
+      token: ADMIN_TOKEN_SECRET,
       admin: {
         id: admin.id,
         email: admin.email,
