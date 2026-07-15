@@ -42,12 +42,12 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // === MAIN DOMAIN (cylixdefi.live) → Coming Soon + Public Pages ===
+  // === MAIN DOMAIN (cylixdefi.live) → Redirect to App ===
   if (host === 'cylixdefi.live' || host === 'www.cylixdefi.live') {
-    if (pathname === '/' || PUBLIC_ROUTES.some(r => pathname === r)) {
+    if (PUBLIC_ROUTES.some(r => pathname === r)) {
       return NextResponse.next();
     }
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL(`https://app.cylixdefi.live${pathname}`, request.url));
   }
 
   // === APP SUBDOMAIN (app.cylixdefi.live) → User pages ===
