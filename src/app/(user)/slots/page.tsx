@@ -44,6 +44,22 @@ export default function SlotsPage() {
   const [purchaseError, setPurchaseError] = useState<string>('');
   const [depositCopied, setDepositCopied] = useState(false);
 
+  const LAUNCH = new Date('2026-07-15T19:17:00+05:30').getTime();
+  const [timeLeft, setTimeLeft] = useState({ h: 0, m: 0, s: 0, expired: false });
+  useEffect(() => {
+    const tick = () => {
+      const diff = LAUNCH - Date.now();
+      if (diff <= 0) { setTimeLeft({ h: 0, m: 0, s: 0, expired: true }); return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setTimeLeft({ h, m, s, expired: false });
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setRebuyId(params.get('rebuy'));
@@ -168,6 +184,37 @@ export default function SlotsPage() {
   return (
     <div className="space-y-6 pb-20">
       {statusModal()}
+      {!timeLeft.expired && (
+        <Card className="border-[rgba(255,184,0,0.3)] bg-[rgba(255,184,0,0.05)]">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[rgba(255,184,0,0.15)] flex items-center justify-center">
+                  <LockKeyhole size={20} className="text-[#FFB800]" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">Deposits Open In</p>
+                  <p className="text-xs text-[#94A3B8]">Purchases will be available after countdown</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {[
+                  { val: timeLeft.h, label: 'H' },
+                  { val: timeLeft.m, label: 'M' },
+                  { val: timeLeft.s, label: 'S' },
+                ].map((t, i) => (
+                  <div key={i} className="text-center">
+                    <div className="w-12 h-12 rounded-xl bg-[rgba(255,184,0,0.1)] border border-[rgba(255,184,0,0.2)] flex items-center justify-center">
+                      <span className="text-xl font-bold font-mono text-[#FFB800]">{String(t.val).padStart(2, '0')}</span>
+                    </div>
+                    <span className="text-[10px] text-[#94A3B8] mt-1 block">{t.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold font-heading text-white">Orbit Slots</h2>
@@ -339,15 +386,15 @@ export default function SlotsPage() {
                     </div>
                   )
                 ) : isCompleted ? (
-                  <Button variant="primary" className="w-full" style={{ background: `linear-gradient(135deg, ${grad.from}, ${grad.to})` }}
-                    onClick={() => handlePurchase(slot)} loading={isBuying} disabled={isBuying}>
-                    {isBuying ? 'Buying...' : <><RotateCcw size={14} /> Re-buy ({totalPurchases}/{REBUY_MAX + 1})</>}
+                  <Button variant="primary" className="w-full" style={{ background: timeLeft.expired ? `linear-gradient(135deg, ${grad.from}, ${grad.to})` : 'rgba(255,255,255,0.05)' }}
+                    onClick={() => timeLeft.expired && handlePurchase(slot)} loading={isBuying} disabled={isBuying || !timeLeft.expired}>
+                    {!timeLeft.expired ? <><LockKeyhole size={14} /> Locked</> : isBuying ? 'Buying...' : <><RotateCcw size={14} /> Re-buy ({totalPurchases}/{REBUY_MAX + 1})</>}
                   </Button>
                 ) : isNextAvailable ? (
                   <div className="space-y-2">
-                    <Button variant="primary" className="w-full" style={{ background: `linear-gradient(135deg, ${grad.from}, ${grad.to})` }}
-                      onClick={() => handlePurchase(slot)} loading={isBuying} disabled={isBuying || !address}>
-                      {isBuying ? (purchaseStatus === 'approve' ? 'Approve...' : 'Confirming...') : <><Coins size={14} /> Buy {slot.name}</>}
+                    <Button variant="primary" className="w-full" style={{ background: timeLeft.expired ? `linear-gradient(135deg, ${grad.from}, ${grad.to})` : 'rgba(255,255,255,0.05)' }}
+                      onClick={() => timeLeft.expired && handlePurchase(slot)} loading={isBuying} disabled={isBuying || !address || !timeLeft.expired}>
+                      {!timeLeft.expired ? <><LockKeyhole size={14} /> Locked</> : isBuying ? (purchaseStatus === 'approve' ? 'Approve...' : 'Confirming...') : <><Coins size={14} /> Buy {slot.name}</>}
                     </Button>
                     <p className="text-[8px] text-[#4A5568] text-center">USDT to: {TREASURY_WALLET.slice(0, 6)}...{TREASURY_WALLET.slice(-4)}</p>
                   </div>
