@@ -1,4 +1,4 @@
-import { createPublicClient, createWalletClient, http, parseUnits, formatUnits } from 'viem';
+import { createPublicClient, http, parseUnits, formatUnits, encodeFunctionData } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { bsc } from 'viem/chains';
 import { USDT_ADDRESS, BSC_RPC_URL } from './constants';
@@ -55,24 +55,43 @@ export async function getHotWalletBalance(): Promise<number> {
   return Number(formatUnits(balance as bigint, USDT_DECIMALS));
 }
 
+export async function getBNBBalance(): Promise<number> {
+  const wallet = getPayoutWallet();
+  if (!wallet) throw new Error('PAYOUT_WALLET_ADDRESS not configured');
+  const client = getPublicClient();
+  const balance = await client.getBalance({ address: wallet as `0x${string}` });
+  return Number(formatUnits(balance, 18));
+}
+
 export async function sendUSDT(toAddress: string, amount: number): Promise<string> {
   const key = getPayoutKey();
   if (!key) throw new Error('PAYOUT_PRIVATE_KEY not configured');
   const account = privateKeyToAccount(key);
-  const walletClient = createWalletClient({
-    account,
-    chain: bsc,
-    transport: http(BSC_RPC_URL),
-  });
+  const client = getPublicClient();
+
   const value = parseUnits(amount.toFixed(2), USDT_DECIMALS);
-  const hash = await walletClient.writeContract({
-    account: account.address,
-    address: USDT_ADDRESS as `0x${string}`,
+  const data = encodeFunctionData({
     abi: USDT_ABI,
     functionName: 'transfer',
     args: [toAddress as `0x${string}`, value],
   });
-  return hash;
+
+  const nonce = await client.getTransactionCount({ address: account.address });
+  const gasPrice = await client.getGasPrice();
+
+  const signedTx = await account.signTransaction({
+    to: USDT_ADDRESS as `0x${string}`,
+    value: BigInt(0),
+    data,
+    nonce,
+    gasPrice,
+    gasLimit: BigInt(100000),
+    chainId: 56,
+    type: 'legacy',
+  });
+
+  const txHash = await client.sendRawTransaction({ serializedTransaction: signedTx });
+  return txHash;
 }
 
 export function isPayoutConfigured(): boolean {
