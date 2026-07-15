@@ -78,9 +78,9 @@ export async function processHeldWithdrawals(): Promise<{ processed: number; fai
   const { data: held } = await sbAdmin()
     .from('withdrawals')
     .select('id')
-    .eq('status', 'held')
+    .in('status', ['held', 'pending', 'processing'])
     .lt('retry_count', MAX_RETRY)
-    .order('held_since', { ascending: true });
+    .order('created_at', { ascending: true });
 
   if (!held || held.length === 0) return { processed: 0, failed: 0 };
 
