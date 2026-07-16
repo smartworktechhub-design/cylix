@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 
-const ADMIN_TOKEN_SECRET = process.env.ADMIN_TOKEN_SECRET || 'CYLIX-ADMIN-2026';
+const ADMIN_TOKEN_SECRET = process.env.ADMIN_TOKEN_SECRET || '';
 
 export function validateAdminToken(token: string): boolean {
   return token === ADMIN_TOKEN_SECRET;

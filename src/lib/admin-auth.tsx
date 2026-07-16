@@ -50,7 +50,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       if (res.ok && data.admin) {
         sessionStorage.setItem('cx_admin_session', JSON.stringify(data.admin));
-        const adminToken = data.token || 'CYLIX-ADMIN-2026';
+        const adminToken = data.token;
         sessionStorage.setItem('cx_admin_token', adminToken);
         setAdmin(data.admin);
         return { success: true };
@@ -79,5 +79,6 @@ export function useAdminAuth() {
 }
 
 export function getAdminToken(): string {
-  return 'CYLIX-ADMIN-2026';
+  if (typeof window === 'undefined') return '';
+  return sessionStorage.getItem('cx_admin_token') || '';
 }
