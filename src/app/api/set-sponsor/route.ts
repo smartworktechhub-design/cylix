@@ -154,7 +154,7 @@ async function updateTeamSize(sb: any, sponsorId: string) {
 
   const { count: directCount } = root
     ? await sb.from('matrix_tree').select('id', { count: 'exact', head: true })
-        .eq('owner_id', sponsorId).eq('parent_id', root.id)
+        .eq('user_id', sponsorId).eq('parent_id', root.id)
     : { count: 0 };
 
   await sb.from('users').update({
