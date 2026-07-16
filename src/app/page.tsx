@@ -42,7 +42,7 @@ export default function HomePage() {
     }).catch(() => setChecking(false));
   }, [isConnected, address]);
 
-  const validateReferral = async (code: string) => {
+  const validateReferral = async (code: string, signal?: AbortSignal) => {
     if (!code.trim()) { setRefValid(null); return; }
     setValidating(true);
     try {
@@ -50,21 +50,23 @@ export default function HomePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: code.trim().toUpperCase() }),
+        signal,
       });
       const data = await res.json();
       setRefValid(data.valid);
     } catch {
-      setRefValid(null);
+      if (!signal?.aborted) setRefValid(null);
     }
     setValidating(false);
   };
 
   useEffect(() => {
+    const controller = new AbortController();
     const t = setTimeout(() => {
-      if (referralCode.trim().length >= 3) validateReferral(referralCode);
+      if (referralCode.trim().length >= 3) validateReferral(referralCode, controller.signal);
       else setRefValid(null);
     }, 500);
-    return () => clearTimeout(t);
+    return () => { clearTimeout(t); controller.abort(); };
   }, [referralCode]);
 
   const showToast = (msg: string, type: 'error' | 'success' = 'error') => {

@@ -47,7 +47,10 @@ export function middleware(request: NextRequest) {
     if (PUBLIC_ROUTES.some(r => pathname === r)) {
       return NextResponse.next();
     }
-    return NextResponse.redirect(new URL(`https://app.cylixdefi.live${pathname}`, request.url));
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.host = 'app.cylixdefi.live';
+    redirectUrl.protocol = 'https:';
+    return NextResponse.redirect(redirectUrl);
   }
 
   // === APP SUBDOMAIN (app.cylixdefi.live) → User pages ===
