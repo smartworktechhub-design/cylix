@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
-import { getMatrixStats, getMatrixTree, getRecentJoins, getActiveCampaign, getUserDirectCount, getUserCampaignRequest, submitCampaignRequest } from '@/lib/db';
+import { getMatrixStats, getMatrixTree, getUserMatrixLevel, getRecentJoins, getActiveCampaign, getUserDirectCount, getUserCampaignRequest, submitCampaignRequest } from '@/lib/db';
 import { SLOTS, REBUY_MAX, APP_VERSION } from '@/lib/constants';
 import { useAccount } from 'wagmi';
 import Link from 'next/link';
@@ -62,6 +62,7 @@ export default function DashboardPage() {
   const [matrixStats, setMatrixStats] = useState<any>(null);
   const [refCopied, setRefCopied] = useState(false);
   const [selectedNode, setSelectedNode] = useState<any>(null);
+  const [matrixLevels, setMatrixLevels] = useState<any[]>([]);
   const [matrixTreeNodes, setMatrixTreeNodes] = useState<any[]>([]);
   const [matrixView, setMatrixView] = useState<'explorer' | 'activity'>('explorer');
   const [recentJoins, setRecentJoins] = useState<any[]>([]);
@@ -80,6 +81,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user) {
       getMatrixStats(user.id).then(setMatrixStats);
+      getUserMatrixLevel(user.id).then(setMatrixLevels);
       getRecentJoins(5).then(setRecentJoins);
       getActiveCampaign().then(c => {
         setCampaign(c);
@@ -89,23 +91,24 @@ export default function DashboardPage() {
         }
       });
       getMatrixTree(user.id).then(tree => {
-        if (!tree) return;
         const levels: any[] = [];
         for (let lvl = 1; lvl <= 11; lvl++) levels.push({ level: lvl, nodes: [] });
-        function traverse(node: any, level: number) {
-          if (!node) return;
-          const lvlIdx = Math.min(level, 11) - 1;
-          if (levels[lvlIdx]) {
-            levels[lvlIdx].nodes.push({
-              id: node.userId, wallet: node.wallet,
-              type: node.side || 'root', level,
-              position: levels[lvlIdx].nodes.length,
-            });
+        if (tree) {
+          function traverse(node: any, level: number) {
+            if (!node) return;
+            const lvlIdx = Math.min(level, 11) - 1;
+            if (levels[lvlIdx]) {
+              levels[lvlIdx].nodes.push({
+                id: node.userId, wallet: node.wallet,
+                type: node.side || 'root', level,
+                position: levels[lvlIdx].nodes.length,
+              });
+            }
+            traverse(node.left, level + 1);
+            traverse(node.right, level + 1);
           }
-          traverse(node.left, level + 1);
-          traverse(node.right, level + 1);
+          traverse(tree, 1);
         }
-        traverse(tree, 1);
         setMatrixTreeNodes(levels);
       });
     }
@@ -664,36 +667,52 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-1.5">
-                {matrixTreeNodes.map((level: any) => (
+                {matrixTreeNodes.map((level: any) => {
+                  const mlData = matrixLevels.find((m: any) => m.level === level.level);
+                  const hasNodes = level.nodes.length > 0;
+                  const hasMl = !!mlData;
+                  return (
                   <div key={level.level}>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[6px] text-[#4A5568] font-mono w-4">L{level.level}</span>
                       <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.05)] to-transparent" />
+                      {hasMl && <span className="text-[6px] font-mono" style={{ color: mlData.totalEarnings > 0 ? '#00FFB2' : '#4A5568' }}>{formatCurrency(mlData.totalEarnings)}</span>}
                       <span className="text-[6px] text-[#4A5568] font-mono">{level.nodes.length}</span>
                     </div>
-                    <div className="flex flex-wrap gap-1 justify-center">
-                      {level.nodes.slice(0, 32).map((node: any, i: number) => {
-                        const isSelf = level.level === 1 && i === 0;
-                        const colors: Record<string, string> = {
-                          root: '#00E5FF', left: '#00E5FF', right: '#7B61FF',
-                        };
-                        return (
-                          <button key={i} onClick={() => node.id && setSelectedNode(node)}
-                            className="transition-all duration-200 hover:scale-110">
-                            <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer"
-                              style={{
-                                borderColor: colors[node.type] || '#7B61FF',
-                                background: isSelf ? 'linear-gradient(135deg, #00E5FF, #7B61FF)' : `${(colors[node.type] || '#7B61FF')}20`,
-                                boxShadow: isSelf ? '0 0 10px rgba(0,229,255,0.3)' : 'none',
-                              }}>
-                              {isSelf ? <User size={9} className="text-[#050816]" /> : null}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {hasNodes ? (
+                      <div className="flex flex-wrap gap-1 justify-center">
+                        {level.nodes.slice(0, 32).map((node: any, i: number) => {
+                          const isSelf = level.level === 1 && i === 0;
+                          const colors: Record<string, string> = {
+                            root: '#00E5FF', left: '#00E5FF', right: '#7B61FF',
+                          };
+                          return (
+                            <button key={i} onClick={() => node.id && setSelectedNode(node)}
+                              className="transition-all duration-200 hover:scale-110">
+                              <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer"
+                                style={{
+                                  borderColor: colors[node.type] || '#7B61FF',
+                                  background: isSelf ? 'linear-gradient(135deg, #00E5FF, #7B61FF)' : `${(colors[node.type] || '#7B61FF')}20`,
+                                  boxShadow: isSelf ? '0 0 10px rgba(0,229,255,0.3)' : 'none',
+                                }}>
+                                {isSelf ? <User size={9} className="text-[#050816]" /> : null}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : hasMl ? (
+                      <div className="flex items-center gap-1.5 px-1">
+                        <div className="w-2 h-2 rounded-full" style={{ background: mlData.totalEarnings > 0 ? '#00FFB2' : '#4A5568' }} />
+                        <span className="text-[7px] text-[#4A5568]">Sponsor: </span>
+                        <span className="text-[7px] font-mono" style={{ color: mlData.totalEarnings > 0 ? '#00FFB2' : '#94A3B8' }}>
+                          {shortenAddress(mlData.sponsorWallet || mlData.sponsorId)}
+                        </span>
+                      </div>
+                    ) : null}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 

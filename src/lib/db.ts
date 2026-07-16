@@ -211,23 +211,25 @@ export async function addToMatrix(sponsorId: string, userId: string): Promise<vo
 
   // Step 1: Try sponsor's tree first (BFS spillover)
   let placed = await findEmptyPosition(sponsorId);
+  let treeOwnerId = sponsorId;
 
   // Step 2: If full, spill over to upline
   if (!placed) {
     let uplineId = await getDirectSponsor(sponsorId);
     while (uplineId && !placed) {
       placed = await findEmptyPosition(uplineId);
+      if (placed) treeOwnerId = uplineId;
       uplineId = placed ? null : await getDirectSponsor(uplineId);
     }
   }
 
   if (!placed) return; // No room anywhere
 
-  const { count: posCount } = await sb().from('matrix_tree').select('*', { count: 'exact', head: true }).eq('owner_id', placed.parentNodeId ? sponsorId : sponsorId);
+  const { count: posCount } = await sb().from('matrix_tree').select('*', { count: 'exact', head: true }).eq('owner_id', treeOwnerId);
   const position = (posCount || 0) + 1;
 
   await sb().from('matrix_tree').insert({
-    user_id: userId, owner_id: sponsorId,
+    user_id: userId, owner_id: treeOwnerId,
     parent_id: placed.parentNodeId, side: placed.side,
     level: placed.level, position,
   });
@@ -246,8 +248,7 @@ export async function addToMatrix(sponsorId: string, userId: string): Promise<vo
     lvl++;
   }
 
-  const ownerId = placed.parentNodeId ? sponsorId : sponsorId;
-  await updateTeamSize(ownerId);
+  await updateTeamSize(treeOwnerId);
 }
 
 async function getDirectSponsor(userId: string): Promise<string | null> {
