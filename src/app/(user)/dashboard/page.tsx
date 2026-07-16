@@ -72,7 +72,7 @@ export default function DashboardPage() {
   const [userDirectCount, setUserDirectCount] = useState(0);
   const [userCampaignRequest, setUserCampaignRequest] = useState<any>(null);
   const [campaignLoading, setCampaignLoading] = useState(false);
-  const [countdown, setCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [showBanner, setShowBanner] = useState(true);
   const [showTgPopup, setShowTgPopup] = useState(false);
   const [tgCountdown, setTgCountdown] = useState(5);
@@ -117,10 +117,11 @@ export default function DashboardPage() {
       const end = new Date(campaign.end_time).getTime();
       const now = Date.now();
       const diff = Math.max(0, end - now);
-      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
       const minutes = Math.floor((diff % 3600000) / 60000);
       const seconds = Math.floor((diff % 60000) / 1000);
-      setCountdown({ hours, minutes, seconds });
+      setCountdown({ days, hours, minutes, seconds });
     }
     updateCountdown();
     const interval = setInterval(updateCountdown, 1000);
@@ -414,7 +415,12 @@ export default function DashboardPage() {
               <h3 className="text-lg font-bold text-white font-heading mb-1" style={{ fontFamily: "'Orbitron',sans-serif" }}>{campaign.name}</h3>
               <p className="text-[10px] text-[#94A3B8] mb-3">{campaign.description}</p>
 
-              <div className="flex items-center justify-center gap-3 mb-3">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="text-center">
+                  <p className="text-2xl font-bold font-mono text-white">{String(countdown.days).padStart(2, '0')}</p>
+                  <p className="text-[7px] text-[#4A5568] uppercase">DAYS</p>
+                </div>
+                <span className="text-lg text-[#4A5568] font-mono">:</span>
                 <div className="text-center">
                   <p className="text-2xl font-bold font-mono text-white">{String(countdown.hours).padStart(2, '0')}</p>
                   <p className="text-[7px] text-[#4A5568] uppercase">HRS</p>
