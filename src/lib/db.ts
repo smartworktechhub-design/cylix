@@ -1308,10 +1308,14 @@ export async function toggleCampaign(campaignId: string, enabled: boolean): Prom
 
 export async function getCampaignRequests(campaignId?: string): Promise<any[]> {
   try {
-    let query = getServiceSupabase().from('campaign_requests').select('*, users!campaign_requests_user_id_fkey(wallet, referral_code)');
+    let query = getServiceSupabase().from('campaign_requests').select('*');
     if (campaignId) query = query.eq('campaign_id', campaignId);
-    const { data } = await query.order('created_at', { ascending: false });
-    return data || [];
+    const { data: requests } = await query.order('created_at', { ascending: false });
+    if (!requests || requests.length === 0) return [];
+    const userIds = [...new Set(requests.map((r: any) => r.user_id))];
+    const { data: users } = await getServiceSupabase().from('users').select('id, wallet, referral_code, display_name').in('id', userIds);
+    const userMap = new Map((users || []).map((u: any) => [u.id, u]));
+    return requests.map((r: any) => ({ ...r, users: userMap.get(r.user_id) || {} }));
   } catch { return []; }
 }
 

@@ -15,6 +15,7 @@ interface RequestRow {
   campaignId: string;
   userId: string;
   userWallet: string;
+  userName: string;
   verifiedRefs: number;
   rewardAmount: number;
   status: string;
@@ -53,6 +54,7 @@ export default function AdminCampaignRequests() {
       campaignId: r.campaign_id,
       userId: r.user_id,
       userWallet: r.users?.wallet || '',
+      userName: r.users?.display_name || '',
       verifiedRefs: Number(r.verified_refs),
       rewardAmount: Number(r.reward_amount),
       status: r.status,
@@ -161,7 +163,6 @@ export default function AdminCampaignRequests() {
             <TableHead>
               <TableRow>
                 <TableHeader>User</TableHeader>
-                <TableHeader>Wallet</TableHeader>
                 <TableHeader>Verified Refs</TableHeader>
                 <TableHeader>Reward</TableHeader>
                 <TableHeader>Status</TableHeader>
@@ -174,8 +175,12 @@ export default function AdminCampaignRequests() {
                 const cfg = statusConfig[r.status] || statusConfig.pending;
                 return (
                   <TableRow key={r.id}>
-                    <TableCell className="font-mono text-xs text-[#00E5FF]">{r.userId.slice(0, 8)}...</TableCell>
-                    <TableCell className="font-mono text-xs text-[#94A3B8]">{shortenAddress(r.userWallet, 6)}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="text-xs font-medium text-white">{r.userName || 'Unknown'}</p>
+                        <p className="text-[10px] text-[#94A3B8] font-mono">{shortenAddress(r.userWallet, 6)}</p>
+                      </div>
+                    </TableCell>
                     <TableCell className="font-mono text-white">{r.verifiedRefs}</TableCell>
                     <TableCell className="font-mono font-bold">{formatCurrency(r.rewardAmount)}</TableCell>
                     <TableCell>
@@ -229,7 +234,7 @@ export default function AdminCampaignRequests() {
               })}
               {filtered.length === 0 && (
                 <TableRow>
-                  <td colSpan={7} className="text-center text-[#94A3B8] py-8">
+                  <td colSpan={6} className="text-center text-[#94A3B8] py-8">
                     No {activeTab === 'all' ? '' : activeTab} requests found
                   </td>
                 </TableRow>
