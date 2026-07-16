@@ -64,7 +64,7 @@ export default function MatrixPage() {
 
   const typeCounts = { root: 0, left: 0, right: 0 };
   treeNodes.forEach(n => { typeCounts[n.type as keyof typeof typeCounts]++; });
-  const directCount = typeCounts.left;
+  const directCount = user?.directs ?? typeCounts.left;
   const isUnlocked = directCount >= 2;
 
   return (
