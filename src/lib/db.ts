@@ -266,8 +266,13 @@ async function updateTeamSize(userId: string): Promise<void> {
 }
 
 export async function getMatrixTree(userId: string): Promise<any> {
+  const { data: root } = await sb().from('matrix_tree')
+    .select('id, user_id, owner_id, parent_id, level, side, position')
+    .eq('user_id', userId).eq('owner_id', userId).eq('level', 0).maybeSingle();
+  if (!root) return null;
+
   const { data: nodes } = await sb().from('matrix_tree')
-    .select('*, users!matrix_tree_user_id_fkey(wallet)')
+    .select('id, user_id, owner_id, parent_id, level, side, position, users!matrix_tree_user_id_fkey(wallet)')
     .eq('owner_id', userId)
     .order('level').order('position');
   if (!nodes || nodes.length === 0) return null;
@@ -281,21 +286,16 @@ export async function getMatrixTree(userId: string): Promise<any> {
     });
   });
 
-  let root: any = null;
+  let treeRoot: any = null;
   nodes.forEach((n: any) => {
     const node = map.get(n.id);
-    if (!n.parent_id) { root = node; return; }
+    if (!n.parent_id) { treeRoot = node; return; }
     const parent = map.get(n.parent_id);
     if (parent) {
       if (n.side === 'left') parent.left = node;
       else parent.right = node;
     }
   });
-
-  function countDescendants(node: any): number {
-    if (!node) return 0;
-    return 1 + countDescendants(node.left) + countDescendants(node.right);
-  }
 
   function fillChildren(node: any): any {
     if (!node) return null;
@@ -304,7 +304,7 @@ export async function getMatrixTree(userId: string): Promise<any> {
     };
   }
 
-  return fillChildren(root);
+  return fillChildren(treeRoot);
 }
 
 export async function getUserMatrixLevel(userId: string): Promise<any[]> {

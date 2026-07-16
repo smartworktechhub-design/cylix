@@ -669,19 +669,18 @@ export default function DashboardPage() {
               <div className="space-y-1.5">
                 {matrixTreeNodes.map((level: any) => {
                   const mlData = matrixLevels.find((m: any) => m.level === level.level);
-                  const hasNodes = level.nodes.length > 0;
-                  const hasMl = !!mlData;
+                  const nodeCount = level.nodes.length;
+                  const maxDots = Math.min(nodeCount, 64);
                   return (
                   <div key={level.level}>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[6px] text-[#4A5568] font-mono w-4">L{level.level}</span>
                       <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.05)] to-transparent" />
-                      {hasMl && <span className="text-[6px] font-mono" style={{ color: mlData.totalEarnings > 0 ? '#00FFB2' : '#4A5568' }}>{formatCurrency(mlData.totalEarnings)}</span>}
-                      <span className="text-[6px] text-[#4A5568] font-mono">{level.nodes.length}</span>
+                      <span className="text-[6px] text-[#4A5568] font-mono">{nodeCount}</span>
                     </div>
-                    {hasNodes ? (
+                    {nodeCount > 0 ? (
                       <div className="flex flex-wrap gap-1 justify-center">
-                        {level.nodes.slice(0, 32).map((node: any, i: number) => {
+                        {level.nodes.slice(0, 64).map((node: any, i: number) => {
                           const isSelf = level.level === 1 && i === 0;
                           const colors: Record<string, string> = {
                             root: '#00E5FF', left: '#00E5FF', right: '#7B61FF',
@@ -689,27 +688,24 @@ export default function DashboardPage() {
                           return (
                             <button key={i} onClick={() => node.id && setSelectedNode(node)}
                               className="transition-all duration-200 hover:scale-110">
-                              <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer"
+                              <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center cursor-pointer"
                                 style={{
                                   borderColor: colors[node.type] || '#7B61FF',
                                   background: isSelf ? 'linear-gradient(135deg, #00E5FF, #7B61FF)' : `${(colors[node.type] || '#7B61FF')}20`,
                                   boxShadow: isSelf ? '0 0 10px rgba(0,229,255,0.3)' : 'none',
                                 }}>
-                                {isSelf ? <User size={9} className="text-[#050816]" /> : null}
+                                {isSelf ? <User size={8} className="text-[#050816]" /> : null}
                               </div>
                             </button>
                           );
                         })}
+                        {nodeCount > 64 && <span className="text-[7px] text-[#4A5568] self-center">+{nodeCount - 64}</span>}
                       </div>
-                    ) : hasMl ? (
-                      <div className="flex items-center gap-1.5 px-1">
-                        <div className="w-2 h-2 rounded-full" style={{ background: mlData.totalEarnings > 0 ? '#00FFB2' : '#4A5568' }} />
-                        <span className="text-[7px] text-[#4A5568]">Sponsor: </span>
-                        <span className="text-[7px] font-mono" style={{ color: mlData.totalEarnings > 0 ? '#00FFB2' : '#94A3B8' }}>
-                          {shortenAddress(mlData.sponsorWallet || mlData.sponsorId)}
-                        </span>
+                    ) : (
+                      <div className="flex items-center justify-center py-1">
+                        <span className="text-[7px] text-[#4A5568]/40">Empty</span>
                       </div>
-                    ) : null}
+                    )}
                   </div>
                   );
                 })}
