@@ -74,6 +74,8 @@ export default function DashboardPage() {
   const [campaignLoading, setCampaignLoading] = useState(false);
   const [countdown, setCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
   const [showBanner, setShowBanner] = useState(true);
+  const [showTgPopup, setShowTgPopup] = useState(false);
+  const [tgCountdown, setTgCountdown] = useState(5);
 
   useEffect(() => {
     if (user) {
@@ -124,6 +126,27 @@ export default function DashboardPage() {
     const interval = setInterval(updateCountdown, 1000);
     return () => clearInterval(interval);
   }, [campaign]);
+
+  useEffect(() => {
+    if (!user) return;
+    const dismissed = sessionStorage.getItem('cylix_tg_popup_shown');
+    if (!dismissed) {
+      const timer = setTimeout(() => setShowTgPopup(true), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!showTgPopup) return;
+    if (tgCountdown <= 0) return;
+    const t = setTimeout(() => setTgCountdown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [showTgPopup, tgCountdown]);
+
+  function dismissTgPopup() {
+    setShowTgPopup(false);
+    sessionStorage.setItem('cylix_tg_popup_shown', '1');
+  }
 
   const activeSlots = slots.filter(s => s.status === 'active');
   const completedSlots = slots.filter(s => s.status === 'completed');
@@ -256,6 +279,30 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen pb-24" style={{ background: '#050816' }}>
+
+      {/* ====== TELEGRAM POPUP ====== */}
+      {showTgPopup && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden border border-[rgba(0,229,255,0.15)]" style={{ background: 'linear-gradient(135deg, #0D1117, #161B22)' }}>
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0088cc, #005f8f)' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+              </div>
+              <h3 className="text-white font-bold text-lg mb-1" style={{ fontFamily: "'Orbitron',sans-serif" }}>Join Our Community</h3>
+              <p className="text-[#94A3B8] text-sm mb-4">Stay updated with latest news, updates & rewards</p>
+              <a href="https://t.me/cylixdefi" target="_blank" rel="noopener noreferrer"
+                className="block w-full py-3 rounded-xl font-bold text-sm text-black transition-all hover:opacity-90"
+                style={{ background: tgCountdown > 0 ? 'linear-gradient(135deg, #0088cc, #00c2ff)' : 'linear-gradient(135deg, #00E5FF, #7B61FF)' }}>
+                {tgCountdown > 0 ? `Join Telegram in ${tgCountdown}s` : 'JOIN TELEGRAM'}
+              </a>
+              <button onClick={dismissTgPopup}
+                className="w-full mt-3 py-2.5 rounded-xl text-[#4A5568] text-sm hover:text-white transition-colors">
+                Maybe later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ====== HEADER ====== */}
       <div className="relative overflow-hidden">
