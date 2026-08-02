@@ -36,7 +36,7 @@ export default function AdminReferrals() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">Referral Management</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Track referrals and team performance</p>
+        <p className="text-[#A8B8D0] text-sm mt-1">Track referrals and team performance</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -46,7 +46,7 @@ export default function AdminReferrals() {
               <Users size={20} className="text-[#00E5FF]" />
             </div>
             <div>
-              <p className="text-[#94A3B8] text-xs">Total Referrals</p>
+              <p className="text-[#A8B8D0] text-xs">Total Referrals</p>
               <p className="text-white font-bold font-mono text-lg">{formatNumber(2847)}</p>
             </div>
           </div>
@@ -57,7 +57,7 @@ export default function AdminReferrals() {
               <DollarSign size={20} className="text-[#00FFB2]" />
             </div>
             <div>
-              <p className="text-[#94A3B8] text-xs">Total Commission Paid</p>
+              <p className="text-[#A8B8D0] text-xs">Total Commission Paid</p>
               <p className="text-white font-bold font-mono text-lg">{formatCurrency(485000)}</p>
             </div>
           </div>
@@ -68,7 +68,7 @@ export default function AdminReferrals() {
               <UserPlus size={20} className="text-[#7B61FF]" />
             </div>
             <div>
-              <p className="text-[#94A3B8] text-xs">Active Referrers</p>
+              <p className="text-[#A8B8D0] text-xs">Active Referrers</p>
               <p className="text-white font-bold font-mono text-lg">{formatNumber(624)}</p>
             </div>
           </div>
@@ -79,7 +79,7 @@ export default function AdminReferrals() {
               <TrendingUp size={20} className="text-[#FFB800]" />
             </div>
             <div>
-              <p className="text-[#94A3B8] text-xs">Avg Commission</p>
+              <p className="text-[#A8B8D0] text-xs">Avg Commission</p>
               <p className="text-white font-bold font-mono text-lg">{formatCurrency(170)}</p>
             </div>
           </div>
@@ -120,7 +120,7 @@ export default function AdminReferrals() {
                       <Badge variant="info">L{ref.level}</Badge>
                     </TableCell>
                     <TableCell className="font-mono text-[#00FFB2]">{formatCurrency(ref.earnings)}</TableCell>
-                    <TableCell className="text-[#94A3B8] text-xs">{formatDate(ref.date)}</TableCell>
+                    <TableCell className="text-[#A8B8D0] text-xs">{formatDate(ref.date)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -134,7 +134,7 @@ export default function AdminReferrals() {
               <Award size={16} className="text-[#FFB800]" />
               <h3 className="text-white font-semibold font-heading">Top Referrers</h3>
             </div>
-            <p className="text-[#94A3B8] text-sm">Highest earning referrers</p>
+            <p className="text-[#A8B8D0] text-sm">Highest earning referrers</p>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -143,15 +143,15 @@ export default function AdminReferrals() {
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
                       i === 0 ? 'bg-[rgba(255,184,0,0.2)] text-[#FFB800]' :
-                      i === 1 ? 'bg-[rgba(148,163,184,0.2)] text-[#94A3B8]' :
+                      i === 1 ? 'bg-[rgba(148,163,184,0.2)] text-[#A8B8D0]' :
                       i === 2 ? 'bg-[rgba(123,97,255,0.2)] text-[#7B61FF]' :
-                      'bg-[rgba(148,163,184,0.1)] text-[#94A3B8]'
+                      'bg-[rgba(148,163,184,0.1)] text-[#A8B8D0]'
                     }`}>
                       {i + 1}
                     </div>
                     <div>
                       <p className="text-sm text-white font-mono text-xs">{ref.wallet}</p>
-                      <p className="text-xs text-[#94A3B8]">{ref.count} referrals</p>
+                      <p className="text-xs text-[#A8B8D0]">{ref.count} referrals</p>
                     </div>
                   </div>
                   <span className="text-sm font-mono text-[#00FFB2]">{formatCurrency(ref.totalEarnings)}</span>

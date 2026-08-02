@@ -142,21 +142,21 @@ export default function UserLookupPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">User Lookup</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Search by User ID, Referral Code, or Wallet Address</p>
+        <p className="text-[#A8B8D0] text-sm mt-1">Search by User ID, Referral Code, or Wallet Address</p>
       </div>
 
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center gap-3">
             <div className="flex-1 relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8B8D0]" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Enter User ID, Referral Code (CXL...), or Wallet Address (0x...)"
-                className="w-full bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.12)] rounded-xl pl-10 pr-4 py-3 text-sm text-white font-mono placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[rgba(0,229,255,0.3)] transition-colors"
+                className="w-full bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.12)] rounded-xl pl-10 pr-4 py-3 text-sm text-white font-mono placeholder:text-[#A8B8D0]/50 focus:outline-none focus:border-[rgba(0,229,255,0.3)] transition-colors"
               />
             </div>
             <Button variant="primary" onClick={handleSearch} loading={searching} disabled={searching}>
@@ -169,7 +169,7 @@ export default function UserLookupPage() {
       {results.length > 0 && (
         <Card>
           <CardHeader>
-            <p className="text-sm text-[#94A3B8]">{results.length} result(s) found</p>
+            <p className="text-sm text-[#A8B8D0]">{results.length} result(s) found</p>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -185,18 +185,18 @@ export default function UserLookupPage() {
                     </div>
                     <div>
                       <p className="text-white font-medium text-sm">{shortenAddress(u.wallet, 8)}</p>
-                      <p className="text-[#94A3B8] text-xs font-mono">{u.referralCode}</p>
+                      <p className="text-[#A8B8D0] text-xs font-mono">{u.referralCode}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <p className="text-[#00FFB2] font-mono text-sm">{formatCurrency(u.totalEarned)}</p>
-                      <p className="text-[#94A3B8] text-xs">earned</p>
+                      <p className="text-[#A8B8D0] text-xs">earned</p>
                     </div>
                     <Badge variant={u.isActive ? 'success' : 'default'}>
                       {u.isActive ? 'Active' : 'Inactive'}
                     </Badge>
-                    <ExternalLink size={14} className="text-[#94A3B8]" />
+                    <ExternalLink size={14} className="text-[#A8B8D0]" />
                   </div>
                 </button>
               ))}
@@ -224,7 +224,7 @@ export default function UserLookupPage() {
                     <h3 className="text-lg font-bold text-white font-heading">
                       {selected.displayName || shortenAddress(selected.wallet, 10)}
                     </h3>
-                    <p className="text-[#94A3B8] text-xs font-mono">ID: {shortenAddress(selected.id, 8)}</p>
+                    <p className="text-[#A8B8D0] text-xs font-mono">ID: {shortenAddress(selected.id, 8)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -247,7 +247,7 @@ export default function UserLookupPage() {
                         <Button variant="danger" size="sm" onClick={handleBan} loading={banning} disabled={banning}>
                           Confirm
                         </Button>
-                        <button onClick={() => { setShowBanInput(false); setBanReason(''); }} className="text-[#94A3B8] text-xs hover:text-white">Cancel</button>
+                        <button onClick={() => { setShowBanInput(false); setBanReason(''); }} className="text-[#A8B8D0] text-xs hover:text-white">Cancel</button>
                       </div>
                     ) : (
                       <Button variant="danger" size="sm" onClick={() => setShowBanInput(true)}>
@@ -267,11 +267,11 @@ export default function UserLookupPage() {
                 <div className="p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(0,229,255,0.06)]">
                   <div className="flex items-center gap-2 mb-2">
                     <Wallet size={14} className="text-[#00E5FF]" />
-                    <span className="text-[#94A3B8] text-xs">Wallet</span>
+                    <span className="text-[#A8B8D0] text-xs">Wallet</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-white text-xs font-mono truncate">{shortenAddress(selected.wallet, 10)}</p>
-                    <button onClick={() => copyText(selected.wallet, 'wallet')} className="text-[#94A3B8] hover:text-[#00E5FF]">
+                    <button onClick={() => copyText(selected.wallet, 'wallet')} className="text-[#A8B8D0] hover:text-[#00E5FF]">
                       {copied === 'wallet' ? <CheckCircle2 size={12} className="text-[#00FFB2]" /> : <Copy size={12} />}
                     </button>
                   </div>
@@ -280,11 +280,11 @@ export default function UserLookupPage() {
                 <div className="p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(123,97,255,0.06)]">
                   <div className="flex items-center gap-2 mb-2">
                     <Shield size={14} className="text-[#7B61FF]" />
-                    <span className="text-[#94A3B8] text-xs">Referral Code</span>
+                    <span className="text-[#A8B8D0] text-xs">Referral Code</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-[#7B61FF] text-xs font-mono font-bold">{selected.referralCode}</p>
-                    <button onClick={() => copyText(selected.referralCode, 'ref')} className="text-[#94A3B8] hover:text-[#7B61FF]">
+                    <button onClick={() => copyText(selected.referralCode, 'ref')} className="text-[#A8B8D0] hover:text-[#7B61FF]">
                       {copied === 'ref' ? <CheckCircle2 size={12} className="text-[#00FFB2]" /> : <Copy size={12} />}
                     </button>
                   </div>
@@ -293,7 +293,7 @@ export default function UserLookupPage() {
                 <div className="p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(0,255,178,0.06)]">
                   <div className="flex items-center gap-2 mb-2">
                     <TrendingUp size={14} className="text-[#00FFB2]" />
-                    <span className="text-[#94A3B8] text-xs">Total Earned</span>
+                    <span className="text-[#A8B8D0] text-xs">Total Earned</span>
                   </div>
                   <p className="text-[#00FFB2] text-sm font-mono font-bold">{formatCurrency(selected.totalEarned)}</p>
                 </div>
@@ -301,7 +301,7 @@ export default function UserLookupPage() {
                 <div className="p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(255,184,0,0.06)]">
                   <div className="flex items-center gap-2 mb-2">
                     <DollarSign size={14} className="text-[#FFB800]" />
-                    <span className="text-[#94A3B8] text-xs">Total Invested</span>
+                    <span className="text-[#A8B8D0] text-xs">Total Invested</span>
                   </div>
                   <p className="text-[#FFB800] text-sm font-mono font-bold">{formatCurrency(selected.totalInvested)}</p>
                 </div>
@@ -309,7 +309,7 @@ export default function UserLookupPage() {
                 <div className="p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(0,229,255,0.06)]">
                   <div className="flex items-center gap-2 mb-2">
                     <Users size={14} className="text-[#00E5FF]" />
-                    <span className="text-[#94A3B8] text-xs">Direct Referrals</span>
+                    <span className="text-[#A8B8D0] text-xs">Direct Referrals</span>
                   </div>
                   <p className="text-white text-sm font-mono font-bold">{selected.directs}</p>
                 </div>
@@ -317,7 +317,7 @@ export default function UserLookupPage() {
                 <div className="p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(123,97,255,0.06)]">
                   <div className="flex items-center gap-2 mb-2">
                     <Activity size={14} className="text-[#7B61FF]" />
-                    <span className="text-[#94A3B8] text-xs">Team Size</span>
+                    <span className="text-[#A8B8D0] text-xs">Team Size</span>
                   </div>
                   <p className="text-white text-sm font-mono font-bold">{formatNumber(selected.teamSize)}</p>
                 </div>
@@ -325,15 +325,15 @@ export default function UserLookupPage() {
                 <div className="p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(255,184,0,0.06)]">
                   <div className="flex items-center gap-2 mb-2">
                     <Award size={14} className="text-[#FFB800]" />
-                    <span className="text-[#94A3B8] text-xs">Ascension Balance</span>
+                    <span className="text-[#A8B8D0] text-xs">Ascension Balance</span>
                   </div>
                   <p className="text-[#FFB800] text-sm font-mono font-bold">{formatCurrency(selected.ascensionBalance)}</p>
                 </div>
 
                 <div className="p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(0,229,255,0.06)]">
                   <div className="flex items-center gap-2 mb-2">
-                    <Clock size={14} className="text-[#94A3B8]" />
-                    <span className="text-[#94A3B8] text-xs">Joined</span>
+                    <Clock size={14} className="text-[#A8B8D0]" />
+                    <span className="text-[#A8B8D0] text-xs">Joined</span>
                   </div>
                   <p className="text-white text-xs">{formatDate(selected.joinedAt)}</p>
                 </div>
@@ -341,8 +341,8 @@ export default function UserLookupPage() {
 
               <div className="mt-4 p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(0,229,255,0.06)]">
                 <div className="flex items-center gap-2 mb-1">
-                  <Users size={14} className="text-[#94A3B8]" />
-                  <span className="text-[#94A3B8] text-xs">Sponsor</span>
+                  <Users size={14} className="text-[#A8B8D0]" />
+                  <span className="text-[#A8B8D0] text-xs">Sponsor</span>
                 </div>
                 <p className="text-white text-xs font-mono">{sponsorName}</p>
               </div>
@@ -385,7 +385,7 @@ export default function UserLookupPage() {
               </CardHeader>
               <CardContent>
                 {slots.length === 0 ? (
-                  <p className="text-[#94A3B8] text-sm text-center py-4">No slots purchased yet</p>
+                  <p className="text-[#A8B8D0] text-sm text-center py-4">No slots purchased yet</p>
                 ) : (
                   <div className="space-y-2">
                     {slots.map((s) => (
@@ -401,12 +401,12 @@ export default function UserLookupPage() {
                               s.status === 'active' ? 'text-[#00FFB2]' :
                               s.status === 'completed' ? 'text-[#7B61FF]' :
                               s.status === 'locked' ? 'text-[#FF5C7A]' :
-                              'text-[#94A3B8]'
+                              'text-[#A8B8D0]'
                             }`}>O{s.slotOrbit}</span>
                           </div>
                           <div>
                             <p className="text-white text-sm font-medium">{s.slotName}</p>
-                            <p className="text-[#94A3B8] text-xs font-mono">
+                            <p className="text-[#A8B8D0] text-xs font-mono">
                               {formatCurrency(s.invested)} invested · {formatCurrency(s.earned)} earned
                             </p>
                           </div>
@@ -463,7 +463,7 @@ export default function UserLookupPage() {
                         {selected.roiEnabled !== false ? 'ENABLED' : 'DISABLED'}
                       </Badge>
                     </div>
-                    <p className="text-[#94A3B8] text-xs mb-3">
+                    <p className="text-[#A8B8D0] text-xs mb-3">
                       {selected.roiEnabled !== false
                         ? 'User receives 3% daily yield on active slots'
                         : 'Daily yield is paused for this user'}
@@ -490,19 +490,19 @@ export default function UserLookupPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-2 rounded-lg bg-[rgba(0,229,255,0.05)]">
-                        <p className="text-[#94A3B8] text-xs">Total Earned</p>
+                        <p className="text-[#A8B8D0] text-xs">Total Earned</p>
                         <p className="text-[#00FFB2] text-sm font-mono font-bold">{formatCurrency(selected.totalEarned)}</p>
                       </div>
                       <div className="p-2 rounded-lg bg-[rgba(123,97,255,0.05)]">
-                        <p className="text-[#94A3B8] text-xs">Ascension</p>
+                        <p className="text-[#A8B8D0] text-xs">Ascension</p>
                         <p className="text-[#FFB800] text-sm font-mono font-bold">{formatCurrency(selected.ascensionBalance)}</p>
                       </div>
                       <div className="p-2 rounded-lg bg-[rgba(0,229,255,0.05)]">
-                        <p className="text-[#94A3B8] text-xs">Active Slots</p>
+                        <p className="text-[#A8B8D0] text-xs">Active Slots</p>
                         <p className="text-white text-sm font-mono font-bold">{activeSlots.length}</p>
                       </div>
                       <div className="p-2 rounded-lg bg-[rgba(123,97,255,0.05)]">
-                        <p className="text-[#94A3B8] text-xs">Completed</p>
+                        <p className="text-[#A8B8D0] text-xs">Completed</p>
                         <p className="text-[#7B61FF] text-sm font-mono font-bold">{completedSlots.length}</p>
                       </div>
                     </div>
@@ -515,19 +515,19 @@ export default function UserLookupPage() {
                     </div>
                     <div className="space-y-2 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-[#94A3B8]">Rank</span>
+                        <span className="text-[#A8B8D0]">Rank</span>
                         <span className="text-white font-mono">{selected.rank}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#94A3B8]">2FA</span>
+                        <span className="text-[#A8B8D0]">2FA</span>
                         <span className="text-white font-mono">{selected.twoFAEnabled ? 'Enabled' : 'Disabled'}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#94A3B8]">Total Invested</span>
+                        <span className="text-[#A8B8D0]">Total Invested</span>
                         <span className="text-[#FFB800] font-mono">{formatCurrency(selected.totalInvested)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#94A3B8]">Locked Slots</span>
+                        <span className="text-[#A8B8D0]">Locked Slots</span>
                         <span className="text-[#FF5C7A] font-mono">{lockedSlots.length}</span>
                       </div>
                     </div>

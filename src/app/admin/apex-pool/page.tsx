@@ -69,7 +69,7 @@ export default function AdminApexPool() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">Apex Pool</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Auto-distribution at 12:00 AM UTC daily</p>
+        <p className="text-[#A8B8D0] text-sm mt-1">Auto-distribution at 12:00 AM UTC daily</p>
       </div>
 
       {/* Auto-Distribution Banner */}
@@ -81,10 +81,10 @@ export default function AdminApexPool() {
           </div>
           <div className="flex-1">
             <p className="text-white font-semibold text-sm">Auto-Distribution at 12:00 AM UTC</p>
-            <p className="text-[#94A3B8] text-xs mt-0.5">Cron job triggers daily. Manual trigger available below.</p>
+            <p className="text-[#A8B8D0] text-xs mt-0.5">Cron job triggers daily. Manual trigger available below.</p>
           </div>
           <div className="text-right shrink-0">
-            <p className="text-[#94A3B8] text-xs">Time Until Distribution</p>
+            <p className="text-[#A8B8D0] text-xs">Time Until Distribution</p>
             <p className="text-white font-mono font-bold text-lg tabular-nums">
               {String(diffH).padStart(2, '0')}:{String(diffM).padStart(2, '0')}:{String(diffS).padStart(2, '0')}
             </p>
@@ -99,7 +99,7 @@ export default function AdminApexPool() {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 size={32} className="text-[#00E5FF] animate-spin" />
-          <span className="ml-3 text-[#94A3B8]">Loading pool data...</span>
+          <span className="ml-3 text-[#A8B8D0]">Loading pool data...</span>
         </div>
       ) : poolState ? (
         <>
@@ -110,7 +110,7 @@ export default function AdminApexPool() {
                   <Trophy size={20} className="text-[#00E5FF]" />
                 </div>
                 <div>
-                  <p className="text-[#94A3B8] text-xs">Pool Balance</p>
+                  <p className="text-[#A8B8D0] text-xs">Pool Balance</p>
                   <p className="text-white font-bold font-mono text-lg">{formatCurrency(poolState.totalPoolFund)}</p>
                 </div>
               </div>
@@ -121,7 +121,7 @@ export default function AdminApexPool() {
                   <Users size={20} className="text-[#00FFB2]" />
                 </div>
                 <div>
-                  <p className="text-[#94A3B8] text-xs">Qualified Count</p>
+                  <p className="text-[#A8B8D0] text-xs">Qualified Count</p>
                   <p className="text-white font-bold font-mono text-lg">{formatNumber(poolState.qualifiedCount)}</p>
                 </div>
               </div>
@@ -132,7 +132,7 @@ export default function AdminApexPool() {
                   <DollarSign size={20} className="text-[#7B61FF]" />
                 </div>
                 <div>
-                  <p className="text-[#94A3B8] text-xs">Today&apos;s Distribution</p>
+                  <p className="text-[#A8B8D0] text-xs">Today&apos;s Distribution</p>
                   <p className="text-white font-bold font-mono text-lg">{formatCurrency(poolState.todayDistribution)}</p>
                 </div>
               </div>
@@ -143,7 +143,7 @@ export default function AdminApexPool() {
                   <Award size={20} className="text-[#FFB800]" />
                 </div>
                 <div>
-                  <p className="text-[#94A3B8] text-xs">Lifetime Distribution</p>
+                  <p className="text-[#A8B8D0] text-xs">Lifetime Distribution</p>
                   <p className="text-white font-bold font-mono text-lg">{formatCurrency(poolState.lifetimeDistribution)}</p>
                 </div>
               </div>
@@ -154,29 +154,29 @@ export default function AdminApexPool() {
             <Card>
               <CardHeader>
                 <h3 className="text-white font-semibold font-heading">Current Cycle Info</h3>
-                <p className="text-[#94A3B8] text-sm">Pool distribution details</p>
+                <p className="text-[#A8B8D0] text-sm">Pool distribution details</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between py-3 border-b border-[rgba(0,229,255,0.05)]">
-                  <span className="text-[#94A3B8] text-sm">Pool Amount</span>
+                  <span className="text-[#A8B8D0] text-sm">Pool Amount</span>
                   <span className="text-white font-mono font-semibold">{formatCurrency(poolState.totalPoolFund)}</span>
                 </div>
                 <div className="flex items-center justify-between py-3 border-b border-[rgba(0,229,255,0.05)]">
-                  <span className="text-[#94A3B8] text-sm">Qualified Members</span>
+                  <span className="text-[#A8B8D0] text-sm">Qualified Members</span>
                   <span className="text-white font-mono">{formatNumber(poolState.qualifiedCount)}</span>
                 </div>
                 <div className="flex items-center justify-between py-3 border-b border-[rgba(0,229,255,0.05)]">
-                  <span className="text-[#94A3B8] text-sm">Distribution Per User</span>
+                  <span className="text-[#A8B8D0] text-sm">Distribution Per User</span>
                   <span className="text-[#00E5FF] font-mono font-semibold">{formatCurrency(poolState.distributePerPerson)}</span>
                 </div>
                 <div className="flex items-center justify-between py-3 border-b border-[rgba(0,229,255,0.05)]">
-                  <span className="text-[#94A3B8] text-sm">Next Distribution</span>
+                  <span className="text-[#A8B8D0] text-sm">Next Distribution</span>
                   <span className="text-white font-mono">
                     {poolState.nextDistributionTime ? formatDate(poolState.nextDistributionTime) : 'N/A'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-3">
-                  <span className="text-[#94A3B8] text-sm">Cycle Progress</span>
+                  <span className="text-[#A8B8D0] text-sm">Cycle Progress</span>
                   <span className="text-[#FFB800] font-mono">{progressPct.toFixed(0)}%</span>
                 </div>
                 <Progress value={progressPct} size="md" />
@@ -186,7 +186,7 @@ export default function AdminApexPool() {
             <Card>
               <CardHeader>
                 <h3 className="text-white font-semibold font-heading">Pool Split (10% of Slot Income)</h3>
-                <p className="text-[#94A3B8] text-sm">50% Champions + 50% Active — carry-forward if no qualifiers</p>
+                <p className="text-[#A8B8D0] text-sm">50% Champions + 50% Active — carry-forward if no qualifiers</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="p-4 rounded-xl bg-[rgba(0,229,255,0.05)] border border-[rgba(0,229,255,0.12)]">
@@ -196,23 +196,23 @@ export default function AdminApexPool() {
                   </div>
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-[#94A3B8]">Qualification:</span>
+                      <span className="text-[#A8B8D0]">Qualification:</span>
                       <span className="text-white">≥1 direct referral</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#94A3B8]">Activity:</span>
+                      <span className="text-[#A8B8D0]">Activity:</span>
                       <span className="text-white">New placements under them in 24h</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#94A3B8]">Distribution:</span>
+                      <span className="text-[#A8B8D0]">Distribution:</span>
                       <span className="text-white">Equal share (1/N)</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#94A3B8]">Current Fund:</span>
+                      <span className="text-[#A8B8D0]">Current Fund:</span>
                       <span className="text-[#00E5FF] font-mono">{formatCurrency(poolState.championsFund)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#94A3B8]">Qualified:</span>
+                      <span className="text-[#A8B8D0]">Qualified:</span>
                       <span className="text-[#00FFB2] font-mono">{formatNumber(poolState.championsQualified)}</span>
                     </div>
                   </div>
@@ -224,23 +224,23 @@ export default function AdminApexPool() {
                   </div>
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-[#94A3B8]">Qualification:</span>
+                      <span className="text-[#A8B8D0]">Qualification:</span>
                       <span className="text-white">Active slot + team activity</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#94A3B8]">Activity:</span>
+                      <span className="text-[#A8B8D0]">Activity:</span>
                       <span className="text-white">New placements under them in 24h</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#94A3B8]">Distribution:</span>
+                      <span className="text-[#A8B8D0]">Distribution:</span>
                       <span className="text-white">Equal share (1/N)</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#94A3B8]">Current Fund:</span>
+                      <span className="text-[#A8B8D0]">Current Fund:</span>
                       <span className="text-[#7B61FF] font-mono">{formatCurrency(poolState.activeFund)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#94A3B8]">Qualified:</span>
+                      <span className="text-[#A8B8D0]">Qualified:</span>
                       <span className="text-[#00FFB2] font-mono">{formatNumber(poolState.activeQualified)}</span>
                     </div>
                   </div>
@@ -251,13 +251,13 @@ export default function AdminApexPool() {
             <Card>
               <CardHeader>
                 <h3 className="text-white font-semibold font-heading">Cycle Management</h3>
-                <p className="text-[#94A3B8] text-sm">Distribution controls</p>
+                <p className="text-[#A8B8D0] text-sm">Distribution controls</p>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="p-4 rounded-xl bg-[rgba(0,229,255,0.05)] border border-[rgba(0,229,255,0.08)]">
                     <h4 className="text-white font-medium text-sm mb-2">Trigger Distribution</h4>
-                    <p className="text-[#94A3B8] text-xs mb-3">Manually trigger pool distribution for current cycle</p>
+                    <p className="text-[#A8B8D0] text-xs mb-3">Manually trigger pool distribution for current cycle</p>
                     <Button
                       variant="primary"
                       size="sm"
@@ -271,7 +271,7 @@ export default function AdminApexPool() {
                   </div>
                   <div className="p-4 rounded-xl bg-[rgba(123,97,255,0.05)] border border-[rgba(123,97,255,0.08)]">
                     <h4 className="text-white font-medium text-sm mb-2">Reset Cycle</h4>
-                    <p className="text-[#94A3B8] text-xs mb-3">End current cycle and start a new one</p>
+                    <p className="text-[#A8B8D0] text-xs mb-3">End current cycle and start a new one</p>
                     <Button variant="secondary" size="sm" onClick={fetchPoolState}>
                       <RotateCcw size={14} />
                       Refresh
@@ -285,12 +285,12 @@ export default function AdminApexPool() {
           <Card>
             <CardHeader>
               <h3 className="text-white font-semibold font-heading">Distribution History</h3>
-              <p className="text-[#94A3B8] text-sm">Historical pool distributions</p>
+              <p className="text-[#A8B8D0] text-sm">Historical pool distributions</p>
             </CardHeader>
             <CardContent>
               {poolState.distributionHistory.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-[#94A3B8] text-sm">No distributions yet</p>
+                  <p className="text-[#A8B8D0] text-sm">No distributions yet</p>
                 </div>
               ) : (
                 <Table>
@@ -307,7 +307,7 @@ export default function AdminApexPool() {
                   <TableBody>
                     {poolState.distributionHistory.map((rec: ApexPoolDistribution) => (
                       <TableRow key={rec.id}>
-                        <TableCell className="text-[#94A3B8] text-xs">{formatDate(rec.distributedAt)}</TableCell>
+                        <TableCell className="text-[#A8B8D0] text-xs">{formatDate(rec.distributedAt)}</TableCell>
                         <TableCell className="font-mono text-[#00E5FF]">{formatCurrency(rec.totalFund)}</TableCell>
                         <TableCell className="font-mono">{formatNumber(rec.qualifiedCount)}</TableCell>
                         <TableCell className="font-mono">{formatCurrency(rec.perPerson)}</TableCell>
@@ -325,7 +325,7 @@ export default function AdminApexPool() {
         </>
       ) : (
         <div className="text-center py-20">
-          <p className="text-[#94A3B8]">Failed to load pool data</p>
+          <p className="text-[#A8B8D0]">Failed to load pool data</p>
           <Button variant="outline" size="sm" className="mt-4" onClick={fetchPoolState}>
             Retry
           </Button>

@@ -41,7 +41,7 @@ export default function EarningsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold font-heading text-white">Earnings</h2>
-        <p className="text-sm text-[#94A3B8] mt-1">Track all your income sources</p>
+        <p className="text-sm text-[#A8B8D0] mt-1">Track all your income sources</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -54,8 +54,8 @@ export default function EarningsPage() {
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <span className="text-xs font-medium text-[#94A3B8] uppercase tracking-wider">{card.label}</span>
-                    <p className="text-2xl font-bold font-mono mt-1" style={{ color: card.color }}>
+                    <span className="text-xs font-medium text-[#A8B8D0] uppercase tracking-wider">{card.label}</span>
+                    <p className="text-xl sm:text-2xl font-bold font-mono mt-1 overflow-hidden truncate" style={{ color: card.color }}>
                       {formatCurrency(value)}
                     </p>
                   </div>
@@ -64,8 +64,8 @@ export default function EarningsPage() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs text-[#94A3B8]">{card.desc}</span>
-                  <span className="text-xs font-mono text-[#94A3B8]">{share.toFixed(1)}%</span>
+                  <span className="text-xs text-[#A8B8D0]">{card.desc}</span>
+                  <span className="text-xs font-mono text-[#A8B8D0]">{share.toFixed(1)}%</span>
                 </div>
                 <Progress value={value} max={maxEarning} />
               </CardContent>
@@ -87,7 +87,7 @@ export default function EarningsPage() {
           </CardHeader>
           <CardContent>
             {earnings.total === 0 ? (
-              <p className="text-sm text-[#94A3B8] text-center py-8">No earnings yet</p>
+              <p className="text-sm text-[#A8B8D0] text-center py-8">No earnings yet</p>
             ) : (
               <div className="space-y-4">
                 {earningCards.map((card) => {
@@ -106,7 +106,7 @@ export default function EarningsPage() {
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-xs font-mono" style={{ color: card.color }}>{formatCurrency(value)}</span>
-                          <span className="text-xs font-mono text-[#94A3B8] w-12 text-right">{share.toFixed(1)}%</span>
+                          <span className="text-xs font-mono text-[#A8B8D0] w-12 text-right">{share.toFixed(1)}%</span>
                         </div>
                       </div>
                       <div className="relative h-3 rounded-full bg-[rgba(11,16,32,0.5)] overflow-hidden">

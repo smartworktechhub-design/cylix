@@ -86,6 +86,7 @@ export const ADMIN_NAV_LINKS = [
   { href: '/admin/earnings', label: 'Earnings', icon: 'TrendingUp' },
   { href: '/admin/campaigns', label: 'Campaigns', icon: 'Megaphone' },
   { href: '/admin/campaign-requests', label: 'Reward Requests', icon: 'Gift' },
+  { href: '/admin/deposit-wallet', label: 'Deposit Wallet', icon: 'Banknote' },
   { href: '/admin/withdrawals', label: 'Withdrawals', icon: 'Wallet' },
   { href: '/admin/apex-pool', label: 'Apex Pool', icon: 'Trophy' },
   { href: '/admin/emails', label: 'Email Export', icon: 'Mail' },

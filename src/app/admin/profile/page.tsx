@@ -24,7 +24,7 @@ export default function AdminProfile() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">Admin Profile</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Manage administrator account</p>
+        <p className="text-[#A8B8D0] text-sm mt-1">Manage administrator account</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -39,7 +39,7 @@ export default function AdminProfile() {
               </div>
               <div>
                 <p className="text-lg font-medium text-white">{adminName}</p>
-                <p className="text-sm text-[#94A3B8]">Super Administrator</p>
+                <p className="text-sm text-[#A8B8D0]">Super Administrator</p>
               </div>
               <Badge variant="success" className="ml-auto">Active</Badge>
             </div>
@@ -54,7 +54,7 @@ export default function AdminProfile() {
             ]} />
 
             <div>
-              <p className="text-sm font-medium text-[#94A3B8] mb-2">Admin ID</p>
+              <p className="text-sm font-medium text-[#A8B8D0] mb-2">Admin ID</p>
               <div className="flex items-center gap-2 p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(0,229,255,0.08)]">
                 <Lock size={14} className="text-[#00E5FF]" />
                 <span className="flex-1 font-mono text-sm text-white tracking-wider">CYLIX-ADMIN-001</span>
@@ -75,7 +75,7 @@ export default function AdminProfile() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Shield size={16} className="text-[#94A3B8]" />
+                <Shield size={16} className="text-[#A8B8D0]" />
                 <h3 className="text-white font-semibold font-heading">Security</h3>
               </div>
             </CardHeader>
@@ -93,27 +93,27 @@ export default function AdminProfile() {
                     <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${twoFactor ? 'left-5' : 'left-1'}`} />
                   </button>
                 </div>
-                <p className="text-xs text-[#94A3B8] mt-1">Protect your admin account</p>
+                <p className="text-xs text-[#A8B8D0] mt-1">Protect your admin account</p>
               </div>
 
               <div className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)]">
                 <div className="flex items-center gap-2 mb-1">
-                  <Clock size={14} className="text-[#94A3B8]" />
+                  <Clock size={14} className="text-[#A8B8D0]" />
                   <span className="text-sm text-white">Last Login</span>
                 </div>
-                <p className="text-xs text-[#94A3B8] mt-1">June 27, 2026 02:45 AM (Current Session)</p>
+                <p className="text-xs text-[#A8B8D0] mt-1">June 27, 2026 02:45 AM (Current Session)</p>
               </div>
 
               <div className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)]">
                 <div className="flex items-center gap-2 mb-1">
-                  <Shield size={14} className="text-[#94A3B8]" />
+                  <Shield size={14} className="text-[#A8B8D0]" />
                   <span className="text-sm text-white">Permissions</span>
                 </div>
                 <div className="space-y-1 mt-2">
                   {['User Management', 'Financial Oversight', 'System Configuration', 'Support Access', 'Announcements'].map((perm) => (
                     <div key={perm} className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#00FFB2]" />
-                      <span className="text-xs text-[#94A3B8]">{perm}</span>
+                      <span className="text-xs text-[#A8B8D0]">{perm}</span>
                     </div>
                   ))}
                 </div>

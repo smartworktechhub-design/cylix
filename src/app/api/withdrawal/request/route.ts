@@ -3,17 +3,13 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { deductUserBalance, createWithdrawal } from '@/lib/db';
 import { processWithdrawal, MIN_WITHDRAWAL } from '@/lib/withdrawal-engine';
 
-const WITHDRAWALS_OPEN_AT = new Date('2026-07-17T12:00:00+05:30').getTime();
+const RATE_LIMIT_MS = 10 * 60 * 1000;
 
 export async function POST(req: Request) {
   try {
-    if (Date.now() < WITHDRAWALS_OPEN_AT) {
-      return NextResponse.json({ error: 'Withdrawals are not open yet. Please wait for the timer to complete.' }, { status: 403 });
-    }
+    const { userId, amount } = await req.json();
 
-    const { userId, amount, wallet } = await req.json();
-
-    if (!userId || !amount || !wallet) {
+    if (!userId || !amount) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
     if (amount < MIN_WITHDRAWAL) {
@@ -21,13 +17,36 @@ export async function POST(req: Request) {
     }
 
     const sb = getServiceSupabase();
-    const { data: user } = await sb.from('users').select('total_earned').eq('id', userId).single();
+
+    const { data: user } = await sb
+      .from('users')
+      .select('id, total_earned, wallet')
+      .eq('id', userId)
+      .single();
+
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    if (!user.wallet) {
+      return NextResponse.json({ error: 'No wallet registered' }, { status: 400 });
     }
     if (Number(user.total_earned) < amount) {
       return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 });
     }
+
+    const { data: recentWd } = await sb
+      .from('withdrawals')
+      .select('id, created_at')
+      .eq('user_id', userId)
+      .in('status', ['pending', 'processing', 'held', 'completed'])
+      .gte('created_at', new Date(Date.now() - RATE_LIMIT_MS).toISOString())
+      .limit(1);
+
+    if (recentWd && recentWd.length > 0) {
+      return NextResponse.json({ error: 'Please wait 10 minutes between withdrawals' }, { status: 429 });
+    }
+
+    const wallet = user.wallet;
 
     const deducted = await deductUserBalance(userId, amount);
     if (!deducted) {
@@ -45,10 +64,10 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       withdrawalId,
-      status: result.success ? 'processing' : 'held',
+      status: result.success ? 'completed' : 'held',
       txHash: result.txHash || null,
       message: result.success
-        ? 'Withdrawal is being processed'
+        ? 'Withdrawal sent successfully!'
         : 'Withdrawal queued — will be processed when funds are available',
     });
   } catch (err: any) {

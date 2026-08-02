@@ -1,7 +1,7 @@
 import { getSupabase, getServiceSupabase } from './supabase';
 import { getHotWalletBalance, sendUSDT, isPayoutConfigured } from './payout';
 
-const MIN_WITHDRAWAL = 1;
+const MIN_WITHDRAWAL = 10;
 const MAX_RETRY = 5;
 
 function sb() { return getSupabase(); }
@@ -46,7 +46,7 @@ export async function processWithdrawal(withdrawalId: string): Promise<{ success
     const txHash = await sendUSDT(wd.wallet, amount);
 
     await sbAdmin().from('withdrawals').update({
-      status: 'processing',
+      status: 'completed',
       tx_hash: txHash,
       processed_at: new Date().toISOString(),
       held_since: null,
@@ -54,8 +54,8 @@ export async function processWithdrawal(withdrawalId: string): Promise<{ success
     }).eq('id', withdrawalId);
 
     await sbAdmin().from('notifications').insert({
-      user_id: wd.user_id, type: 'withdrawal', title: 'Withdrawal Processing',
-      message: `Your $${amount} withdrawal is being processed. TX: ${txHash.slice(0, 10)}...`,
+      user_id: wd.user_id, type: 'withdrawal', title: 'Withdrawal Completed',
+      message: `Your $${amount} withdrawal has been sent. TX: ${txHash.slice(0, 10)}...`,
     });
 
     return { success: true, txHash };

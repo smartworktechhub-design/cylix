@@ -80,7 +80,7 @@ export default function RiskDisclosurePage() {
       <div className="relative z-10 flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-8">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-[#94A3B8] hover:text-[#00E5FF] transition-colors mb-8"
+          className="inline-flex items-center gap-2 text-sm text-[#A8B8D0] hover:text-[#00E5FF] transition-colors mb-8"
         >
           <ArrowLeft size={16} />
           Back to Home
@@ -97,7 +97,7 @@ export default function RiskDisclosurePage() {
         >
           Risk Disclosure
         </h1>
-        <p className="text-[#94A3B8] text-sm mb-6 max-w-2xl">
+        <p className="text-[#A8B8D0] text-sm mb-6 max-w-2xl">
           Please read this disclosure carefully before participating in CYLIX MATRIX DeFi.
         </p>
 
@@ -137,7 +137,7 @@ export default function RiskDisclosurePage() {
               </div>
               <div className="space-y-3">
                 {r.content.map((p, i) => (
-                  <p key={i} className="text-sm text-[#94A3B8] leading-relaxed">
+                  <p key={i} className="text-sm text-[#A8B8D0] leading-relaxed">
                     {p}
                   </p>
                 ))}
@@ -153,7 +153,7 @@ export default function RiskDisclosurePage() {
             border: '1px solid rgba(255,92,122,0.12)',
           }}
         >
-          <p className="text-sm text-[#94A3B8] leading-relaxed">
+          <p className="text-sm text-[#A8B8D0] leading-relaxed">
             By using CYLIX MATRIX DeFi, you acknowledge that you have read, understood, and accepted all
             risks described in this disclosure. You agree that the CYLIX protocol, its developers, and
             affiliates shall not be held liable for any losses incurred through platform participation.

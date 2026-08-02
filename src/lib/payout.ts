@@ -24,6 +24,8 @@ const USDT_ABI = [
 ] as const;
 
 const USDT_DECIMALS = 18;
+const MAX_SINGLE_TRANSFER = 100;
+const MAX_DAILY_TRANSFER = 500;
 
 function getPayoutKey(): `0x${string}` | null {
   const key = process.env.PAYOUT_PRIVATE_KEY;
@@ -40,6 +42,10 @@ function getPublicClient() {
     chain: bsc,
     transport: http(BSC_RPC_URL),
   });
+}
+
+function isValidBSCAddress(address: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
 export async function getHotWalletBalance(): Promise<number> {
@@ -64,6 +70,13 @@ export async function getBNBBalance(): Promise<number> {
 }
 
 export async function sendUSDT(toAddress: string, amount: number): Promise<string> {
+  if (!isValidBSCAddress(toAddress)) {
+    throw new Error('Invalid BSC address');
+  }
+  if (amount > MAX_SINGLE_TRANSFER) {
+    throw new Error(`Exceeds maximum single transfer of $${MAX_SINGLE_TRANSFER}`);
+  }
+
   const key = getPayoutKey();
   if (!key) throw new Error('PAYOUT_PRIVATE_KEY not configured');
   const account = privateKeyToAccount(key);
@@ -77,24 +90,22 @@ export async function sendUSDT(toAddress: string, amount: number): Promise<strin
   });
 
   const nonce = await client.getTransactionCount({ address: account.address });
-  const gasPrice = await client.getGasPrice();
-  const gasLimit = await client.estimateGas({
-    account: account.address,
-    to: USDT_ADDRESS as `0x${string}`,
-    data,
-  });
+  const rpcGasPrice = await client.getGasPrice();
+  const gasPrice = rpcGasPrice > BigInt(1000000000) ? rpcGasPrice : BigInt(3000000000);
+  const gas = BigInt(65000);
 
-  const signedTx = await account.signTransaction({
+  const txData = {
     to: USDT_ADDRESS as `0x${string}`,
     value: BigInt(0),
     data,
     nonce,
     gasPrice,
-    gasLimit: gasLimit * BigInt(2),
-    chainId: 56,
+    gas,
+    chainId: 56 as const,
     type: 'legacy' as const,
-  });
+  };
 
+  const signedTx = await account.signTransaction(txData);
   const txHash = await client.sendRawTransaction({ serializedTransaction: signedTx });
   return txHash;
 }
@@ -103,4 +114,8 @@ export function isPayoutConfigured(): boolean {
   return !!getPayoutKey() && !!getPayoutWallet();
 }
 
-export { getPayoutWallet };
+export function getPayoutWalletAddress(): string | null {
+  return getPayoutWallet();
+}
+
+export { getPayoutWallet, MAX_SINGLE_TRANSFER, MAX_DAILY_TRANSFER };

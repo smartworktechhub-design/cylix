@@ -62,7 +62,7 @@ export default function ReferralsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold font-heading text-white">Referrals</h2>
-        <p className="text-sm text-[#94A3B8] mt-1">Invite others and earn commissions</p>
+        <p className="text-sm text-[#A8B8D0] mt-1">Invite others and earn commissions</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -77,8 +77,8 @@ export default function ReferralsPage() {
                   <Link size={18} className="text-[#00E5FF]" />
                 </div>
                 <div>
-                  <p className="text-xs text-[#94A3B8]">Referral Code</p>
-                  <p className="text-lg font-mono font-bold text-white tracking-wider">{referralCode}</p>
+                  <p className="text-xs text-[#A8B8D0]">Referral Code</p>
+                  <p className="text-base sm:text-lg font-mono font-bold text-white tracking-wider overflow-hidden truncate">{referralCode}</p>
                 </div>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleCopy('code')}>
@@ -87,9 +87,9 @@ export default function ReferralsPage() {
               </Button>
             </div>
             <div>
-              <p className="text-xs text-[#94A3B8] mb-2">Referral Link</p>
+              <p className="text-xs text-[#A8B8D0] mb-2">Referral Link</p>
               <div className="flex items-center gap-2 p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(0,229,255,0.08)]">
-                <p className="flex-1 text-sm text-[#94A3B8] font-mono truncate">{referralLink}</p>
+                <p className="flex-1 text-sm text-[#A8B8D0] font-mono truncate">{referralLink}</p>
                 <Button variant="ghost" size="sm" onClick={() => handleCopy('link')}>
                   {copied === 'link' ? <Check size={14} className="text-[#00FFB2]" /> : <Copy size={14} />}
                 </Button>
@@ -101,7 +101,7 @@ export default function ReferralsPage() {
         <Card>
           <CardHeader>
             <h3 className="text-lg font-semibold text-white">Commission Structure</h3>
-            <p className="text-xs text-[#94A3B8] mt-1">
+            <p className="text-xs text-[#A8B8D0] mt-1">
               40% of all purchases distributed across 11 binary matrix levels
             </p>
           </CardHeader>
@@ -116,7 +116,7 @@ export default function ReferralsPage() {
                       <div className="w-2 h-2 rounded-full" style={{ background: `hsl(${hue}, 100%, 60%)` }} />
                       <div>
                         <p className="text-sm font-medium text-white">{tier.level}</p>
-                        <p className="text-xs text-[#94A3B8]">{tier.requirement}</p>
+                        <p className="text-xs text-[#A8B8D0]">{tier.requirement}</p>
                       </div>
                     </div>
                     <span className="text-lg font-bold font-mono text-[#00FFB2]">{tier.commission}</span>
@@ -125,7 +125,7 @@ export default function ReferralsPage() {
               })}
             </div>
             <div className="mt-4 p-3 rounded-xl bg-[rgba(0,229,255,0.05)] border border-[rgba(0,229,255,0.1)]">
-              <p className="text-xs text-[#94A3B8]">
+              <p className="text-xs text-[#A8B8D0]">
                 Funds split: <span className="text-[#00E5FF]">50% Yield Reserve</span> &bull;
                 <span className="text-[#7B61FF]"> 40% Matrix Commissions</span> &bull;
                 <span className="text-[#FFB800]"> 10% Apex Pool</span>
@@ -142,12 +142,12 @@ export default function ReferralsPage() {
             <Card key={stat.label}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium text-[#94A3B8] uppercase tracking-wider">{stat.label}</span>
+                  <span className="text-xs font-medium text-[#A8B8D0] uppercase tracking-wider">{stat.label}</span>
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: `${stat.color}15` }}>
                     <Icon size={18} style={{ color: stat.color }} />
                   </div>
                 </div>
-                <p className="text-2xl font-bold font-mono text-white">
+                <p className="text-xl sm:text-2xl font-bold font-mono text-white overflow-hidden truncate">
                   {typeof stat.value === 'number' && stat.label === 'Referral Earnings' ? formatCurrency(stat.value) : stat.value}
                 </p>
               </CardContent>
@@ -160,7 +160,7 @@ export default function ReferralsPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">Referral Team</h3>
-            <Users size={16} className="text-[#94A3B8]" />
+            <Users size={16} className="text-[#A8B8D0]" />
           </div>
         </CardHeader>
         <CardContent>
@@ -184,7 +184,7 @@ export default function ReferralsPage() {
                     <Badge variant="primary">Lvl {ref.level}</Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="text-[#94A3B8] text-sm">{formatDate(ref.joinedAt)}</span>
+                    <span className="text-[#A8B8D0] text-sm">{formatDate(ref.joinedAt)}</span>
                   </TableCell>
                   <TableCell>
                     <span className="font-mono text-sm text-[#00FFB2]">{formatCurrency(ref.earnings)}</span>

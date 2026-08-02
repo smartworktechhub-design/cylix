@@ -44,7 +44,7 @@ export default function UpgradeVaultPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold font-heading text-white">Upgrade Vault</h2>
-        <p className="text-sm text-[#94A3B8] mt-1">Ascension vault automatically saves 50% of daily earnings for slot upgrades</p>
+        <p className="text-sm text-[#A8B8D0] mt-1">Ascension vault automatically saves 50% of daily earnings for slot upgrades</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -57,7 +57,7 @@ export default function UpgradeVaultPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white font-heading">Vault Balance</h3>
-                  <p className="text-xs text-[#94A3B8]">50% of all daily earnings accumulated</p>
+                  <p className="text-xs text-[#A8B8D0]">50% of all daily earnings accumulated</p>
                 </div>
               </div>
               <Badge variant={autoUpgrade ? 'success' : 'default'} className="text-xs">
@@ -67,12 +67,12 @@ export default function UpgradeVaultPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2 mb-5">
-              <p className="text-4xl font-bold font-mono text-white">{formatCurrency(balance)}</p>
-              <span className="text-sm text-[#94A3B8]">USDT</span>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold font-mono text-white overflow-hidden truncate">{formatCurrency(balance)}</p>
+              <span className="text-sm text-[#A8B8D0]">USDT</span>
             </div>
 
             <div className="flex items-center gap-3 p-3 rounded-xl bg-[rgba(11,16,32,0.5)] mb-5">
-              <ToggleLeft size={18} className={autoUpgrade ? 'text-[#00FFB2]' : 'text-[#94A3B8]'} />
+              <ToggleLeft size={18} className={autoUpgrade ? 'text-[#00FFB2]' : 'text-[#A8B8D0]'} />
               <span className="text-sm text-white flex-1">
                 Auto-upgrade to next slot when vault reaches target price
               </span>
@@ -83,13 +83,13 @@ export default function UpgradeVaultPage() {
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-[#94A3B8]">Next Target: {nextSlotName}</span>
+                <span className="text-sm text-[#A8B8D0]">Next Target: {nextSlotName}</span>
                 <span className="text-sm font-mono text-white">
                   {formatCurrency(balance)} / {formatCurrency(nextSlotCost)}
                 </span>
               </div>
               <Progress value={balance} max={nextSlotCost} size="md" showLabel />
-              <div className="flex items-center justify-between text-xs text-[#94A3B8]">
+              <div className="flex items-center justify-between text-xs text-[#A8B8D0]">
                 <span>Remaining: {formatCurrency(Math.max(0, nextSlotCost - balance))}</span>
                 <span>{progress.toFixed(1)}% toward next orbit</span>
               </div>
@@ -129,14 +129,14 @@ export default function UpgradeVaultPage() {
                     {owned ? (
                       <CheckCircle2 size={16} className="text-[#00FFB2]" />
                     ) : (
-                      <XCircle size={16} className="text-[#94A3B8]" />
+                      <XCircle size={16} className="text-[#A8B8D0]" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium ${owned ? 'text-white' : 'text-[#94A3B8]'}`}>
+                    <p className={`text-sm font-medium ${owned ? 'text-white' : 'text-[#A8B8D0]'}`}>
                       {slot.name}
                     </p>
-                    <p className="text-xs text-[#94A3B8] font-mono">
+                    <p className="text-xs text-[#A8B8D0] font-mono">
                       Orbit #{slot.orbit} &middot; {formatCurrency(slot.price)}
                     </p>
                   </div>
@@ -182,7 +182,7 @@ export default function UpgradeVaultPage() {
                 return (
                   <TableRow key={slot.id}>
                     <TableCell>
-                      <span className="text-xs font-mono text-[#94A3B8]">#{slot.orbit}</span>
+                      <span className="text-xs font-mono text-[#A8B8D0]">#{slot.orbit}</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

@@ -135,7 +135,7 @@ export default function ProfilePage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold font-heading text-white">Profile</h2>
-        <p className="text-sm text-[#94A3B8] mt-1">Manage your account and preferences</p>
+        <p className="text-sm text-[#A8B8D0] mt-1">Manage your account and preferences</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -151,7 +151,7 @@ export default function ProfilePage() {
               <div className="flex-1">
                 <p className="text-lg font-medium text-white">{displayName}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="font-mono text-sm text-[#94A3B8]">{shortenAddress(walletAddress)}</span>
+                  <span className="font-mono text-sm text-[#A8B8D0]">{shortenAddress(walletAddress)}</span>
                   <Button variant="ghost" size="sm" onClick={() => handleCopy('wallet')} className="h-6 px-2">
                     {copied === 'wallet' ? <Check size={12} className="text-[#00FFB2]" /> : <Copy size={12} />}
                   </Button>
@@ -161,7 +161,7 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <p className="text-sm text-[#94A3B8] mb-2">Your Referral Code</p>
+              <p className="text-sm text-[#A8B8D0] mb-2">Your Referral Code</p>
               <div className="flex items-center gap-2 p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(0,229,255,0.08)]">
                 <Link size={14} className="text-[#00E5FF]" />
                 <span className="flex-1 font-mono text-sm text-white tracking-wider">{referralCode}</span>
@@ -173,7 +173,7 @@ export default function ProfilePage() {
 
             {sponsor && (
               <div>
-                <p className="text-sm text-[#94A3B8] mb-2">Sponsor ID</p>
+                <p className="text-sm text-[#A8B8D0] mb-2">Sponsor ID</p>
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(123,97,255,0.08)]">
                   <User size={14} className="text-[#7B61FF]" />
                   <span className="flex-1 font-mono text-sm text-white tracking-wider">{sponsor.referralCode}</span>
@@ -189,7 +189,7 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Settings size={16} className="text-[#94A3B8]" />
+              <Settings size={16} className="text-[#A8B8D0]" />
               <h3 className="text-lg font-semibold text-white">Settings</h3>
             </div>
           </CardHeader>
@@ -212,7 +212,7 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Shield size={16} className="text-[#94A3B8]" />
+              <Shield size={16} className="text-[#A8B8D0]" />
               <h3 className="text-lg font-semibold text-white">Security</h3>
             </div>
           </CardHeader>
@@ -225,21 +225,21 @@ export default function ProfilePage() {
                 </div>
                 <Badge variant="success">Connected</Badge>
               </div>
-              <p className="font-mono text-xs text-[#94A3B8] mt-2">{shortenAddress(walletAddress, 8)}</p>
+              <p className="font-mono text-xs text-[#A8B8D0] mt-2">{shortenAddress(walletAddress, 8)}</p>
             </div>
 
             <div className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)]">
               <div className="flex items-center gap-2 mb-1">
-                <Clock size={14} className="text-[#94A3B8]" />
+                <Clock size={14} className="text-[#A8B8D0]" />
                 <span className="text-sm text-white">Last Login</span>
               </div>
-              <p className="text-xs text-[#94A3B8] mt-1">June 22, 2026 09:45 AM (Current Session)</p>
+              <p className="text-xs text-[#A8B8D0] mt-1">June 22, 2026 09:45 AM (Current Session)</p>
             </div>
 
             <div className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Smartphone size={14} className="text-[#94A3B8]" />
+                  <Smartphone size={14} className="text-[#A8B8D0]" />
                   <span className="text-sm text-white">Two-Factor Authentication</span>
                 </div>
                 {twoFA ? (
@@ -253,7 +253,7 @@ export default function ProfilePage() {
                   </Button>
                 )}
               </div>
-              <p className="text-xs text-[#94A3B8] mt-1">{twoFA ? 'Protected via Google Authenticator' : 'Enhance your account security'}</p>
+              <p className="text-xs text-[#A8B8D0] mt-1">{twoFA ? 'Protected via Google Authenticator' : 'Enhance your account security'}</p>
             </div>
           </CardContent>
         </Card>
@@ -265,14 +265,14 @@ export default function ProfilePage() {
           <div className="w-full max-w-md bg-[#0B1020] rounded-2xl border border-[rgba(0,229,255,0.1)] p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white font-heading">Setup 2FA</h3>
-              <button onClick={() => setShow2FA(false)} className="text-[#94A3B8] hover:text-white">
+              <button onClick={() => setShow2FA(false)} className="text-[#A8B8D0] hover:text-white">
                 <X size={18} />
               </button>
             </div>
 
             {verifyStep === 'setup' && otpauth && (
               <div className="space-y-4">
-                <p className="text-sm text-[#94A3B8]">Scan this QR code with Google Authenticator:</p>
+                <p className="text-sm text-[#A8B8D0]">Scan this QR code with Google Authenticator:</p>
                 <div className="flex justify-center">
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpauth)}`}
@@ -280,7 +280,7 @@ export default function ProfilePage() {
                     className="rounded-xl"
                   />
                 </div>
-                <p className="text-xs text-[#94A3B8] text-center">Or enter this key manually: <span className="font-mono text-[#00E5FF]">{secret}</span></p>
+                <p className="text-xs text-[#A8B8D0] text-center">Or enter this key manually: <span className="font-mono text-[#00E5FF]">{secret}</span></p>
                 <Button className="w-full" onClick={() => setVerifyStep('verify')}>
                   I've scanned the code
                 </Button>
@@ -295,7 +295,7 @@ export default function ProfilePage() {
 
             {verifyStep === 'verify' && (
               <div className="space-y-4">
-                <p className="text-sm text-[#94A3B8]">Enter the 6-digit code from Google Authenticator:</p>
+                <p className="text-sm text-[#A8B8D0]">Enter the 6-digit code from Google Authenticator:</p>
                 <Input
                   label="Verification Code"
                   placeholder="000000"
@@ -314,7 +314,7 @@ export default function ProfilePage() {
               <div className="text-center py-6 space-y-3">
                 <Check size={40} className="mx-auto text-[#00FFB2]" />
                 <p className="text-white font-medium">2FA Enabled Successfully</p>
-                <p className="text-sm text-[#94A3B8]">Your account is now protected with Google Authenticator</p>
+                <p className="text-sm text-[#A8B8D0]">Your account is now protected with Google Authenticator</p>
                 <Button className="w-full" onClick={() => setShow2FA(false)}>Done</Button>
               </div>
             )}

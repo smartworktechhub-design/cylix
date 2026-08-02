@@ -92,7 +92,7 @@ export default function AdminUsers() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white font-heading">User Management</h2>
-          <p className="text-[#94A3B8] text-sm mt-1">{formatNumber(allUsers.length)} registered users</p>
+          <p className="text-[#A8B8D0] text-sm mt-1">{formatNumber(allUsers.length)} registered users</p>
         </div>
       </div>
 
@@ -143,7 +143,7 @@ export default function AdminUsers() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
-                      <TeamIcon size={14} className="text-[#94A3B8]" />
+                      <TeamIcon size={14} className="text-[#A8B8D0]" />
                       <span className="font-mono">{formatNumber(user.teamSize)}</span>
                     </div>
                   </TableCell>

@@ -166,7 +166,7 @@ export default function AdminWithdrawals() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">Withdrawal Management</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Auto-process payouts with hot wallet</p>
+        <p className="text-[#A8B8D0] text-sm mt-1">Auto-process payouts with hot wallet</p>
       </div>
 
       {walletInfo && (
@@ -177,7 +177,7 @@ export default function AdminWithdrawals() {
                 <Wallet size={20} className="text-[#00E5FF]" />
               </div>
               <div>
-                <p className="text-[#94A3B8] text-xs">Hot Wallet Balance</p>
+                <p className="text-[#A8B8D0] text-xs">Hot Wallet Balance</p>
                 <p className="text-white font-bold font-mono text-lg">{formatCurrency(walletInfo.walletBalance)}</p>
                 {!walletInfo.isConfigured && (
                   <p className="text-[#FF5C7A] text-xs">Not configured</p>
@@ -191,9 +191,9 @@ export default function AdminWithdrawals() {
                 <Clock size={20} className="text-[#FFB800]" />
               </div>
               <div>
-                <p className="text-[#94A3B8] text-xs">Pending</p>
+                <p className="text-[#A8B8D0] text-xs">Pending</p>
                 <p className="text-white font-bold font-mono text-lg">{formatCurrency(pendingTotal)}</p>
-                <p className="text-[#94A3B8] text-xs">{walletInfo.pendingCount} requests</p>
+                <p className="text-[#A8B8D0] text-xs">{walletInfo.pendingCount} requests</p>
               </div>
             </div>
           </Card>
@@ -203,9 +203,9 @@ export default function AdminWithdrawals() {
                 <Hourglass size={20} className="text-[#FF5C7A]" />
               </div>
               <div>
-                <p className="text-[#94A3B8] text-xs">Total On Hold</p>
+                <p className="text-[#A8B8D0] text-xs">Total On Hold</p>
                 <p className="text-white font-bold font-mono text-lg">{formatCurrency(heldTotal)}</p>
-                <p className="text-[#94A3B8] text-xs">{walletInfo.heldCount} held</p>
+                <p className="text-[#A8B8D0] text-xs">{walletInfo.heldCount} held</p>
               </div>
             </div>
           </Card>
@@ -215,7 +215,7 @@ export default function AdminWithdrawals() {
                 <DollarSign size={20} className="text-[#00FFB2]" />
               </div>
               <div>
-                <p className="text-[#94A3B8] text-xs">Total Completed</p>
+                <p className="text-[#A8B8D0] text-xs">Total Completed</p>
                 <p className="text-white font-bold font-mono text-lg">{formatCurrency(completedTotal)}</p>
               </div>
             </div>
@@ -230,7 +230,7 @@ export default function AdminWithdrawals() {
               <AlertTriangle size={20} className="text-[#FFB800]" />
               <div>
                 <p className="text-white font-medium text-sm">{walletInfo.heldCount} withdrawals on hold</p>
-                <p className="text-[#94A3B8] text-xs">
+                <p className="text-[#A8B8D0] text-xs">
                   Total: {formatCurrency(heldTotal)} — will auto-process when wallet is funded
                 </p>
               </div>
@@ -262,14 +262,14 @@ export default function AdminWithdrawals() {
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     activeTab === tab.key
                       ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF]'
-                      : 'text-[#94A3B8] hover:text-white'
+                      : 'text-[#A8B8D0] hover:text-white'
                   }`}
                 >
                   {tab.label}
                 </button>
               ))}
             </div>
-            <span className="text-[#94A3B8] text-sm">{filtered.length} withdrawals</span>
+            <span className="text-[#A8B8D0] text-sm">{filtered.length} withdrawals</span>
           </div>
         </CardHeader>
         <CardContent>
@@ -290,17 +290,17 @@ export default function AdminWithdrawals() {
                 <TableRow key={w.id}>
                   <TableCell className="font-mono text-xs text-[#00E5FF]">{shortenAddress(w.userWallet, 6)}</TableCell>
                   <TableCell className="font-mono">{formatCurrency(w.amount)}</TableCell>
-                  <TableCell className="font-mono text-xs text-[#94A3B8]">{shortenAddress(w.wallet, 8)}</TableCell>
-                  <TableCell className="text-[#94A3B8] text-xs">{formatDate(w.date)}</TableCell>
+                  <TableCell className="font-mono text-xs text-[#A8B8D0]">{shortenAddress(w.wallet, 8)}</TableCell>
+                  <TableCell className="text-[#A8B8D0] text-xs">{formatDate(w.date)}</TableCell>
                   <TableCell>
                     {statusBadge(w.status)}
                     {w.status === 'held' && w.errorMessage && (
-                      <p className="text-[10px] text-[#FFB800] mt-1 max-w-[160px] truncate" title={w.errorMessage}>
+                      <p className="text-xs text-[#FFB800] mt-1 max-w-[160px] truncate" title={w.errorMessage}>
                         {w.errorMessage}
                       </p>
                     )}
                     {w.status === 'held' && (
-                      <p className="text-[10px] text-[#94A3B8] mt-1">Retry {w.retryCount}/5</p>
+                      <p className="text-xs text-[#A8B8D0] mt-1">Retry {w.retryCount}/5</p>
                     )}
                   </TableCell>
                   <TableCell>
@@ -315,7 +315,7 @@ export default function AdminWithdrawals() {
                         <ExternalLink size={10} />
                       </a>
                     ) : (
-                      <span className="text-xs text-[#94A3B8]">--</span>
+                      <span className="text-xs text-[#A8B8D0]">--</span>
                     )}
                   </TableCell>
                   {(activeTab === 'pending' || activeTab === 'held') && (
@@ -346,7 +346,7 @@ export default function AdminWithdrawals() {
               ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <td colSpan={7} className="text-center text-[#94A3B8] py-8">
+                  <td colSpan={7} className="text-center text-[#A8B8D0] py-8">
                     No {activeTab} withdrawals
                   </td>
                 </TableRow>

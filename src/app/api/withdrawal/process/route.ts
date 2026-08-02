@@ -5,7 +5,7 @@ function verifyAdmin(req: Request): boolean {
   const auth = req.headers.get('authorization');
   if (!auth) return false;
   const token = auth.replace('Bearer ', '');
-  return token === process.env.ADMIN_TOKEN || token === process.env.CRON_SECRET;
+  return token === process.env.ADMIN_TOKEN_SECRET || token === process.env.CRON_SECRET;
 }
 
 export async function POST(req: Request) {

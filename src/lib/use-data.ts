@@ -1,17 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAccount } from 'wagmi';
 import { useAppStore } from '@/stores/app-store';
 import { getUserByWallet, createUser, setUserSponsor, getUserSlots, getTransactions, getWithdrawals, getNotifications, getUserEarnings, getReferrals, getAdminStats, getAscensionVault, processSlotEarnings, checkApexPoolDistribution, distributeApexPool } from './db';
 
 
 export function useInitData() {
-  const { setUser, setSlots, setEarnings, setVault, setTransactions, setWithdrawals, setNotifications, setReferrals, setActivities, setAdminStats, setNeedsReferral } = useAppStore();
+  const { setUser, setSlots, setEarnings, setVault, setTransactions, setWithdrawals, setNotifications, setReferrals, setActivities, setAdminStats, setNeedsReferral, clearAll } = useAppStore();
   const { address, isConnected } = useAccount();
   const [loading, setLoading] = useState(true);
   const [isBanned, setIsBanned] = useState(false);
   const [banReason, setBanReason] = useState('');
+  const prevAddressRef = useRef<string | null>(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => setLoading(false), 8000);
@@ -21,6 +22,12 @@ export function useInitData() {
         setLoading(false);
         return;
       }
+      const prevAddress = prevAddressRef.current;
+      if (prevAddress && prevAddress !== address) {
+        clearAll();
+        setLoading(true);
+      }
+      prevAddressRef.current = address;
       try {
         const urlRef = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref') : null;
         const storedRef = typeof window !== 'undefined' ? localStorage.getItem('cylix_ref') : null;
@@ -86,6 +93,12 @@ export function useInitData() {
     }
     load();
   }, [address, isConnected]);
+
+  useEffect(() => {
+    if (!isConnected && !address) {
+      clearAll();
+    }
+  }, [isConnected, address]);
 
   return { loading, isBanned, banReason };
 }

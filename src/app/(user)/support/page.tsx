@@ -73,7 +73,7 @@ export default function SupportPage() {
     return (
       <div className="flex flex-col h-[calc(100vh-12rem)]">
         <div className="flex items-center gap-3 p-4 border-b border-[rgba(0,229,255,0.08)] bg-[rgba(11,16,32,0.8)] rounded-t-xl">
-          <button onClick={() => setSelectedTicket(null)} className="p-2 rounded-lg hover:bg-[rgba(0,229,255,0.1)] text-[#94A3B8] hover:text-[#00E5FF] transition-all">
+          <button onClick={() => setSelectedTicket(null)} className="p-2 rounded-lg hover:bg-[rgba(0,229,255,0.1)] text-[#A8B8D0] hover:text-[#00E5FF] transition-all">
             <ArrowLeft size={18} />
           </button>
           <div className="flex-1">
@@ -85,7 +85,7 @@ export default function SupportPage() {
                 border: `1px solid ${statusColors[selectedTicket.status] || '#94A3B8'}30`,
                 fontSize: '10px', padding: '1px 6px',
               }}>{selectedTicket.status === 'in_progress' ? 'In Progress' : selectedTicket.status.charAt(0).toUpperCase() + selectedTicket.status.slice(1)}</Badge>
-              <span className="text-[10px] text-[#94A3B8]">{formatDate(selectedTicket.createdAt)}</span>
+              <span className="text-xs text-[#A8B8D0]">{formatDate(selectedTicket.createdAt)}</span>
             </div>
           </div>
         </div>
@@ -93,8 +93,8 @@ export default function SupportPage() {
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[rgba(5,8,18,0.5)]">
           <div className="flex justify-start">
             <div className="max-w-[80%] p-3 rounded-2xl rounded-tl-sm bg-[rgba(18,26,45,0.9)] border border-[rgba(148,163,184,0.08)]">
-              <p className="text-sm text-[#CBD5E1] leading-relaxed">{selectedTicket.message}</p>
-              <p className="text-[10px] text-[#64748B] mt-1.5 text-right">{formatDate(selectedTicket.createdAt)}</p>
+              <p className="text-sm text-[#E2E8F0] leading-relaxed">{selectedTicket.message}</p>
+              <p className="text-xs text-[#A8B8D0] mt-1.5 text-right">{formatDate(selectedTicket.createdAt)}</p>
             </div>
           </div>
 
@@ -102,10 +102,10 @@ export default function SupportPage() {
             <div key={r.id} className="flex justify-start">
               <div className="max-w-[80%] p-3 rounded-2xl rounded-tl-sm bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.12)]">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[11px] text-[#00E5FF] font-medium">Admin</span>
+                  <span className="text-xs text-[#00E5FF] font-medium">Admin</span>
                 </div>
                 <p className="text-sm text-white leading-relaxed">{r.message}</p>
-                <p className="text-[10px] text-[#64748B] mt-1.5 text-right">{formatDate(r.createdAt)}</p>
+                <p className="text-xs text-[#A8B8D0] mt-1.5 text-right">{formatDate(r.createdAt)}</p>
               </div>
             </div>
           ))}
@@ -133,7 +133,7 @@ export default function SupportPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold font-heading text-white">Support</h2>
-        <p className="text-sm text-[#94A3B8] mt-1">Get help and contact our support team</p>
+        <p className="text-sm text-[#A8B8D0] mt-1">Get help and contact our support team</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -145,10 +145,10 @@ export default function SupportPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-white">Email</p>
-                <p className="text-xs text-[#94A3B8] mt-0.5">support@cylix.io</p>
+                <p className="text-xs text-[#A8B8D0] mt-0.5">support@cylix.io</p>
               </div>
             </div>
-            <p className="text-xs text-[#94A3B8]">Avg response time: 4 hrs</p>
+            <p className="text-xs text-[#A8B8D0]">Avg response time: 4 hrs</p>
           </CardContent>
         </Card>
         <Card>
@@ -159,10 +159,10 @@ export default function SupportPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-white">Tickets</p>
-                <p className="text-xs text-[#94A3B8] mt-0.5">Open: {tickets.filter((t) => t.status === 'open').length}</p>
+                <p className="text-xs text-[#A8B8D0] mt-0.5">Open: {tickets.filter((t) => t.status === 'open').length}</p>
               </div>
             </div>
-            <p className="text-xs text-[#94A3B8]">Avg response time: 6 hrs</p>
+            <p className="text-xs text-[#A8B8D0]">Avg response time: 6 hrs</p>
           </CardContent>
         </Card>
       </div>
@@ -171,7 +171,7 @@ export default function SupportPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Mail size={16} className="text-[#94A3B8]" />
+              <Mail size={16} className="text-[#A8B8D0]" />
               <h3 className="text-lg font-semibold text-white">Submit a Ticket</h3>
             </div>
           </CardHeader>
@@ -184,9 +184,9 @@ export default function SupportPage() {
               icon={<MessageSquare size={14} />}
             />
             <div>
-              <label className="block text-sm font-medium text-[#94A3B8] mb-2">Message</label>
+              <label className="block text-sm font-medium text-[#A8B8D0] mb-2">Message</label>
               <textarea
-                className="w-full h-28 px-4 py-3 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#94A3B8]/50 text-sm transition-all duration-200 focus:outline-none focus:border-[rgba(0,229,255,0.3)] focus:shadow-[0_0_10px_rgba(0,229,255,0.05)] resize-none"
+                className="w-full h-28 px-4 py-3 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#A8B8D0]/50 text-sm transition-all duration-200 focus:outline-none focus:border-[rgba(0,229,255,0.3)] focus:shadow-[0_0_10px_rgba(0,229,255,0.05)] resize-none"
                 placeholder="Describe your issue in detail..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -218,7 +218,7 @@ export default function SupportPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Ticket size={16} className="text-[#94A3B8]" />
+              <Ticket size={16} className="text-[#A8B8D0]" />
               <h3 className="text-lg font-semibold text-white">My Tickets</h3>
             </div>
           </CardHeader>
@@ -227,8 +227,8 @@ export default function SupportPage() {
               <div className="flex justify-center py-8"><Loader2 size={20} className="animate-spin text-[#00E5FF]" /></div>
             ) : tickets.length === 0 ? (
               <div className="text-center py-8">
-                <Ticket size={32} className="mx-auto text-[#94A3B8] mb-2 opacity-40" />
-                <p className="text-[#94A3B8] text-sm">No tickets yet</p>
+                <Ticket size={32} className="mx-auto text-[#A8B8D0] mb-2 opacity-40" />
+                <p className="text-[#A8B8D0] text-sm">No tickets yet</p>
               </div>
             ) : tickets.map((t) => (
               <button key={t.id} onClick={() => setSelectedTicket(t)}
@@ -250,10 +250,10 @@ export default function SupportPage() {
                     }}>{t.status === 'in_progress' ? 'In Progress' : t.status.charAt(0).toUpperCase() + t.status.slice(1)}</Badge>
                   </div>
                 </div>
-                <p className="text-xs text-[#94A3B8] mt-1">{t.message?.slice(0, 80)}{t.message?.length > 80 ? '...' : ''}</p>
+                <p className="text-xs text-[#A8B8D0] mt-1">{t.message?.slice(0, 80)}{t.message?.length > 80 ? '...' : ''}</p>
                 <div className="flex items-center gap-2 mt-2">
-                  <Clock size={10} className="text-[#94A3B8]" />
-                  <span className="text-[10px] text-[#94A3B8]">{formatDate(t.createdAt)}</span>
+                  <Clock size={10} className="text-[#A8B8D0]" />
+                  <span className="text-xs text-[#A8B8D0]">{formatDate(t.createdAt)}</span>
                 </div>
               </button>
             ))}

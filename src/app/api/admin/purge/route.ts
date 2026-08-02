@@ -4,7 +4,7 @@ import { validateAdminToken } from '../auth/route';
 
 export async function POST(request: Request) {
   const token = request.headers.get('x-admin-token');
-  if (!token || !validateAdminToken(token)) {
+  if (!token || !await validateAdminToken(token)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

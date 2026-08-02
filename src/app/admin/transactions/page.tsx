@@ -109,7 +109,7 @@ export default function AdminTransactions() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white font-heading">Transactions</h2>
-          <p className="text-[#94A3B8] text-sm mt-1">Complete transaction log</p>
+          <p className="text-[#A8B8D0] text-sm mt-1">Complete transaction log</p>
         </div>
         <Button variant="outline">
           <Download size={16} />
@@ -128,7 +128,7 @@ export default function AdminTransactions() {
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${
                     filter === f.key
                       ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF]'
-                      : 'text-[#94A3B8] hover:text-white'
+                      : 'text-[#A8B8D0] hover:text-white'
                   }`}
                 >
                   <f.icon size={14} />
@@ -136,7 +136,7 @@ export default function AdminTransactions() {
                 </button>
               ))}
             </div>
-            <span className="text-[#94A3B8] text-sm">{filtered.length} transactions</span>
+            <span className="text-[#A8B8D0] text-sm">{filtered.length} transactions</span>
           </div>
         </CardHeader>
         <CardContent>
@@ -177,8 +177,8 @@ export default function AdminTransactions() {
                         {tx.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-[#94A3B8] text-xs">{formatDate(tx.date)}</TableCell>
-                    <TableCell className="text-[#94A3B8] text-xs max-w-[200px] truncate">{tx.description}</TableCell>
+                    <TableCell className="text-[#A8B8D0] text-xs">{formatDate(tx.date)}</TableCell>
+                    <TableCell className="text-[#A8B8D0] text-xs max-w-[200px] truncate">{tx.description}</TableCell>
                   </TableRow>
                 );
               })}

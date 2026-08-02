@@ -90,7 +90,7 @@ export default function AdminCampaigns() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">Campaign Management</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Create and manage referral reward campaigns</p>
+        <p className="text-[#A8B8D0] text-sm mt-1">Create and manage referral reward campaigns</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -100,7 +100,7 @@ export default function AdminCampaigns() {
               <Megaphone size={20} className="text-[#00E5FF]" />
             </div>
             <div>
-              <p className="text-[#94A3B8] text-xs">Total Campaigns</p>
+              <p className="text-[#A8B8D0] text-xs">Total Campaigns</p>
               <p className="text-white font-bold font-mono text-lg">{campaigns.length}</p>
             </div>
           </div>
@@ -111,7 +111,7 @@ export default function AdminCampaigns() {
               <ToggleRight size={20} className="text-[#00FFB2]" />
             </div>
             <div>
-              <p className="text-[#94A3B8] text-xs">Active Campaign</p>
+              <p className="text-[#A8B8D0] text-xs">Active Campaign</p>
               <p className="text-white font-bold font-mono text-lg">{activeCampaign ? activeCampaign.name : 'None'}</p>
             </div>
           </div>
@@ -122,7 +122,7 @@ export default function AdminCampaigns() {
               <DollarSign size={20} className="text-[#FFB800]" />
             </div>
             <div>
-              <p className="text-[#94A3B8] text-xs">Reward Rate Range</p>
+              <p className="text-[#A8B8D0] text-xs">Reward Rate Range</p>
               <p className="text-white font-bold font-mono text-lg">${Math.min(...campaigns.map(c => c.rewardPerReferral))} - ${Math.max(...campaigns.map(c => c.rewardPerReferral))}</p>
             </div>
           </div>
@@ -190,7 +190,7 @@ export default function AdminCampaigns() {
             <Megaphone size={16} className="text-[#7B61FF]" />
             <h3 className="text-white font-semibold font-heading">All Campaigns</h3>
           </div>
-          <span className="text-[#94A3B8] text-sm">{campaigns.length} campaigns</span>
+          <span className="text-[#A8B8D0] text-sm">{campaigns.length} campaigns</span>
         </CardHeader>
         <CardContent>
           <Table>
@@ -213,11 +213,11 @@ export default function AdminCampaigns() {
                 return (
                   <TableRow key={c.id}>
                     <TableCell className="font-semibold text-white">{c.name}</TableCell>
-                    <TableCell className="text-[#94A3B8] text-xs max-w-[200px] truncate">{c.description || '---'}</TableCell>
+                    <TableCell className="text-[#A8B8D0] text-xs max-w-[200px] truncate">{c.description || '---'}</TableCell>
                     <TableCell className="font-mono text-[#00FFB2]">{formatCurrency(c.rewardPerReferral)}</TableCell>
                     <TableCell className="font-mono text-white">{c.minReferralsRequired}</TableCell>
-                    <TableCell className="text-[#94A3B8] text-xs">{formatDate(c.startTime)}</TableCell>
-                    <TableCell className="text-[#94A3B8] text-xs">{formatDate(c.endTime)}</TableCell>
+                    <TableCell className="text-[#A8B8D0] text-xs">{formatDate(c.startTime)}</TableCell>
+                    <TableCell className="text-[#A8B8D0] text-xs">{formatDate(c.endTime)}</TableCell>
                     <TableCell>
                       <Badge variant={isActive ? 'success' : isExpired ? 'danger' : c.isEnabled ? 'warning' : 'default'}>
                         {isActive ? 'Active' : isExpired ? 'Expired' : c.isEnabled ? 'Enabled' : 'Disabled'}
@@ -226,7 +226,7 @@ export default function AdminCampaigns() {
                     <TableCell>
                       <button
                         onClick={() => handleToggle(c.id, !c.isEnabled)}
-                        className="text-[#94A3B8] hover:text-white transition-colors"
+                        className="text-[#A8B8D0] hover:text-white transition-colors"
                       >
                         {c.isEnabled ? (
                           <ToggleRight size={24} className="text-[#00FFB2]" />
@@ -240,7 +240,7 @@ export default function AdminCampaigns() {
               })}
               {campaigns.length === 0 && (
                 <TableRow>
-                  <td colSpan={8} className="text-center text-[#94A3B8] py-8">
+                  <td colSpan={8} className="text-center text-[#A8B8D0] py-8">
                     No campaigns created yet
                   </td>
                 </TableRow>

@@ -97,7 +97,7 @@ export default function BanAppealsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">Ban Appeals</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Review and process user ban appeal requests</p>
+        <p className="text-[#A8B8D0] text-sm mt-1">Review and process user ban appeal requests</p>
       </div>
 
       <div className="flex items-center gap-2">
@@ -108,12 +108,12 @@ export default function BanAppealsPage() {
             className={`px-4 py-2 rounded-xl text-xs font-medium transition-all ${
               filter === f
                 ? 'bg-[rgba(0,229,255,0.1)] border border-[rgba(0,229,255,0.2)] text-[#00E5FF]'
-                : 'bg-[rgba(11,16,32,0.5)] border border-[rgba(0,229,255,0.06)] text-[#94A3B8] hover:text-white'
+                : 'bg-[rgba(11,16,32,0.5)] border border-[rgba(0,229,255,0.06)] text-[#A8B8D0] hover:text-white'
             }`}
           >
             {f.charAt(0).toUpperCase() + f.slice(1)}
             {f === 'pending' && pendingCount > 0 && (
-              <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-[#FF5C7A] text-white text-[10px] font-bold">
+              <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-[#FF5C7A] text-white text-xs font-bold">
                 {pendingCount}
               </span>
             )}
@@ -124,8 +124,8 @@ export default function BanAppealsPage() {
       {filtered.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <ShieldCheck size={48} className="text-[#94A3B8]/20 mx-auto mb-4" />
-            <p className="text-[#94A3B8] text-sm">
+            <ShieldCheck size={48} className="text-[#A8B8D0]/20 mx-auto mb-4" />
+            <p className="text-[#A8B8D0] text-sm">
               {filter === 'pending' ? 'No pending appeals' : `No ${filter} appeals`}
             </p>
           </CardContent>
@@ -144,7 +144,7 @@ export default function BanAppealsPage() {
                       <p className="text-white text-sm font-medium">
                         {shortenAddress(appeal.wallet, 8)}
                       </p>
-                      <p className="text-[#94A3B8] text-xs font-mono">{shortenAddress(appeal.user_id, 8)}</p>
+                      <p className="text-[#A8B8D0] text-xs font-mono">{shortenAddress(appeal.user_id, 8)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -157,14 +157,14 @@ export default function BanAppealsPage() {
                       {appeal.status === 'rejected' && <XCircle size={10} className="mr-1" />}
                       {appeal.status}
                     </Badge>
-                    <span className="text-[#94A3B8] text-xs">{formatDate(appeal.created_at)}</span>
+                    <span className="text-[#A8B8D0] text-xs">{formatDate(appeal.created_at)}</span>
                   </div>
                 </div>
 
                 <div className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(0,229,255,0.06)] mb-4">
                   <div className="flex items-center gap-2 mb-2">
                     <MessageSquare size={12} className="text-[#00E5FF]" />
-                    <span className="text-[#94A3B8] text-[10px] uppercase tracking-wider">User Appeal</span>
+                    <span className="text-[#A8B8D0] text-xs uppercase tracking-wider">User Appeal</span>
                   </div>
                   <p className="text-white text-sm">{appeal.reason}</p>
                 </div>
@@ -183,7 +183,7 @@ export default function BanAppealsPage() {
                       value={adminNote}
                       onChange={(e) => setAdminNote(e.target.value)}
                       placeholder="Admin note (optional)..."
-                      className="w-full bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.12)] rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[rgba(0,229,255,0.3)]"
+                      className="w-full bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.12)] rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-[#A8B8D0]/50 focus:outline-none focus:border-[rgba(0,229,255,0.3)]"
                     />
                     <div className="flex items-center gap-3">
                       <Button

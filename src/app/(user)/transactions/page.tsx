@@ -96,7 +96,7 @@ export default function TransactionsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold font-heading text-white">Transactions</h2>
-        <p className="text-sm text-[#94A3B8] mt-1">View all your platform transactions and history</p>
+        <p className="text-sm text-[#A8B8D0] mt-1">View all your platform transactions and history</p>
       </div>
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
@@ -106,12 +106,12 @@ export default function TransactionsPage() {
             <Card key={stat.label}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium text-[#94A3B8] uppercase tracking-wider">{stat.label}</span>
+                  <span className="text-xs font-medium text-[#A8B8D0] uppercase tracking-wider">{stat.label}</span>
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: `${stat.color}15` }}>
                     <Icon size={18} style={{ color: stat.color }} />
                   </div>
                 </div>
-                <p className="text-2xl font-bold font-mono text-white">
+                <p className="text-xl sm:text-2xl font-bold font-mono text-white overflow-hidden truncate">
                   {typeof stat.value === 'number' && stat.label !== 'Success Rate' ? formatCurrency(stat.value) : stat.value}
                 </p>
               </CardContent>
@@ -124,7 +124,7 @@ export default function TransactionsPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">Transaction History</h3>
-            <Filter size={16} className="text-[#94A3B8]" />
+            <Filter size={16} className="text-[#A8B8D0]" />
           </div>
           <div className="flex gap-1 mt-4">
             {tabs.map((tab) => (
@@ -134,7 +134,7 @@ export default function TransactionsPage() {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   activeTab === tab
                     ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF]'
-                    : 'text-[#94A3B8] hover:text-white hover:bg-white/5'
+                    : 'text-[#A8B8D0] hover:text-white hover:bg-white/5'
                 }`}
               >
                 {tab}
@@ -181,18 +181,18 @@ export default function TransactionsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <span className="text-[#94A3B8] text-sm">{formatDate(tx.timestamp)}</span>
+                      <span className="text-[#A8B8D0] text-sm">{formatDate(tx.timestamp)}</span>
                     </TableCell>
                     <TableCell>
                       {tx.type === 'matrix_earning' ? (
                         <div className="flex items-center gap-1.5">
-                          <Badge variant="info" className="text-[10px]">
+                          <Badge variant="info" className="text-xs">
                             {tx.description?.split(' ')[0] || 'L?'}
                           </Badge>
-                          <span className="text-[#94A3B8] text-sm">{tx.description?.replace(/^L\d+\s+from\s+/, '') || ''}</span>
+                          <span className="text-[#A8B8D0] text-sm">{tx.description?.replace(/^L\d+\s+from\s+/, '') || ''}</span>
                         </div>
                       ) : (
-                        <span className="text-[#94A3B8] text-sm">{tx.description}</span>
+                        <span className="text-[#A8B8D0] text-sm">{tx.description}</span>
                       )}
                     </TableCell>
                   </TableRow>

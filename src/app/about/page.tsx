@@ -65,7 +65,7 @@ export default function AboutPage() {
       <div className="relative z-10 flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-8">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-[#94A3B8] hover:text-[#00E5FF] transition-colors mb-8"
+          className="inline-flex items-center gap-2 text-sm text-[#A8B8D0] hover:text-[#00E5FF] transition-colors mb-8"
         >
           <ArrowLeft size={16} />
           Back to Home
@@ -82,7 +82,7 @@ export default function AboutPage() {
         >
           About CYLIX
         </h1>
-        <p className="text-[#94A3B8] text-sm mb-12 max-w-2xl">
+        <p className="text-[#A8B8D0] text-sm mb-12 max-w-2xl">
           Redefining decentralized growth through matrix-based earning and community-driven compounding.
         </p>
 
@@ -102,12 +102,12 @@ export default function AboutPage() {
             >
               What is CYLIX?
             </h2>
-            <p className="text-[#94A3B8] text-sm leading-relaxed mb-4">
+            <p className="text-[#A8B8D0] text-sm leading-relaxed mb-4">
               CYLIX MATRIX DeFi is a decentralized autonomous platform built on the BNB Smart Chain (BSC).
               It combines a binary matrix structure with progressive orbit slots to create a self-sustaining
               ecosystem where participants earn daily yields and matrix commissions.
             </p>
-            <p className="text-[#94A3B8] text-sm leading-relaxed">
+            <p className="text-[#A8B8D0] text-sm leading-relaxed">
               The platform operates entirely through smart contracts, ensuring full transparency, immutability,
               and trustless execution. There are no central authorities controlling funds — the protocol rules
               are encoded on-chain and enforced by the blockchain itself.
@@ -131,7 +131,7 @@ export default function AboutPage() {
             >
               Our Mission
             </h2>
-            <p className="text-[#94A3B8] text-sm leading-relaxed mb-4">
+            <p className="text-[#A8B8D0] text-sm leading-relaxed mb-4">
               To democratize financial growth by providing a transparent, community-driven DeFi platform
               that rewards participation and empowers individuals worldwide to build sustainable passive
               income streams.
@@ -148,7 +148,7 @@ export default function AboutPage() {
                   style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
                 >
                   <p className="text-sm font-semibold text-[#00E5FF] mb-1">{m.label}</p>
-                  <p className="text-xs text-[#94A3B8]">{m.desc}</p>
+                  <p className="text-xs text-[#A8B8D0]">{m.desc}</p>
                 </div>
               ))}
             </div>
@@ -178,7 +178,7 @@ export default function AboutPage() {
                 <h3 className="text-sm font-bold text-white mb-1" style={{ fontFamily: 'var(--font-heading)' }}>
                   {f.title}
                 </h3>
-                <p className="text-xs text-[#94A3B8] leading-relaxed">{f.desc}</p>
+                <p className="text-xs text-[#A8B8D0] leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -208,12 +208,12 @@ export default function AboutPage() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-white">{t.role}</p>
-                  <p className="text-xs text-[#94A3B8] mt-1">{t.desc}</p>
+                  <p className="text-xs text-[#A8B8D0] mt-1">{t.desc}</p>
                 </div>
               </div>
             ))}
           </div>
-          <p className="text-xs text-[#94A3B8]/60 mt-6 text-center">
+          <p className="text-xs text-[#A8B8D0]/60 mt-6 text-center">
             CYLIX operates as a decentralized autonomous entity. Core contributors remain anonymous to
             protect the integrity and longevity of the protocol.
           </p>

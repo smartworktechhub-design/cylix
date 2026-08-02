@@ -20,22 +20,22 @@ const rajdhani = Rajdhani({
 });
 
 export const metadata: Metadata = {
-  title: 'CYLIX MATRIX DeFi',
-  description: 'CYLIX MATRIX — Decentralized 2x11 Forced Binary Matrix on BSC. Start with $5, earn 3% daily, build your team, and grow with the Autoflow Ecosystem.',
+  title: 'CYLIX MATRIX — DeFi Protocol on BNB Smart Chain',
+  description: 'CYLIX MATRIX is a decentralized yield protocol on BNB Smart Chain. Participate in a 2x11 binary matrix with pool-based yield distribution.',
   openGraph: {
-    title: 'CYLIX MATRIX DeFi',
-    description: 'Decentralized 2x11 Forced Binary Matrix on BSC. Start with $5, earn 3% daily.',
+    title: 'CYLIX MATRIX — DeFi Protocol on BNB Smart Chain',
+    description: 'Decentralized yield protocol on BNB Smart Chain. Pool-based yield distribution for active participants.',
     url: 'https://app.cylixdefi.live',
-    siteName: 'CYLIX MATRIX DeFi',
+    siteName: 'CYLIX MATRIX',
     images: [
-      { url: '/logo-square.png', width: 512, height: 512, alt: 'CYLIX MATRIX DeFi' },
+      { url: '/logo-square.png', width: 512, height: 512, alt: 'CYLIX MATRIX' },
     ],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'CYLIX MATRIX DeFi',
-    description: 'Decentralized 2x11 Forced Binary Matrix on BSC. Start with $5, earn 3% daily.',
+    title: 'CYLIX MATRIX — DeFi Protocol on BNB Smart Chain',
+    description: 'Decentralized yield protocol on BNB Smart Chain. Pool-based yield distribution.',
     images: ['/logo-square.png'],
   },
   icons: {

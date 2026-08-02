@@ -141,13 +141,13 @@ export default function AdminMatrix() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">Matrix Management</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Binary tree structure and placement</p>
+        <p className="text-[#A8B8D0] text-sm mt-1">Binary tree structure and placement</p>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 size={32} className="text-[#00E5FF] animate-spin" />
-          <span className="ml-3 text-[#94A3B8]">Loading matrix data...</span>
+          <span className="ml-3 text-[#A8B8D0]">Loading matrix data...</span>
         </div>
       ) : (
         <>
@@ -158,7 +158,7 @@ export default function AdminMatrix() {
                   <Users size={20} className="text-[#00E5FF]" />
                 </div>
                 <div>
-                  <p className="text-[#94A3B8] text-xs">Total Users</p>
+                  <p className="text-[#A8B8D0] text-xs">Total Users</p>
                   <p className="text-white font-bold font-mono text-lg">{formatNumber(stats.totalUsers)}</p>
                 </div>
               </div>
@@ -169,7 +169,7 @@ export default function AdminMatrix() {
                   <UserCheck size={20} className="text-[#00FFB2]" />
                 </div>
                 <div>
-                  <p className="text-[#94A3B8] text-xs">Active Users</p>
+                  <p className="text-[#A8B8D0] text-xs">Active Users</p>
                   <p className="text-white font-bold font-mono text-lg">{formatNumber(stats.activeUsers)}</p>
                 </div>
               </div>
@@ -180,7 +180,7 @@ export default function AdminMatrix() {
                   <GitBranch size={20} className="text-[#7B61FF]" />
                 </div>
                 <div>
-                  <p className="text-[#94A3B8] text-xs">Max Depth</p>
+                  <p className="text-[#A8B8D0] text-xs">Max Depth</p>
                   <p className="text-white font-bold font-mono text-lg">{stats.maxDepth}</p>
                 </div>
               </div>
@@ -191,7 +191,7 @@ export default function AdminMatrix() {
                   <Network size={20} className="text-[#FFB800]" />
                 </div>
                 <div>
-                  <p className="text-[#94A3B8] text-xs">Total Matrix Nodes</p>
+                  <p className="text-[#A8B8D0] text-xs">Total Matrix Nodes</p>
                   <p className="text-white font-bold font-mono text-lg">{formatNumber(stats.totalNodes)}</p>
                 </div>
               </div>
@@ -202,7 +202,7 @@ export default function AdminMatrix() {
             <Card>
               <CardHeader>
                 <h3 className="text-white font-semibold font-heading">User Placement</h3>
-                <p className="text-[#94A3B8] text-sm">Search user to view tree placement</p>
+                <p className="text-[#A8B8D0] text-sm">Search user to view tree placement</p>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-3 mb-6">
@@ -224,8 +224,8 @@ export default function AdminMatrix() {
                   <div className="mb-4 p-3 rounded-xl bg-[rgba(0,229,255,0.05)] border border-[rgba(0,229,255,0.08)]">
                     <p className="text-white text-sm font-mono">{shortenAddress(searchResult.wallet)}</p>
                     <div className="flex gap-4 mt-1">
-                      <span className="text-xs text-[#94A3B8]">Directs: <span className="text-white">{searchResult.directs || 0}</span></span>
-                      <span className="text-xs text-[#94A3B8]">Team: <span className="text-white">{searchResult.team_size || 0}</span></span>
+                      <span className="text-xs text-[#A8B8D0]">Directs: <span className="text-white">{searchResult.directs || 0}</span></span>
+                      <span className="text-xs text-[#A8B8D0]">Team: <span className="text-white">{searchResult.team_size || 0}</span></span>
                       <Badge variant={searchResult.is_active ? 'success' : 'danger'} className="text-xs">
                         {searchResult.is_active ? 'Active' : 'Inactive'}
                       </Badge>
@@ -243,7 +243,7 @@ export default function AdminMatrix() {
                       >
                         <div className={`w-2 h-2 rounded-full ${node.level === 1 ? 'bg-[#FFB800]' : 'bg-[#00E5FF]'}`} />
                         <div>
-                          <span className="text-xs font-mono text-[#94A3B8]">L{node.level}</span>
+                          <span className="text-xs font-mono text-[#A8B8D0]">L{node.level}</span>
                           <span className="text-xs text-white ml-2">
                             {node.side ? `(${node.side})` : 'root'}
                           </span>
@@ -253,7 +253,7 @@ export default function AdminMatrix() {
                   </div>
                 ) : searchResult && !searchLoading ? (
                   <div className="text-center py-8">
-                    <p className="text-[#94A3B8] text-sm">No matrix nodes found for this user</p>
+                    <p className="text-[#A8B8D0] text-sm">No matrix nodes found for this user</p>
                   </div>
                 ) : !searchResult ? (
                   <div className="flex items-center justify-center">
@@ -261,8 +261,8 @@ export default function AdminMatrix() {
                       <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center">
                         <Users size={28} className="text-[#050816]" />
                       </div>
-                      <p className="text-[#94A3B8] text-sm">Enter a wallet address to view</p>
-                      <p className="text-[#94A3B8] text-xs mt-1">the user binary tree placement</p>
+                      <p className="text-[#A8B8D0] text-sm">Enter a wallet address to view</p>
+                      <p className="text-[#A8B8D0] text-xs mt-1">the user binary tree placement</p>
                     </div>
                   </div>
                 ) : null}
@@ -272,7 +272,7 @@ export default function AdminMatrix() {
             <Card>
               <CardHeader>
                 <h3 className="text-white font-semibold font-heading">Volume Distribution</h3>
-                <p className="text-[#94A3B8] text-sm">Nodes per matrix level</p>
+                <p className="text-[#A8B8D0] text-sm">Nodes per matrix level</p>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -304,13 +304,13 @@ export default function AdminMatrix() {
           <Card>
             <CardHeader>
               <h3 className="text-white font-semibold font-heading">Rebuild Tools</h3>
-              <p className="text-[#94A3B8] text-sm">Matrix maintenance utilities</p>
+              <p className="text-[#A8B8D0] text-sm">Matrix maintenance utilities</p>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="p-4 rounded-xl bg-[rgba(0,229,255,0.05)] border border-[rgba(0,229,255,0.08)]">
                   <h4 className="text-white font-medium text-sm mb-2">Rebuild Matrix</h4>
-                  <p className="text-[#94A3B8] text-xs mb-4">Recalculate all tree placements and levels</p>
+                  <p className="text-[#A8B8D0] text-xs mb-4">Recalculate all tree placements and levels</p>
                   <Button variant="outline" size="sm">
                     <RefreshCw size={14} />
                     Rebuild
@@ -318,7 +318,7 @@ export default function AdminMatrix() {
                 </div>
                 <div className="p-4 rounded-xl bg-[rgba(0,255,178,0.05)] border border-[rgba(0,255,178,0.08)]">
                   <h4 className="text-white font-medium text-sm mb-2">Fix Orphans</h4>
-                  <p className="text-[#94A3B8] text-xs mb-4">Reassign users without proper placement</p>
+                  <p className="text-[#A8B8D0] text-xs mb-4">Reassign users without proper placement</p>
                   <Button variant="outline" size="sm">
                     <GitBranch size={14} />
                     Fix
@@ -326,7 +326,7 @@ export default function AdminMatrix() {
                 </div>
                 <div className="p-4 rounded-xl bg-[rgba(123,97,255,0.05)] border border-[rgba(123,97,255,0.08)]">
                   <h4 className="text-white font-medium text-sm mb-2">Validate Tree</h4>
-                  <p className="text-[#94A3B8] text-xs mb-4">Check matrix integrity and detect issues</p>
+                  <p className="text-[#A8B8D0] text-xs mb-4">Check matrix integrity and detect issues</p>
                   <Button variant="outline" size="sm">
                     <Search size={14} />
                     Validate

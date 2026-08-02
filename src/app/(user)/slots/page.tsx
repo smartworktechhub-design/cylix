@@ -157,16 +157,16 @@ export default function SlotsPage() {
         <div className="rounded-2xl p-6 w-80 border border-[rgba(0,229,255,0.12)]" style={{ background: 'rgba(11,16,32,0.95)' }}>
           <div className="text-center">
             {purchaseStatus === 'approve' && (
-              <><Clock size={40} className="text-[#FFB800] mx-auto mb-3 animate-pulse" /><p className="text-white font-semibold">Approve in Wallet</p><p className="text-xs text-[#94A3B8] mt-1">Confirm the transaction in your wallet</p></>
+              <><Clock size={40} className="text-[#FFB800] mx-auto mb-3 animate-pulse" /><p className="text-white font-semibold">Approve in Wallet</p><p className="text-xs text-[#A8B8D0] mt-1">Confirm the transaction in your wallet</p></>
             )}
             {purchaseStatus === 'confirm' && (
-              <><Loader2 size={40} className="text-[#00E5FF] mx-auto mb-3 animate-spin" /><p className="text-white font-semibold">Confirming Transaction</p><p className="text-xs text-[#94A3B8] mt-1">Waiting for blockchain confirmation...</p><a href={`https://bscscan.com/tx/${txHash}`} target="_blank" className="text-[10px] text-[#00E5FF] mt-2 inline-block hover:underline">View on BSCScan</a></>
+              <><Loader2 size={40} className="text-[#00E5FF] mx-auto mb-3 animate-spin" /><p className="text-white font-semibold">Confirming Transaction</p><p className="text-xs text-[#A8B8D0] mt-1">Waiting for blockchain confirmation...</p><a href={`https://bscscan.com/tx/${txHash}`} target="_blank" className="text-xs text-[#00E5FF] mt-2 inline-block hover:underline">View on BSCScan</a></>
             )}
             {purchaseStatus === 'success' && (
-              <><CheckCircle2 size={40} className="text-[#00FFB2] mx-auto mb-3" /><p className="text-white font-semibold">Slot Activated!</p><p className="text-xs text-[#94A3B8] mt-1">Your slot is now live and earning.</p></>
+              <><CheckCircle2 size={40} className="text-[#00FFB2] mx-auto mb-3" /><p className="text-white font-semibold">Slot Activated!</p><p className="text-xs text-[#A8B8D0] mt-1">Your slot is now live and earning.</p></>
             )}
             {purchaseStatus === 'error' && (
-              <><XCircle size={40} className="text-[#FF5C7A] mx-auto mb-3" /><p className="text-white font-semibold">Transaction Failed</p><p className="text-xs text-[#94A3B8] mt-1">{purchaseError || 'Please try again or check BSCScan.'}</p></>
+              <><XCircle size={40} className="text-[#FF5C7A] mx-auto mb-3" /><p className="text-white font-semibold">Transaction Failed</p><p className="text-xs text-[#A8B8D0] mt-1">{purchaseError || 'Please try again or check BSCScan.'}</p></>
             )}
             {(purchaseStatus === 'success' || purchaseStatus === 'error') && (
               <button onClick={() => setPurchaseStatus('idle')} className="mt-4 w-full py-2 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] text-sm font-semibold">Close</button>
@@ -193,7 +193,7 @@ export default function SlotsPage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-white">Deposits Open In</p>
-                  <p className="text-xs text-[#94A3B8]">Purchases will be available after countdown</p>
+                  <p className="text-xs text-[#A8B8D0]">Purchases will be available after countdown</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -206,7 +206,7 @@ export default function SlotsPage() {
                     <div className="w-12 h-12 rounded-xl bg-[rgba(255,184,0,0.1)] border border-[rgba(255,184,0,0.2)] flex items-center justify-center">
                       <span className="text-xl font-bold font-mono text-[#FFB800]">{String(t.val).padStart(2, '0')}</span>
                     </div>
-                    <span className="text-[10px] text-[#94A3B8] mt-1 block">{t.label}</span>
+                    <span className="text-xs text-[#A8B8D0] mt-1 block">{t.label}</span>
                   </div>
                 ))}
               </div>
@@ -217,12 +217,12 @@ export default function SlotsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold font-heading text-white">Orbit Slots</h2>
-          <p className="text-sm text-[#94A3B8] mt-1">Purchase slots with USDT on BSC</p>
+          <p className="text-sm text-[#A8B8D0] mt-1">Purchase slots with USDT on BSC</p>
         </div>
         {address && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[rgba(0,229,255,0.04)] border border-[rgba(0,229,255,0.08)]">
             <Coins size={14} className="text-[#00E5FF]" />
-            <span className="text-xs text-[#4A5568]">USDT:</span>
+            <span className="text-xs text-[#7B8BA5]">USDT:</span>
             <span className="text-sm font-mono font-semibold text-white">{usdtBalance.toFixed(2)}</span>
           </div>
         )}
@@ -253,12 +253,12 @@ export default function SlotsPage() {
                 <div className="absolute inset-0 rounded-xl" style={{ border: '1px solid', borderColor: `${grad.from}20`, opacity: 0.3 }} />
                 <CardContent className="p-5 flex flex-col flex-1 items-center text-center relative z-10">
                   <div className="absolute top-2 right-2">
-                    <Badge variant="danger" className="px-2 py-0.5 text-[9px]">LOCKED</Badge>
+                    <Badge variant="danger" className="px-2 py-0.5 text-xs">LOCKED</Badge>
                   </div>
-                  <LockKeyhole size={20} className="text-[#4A5568] mb-2" />
-                  <h3 className="text-sm font-bold text-[#4A5568] font-heading">{slot.name}</h3>
-                  <p className="text-lg font-mono font-bold text-[#4A5568]">{formatCurrency(slot.price)}</p>
-                  <p className="text-[8px] text-[#4A5568] mt-1">{REBUY_MAX}/{REBUY_MAX} Re-buys completed</p>
+                  <LockKeyhole size={20} className="text-[#7B8BA5] mb-2" />
+                  <h3 className="text-sm font-bold text-[#7B8BA5] font-heading">{slot.name}</h3>
+                  <p className="text-base sm:text-lg font-mono font-bold text-[#7B8BA5] overflow-hidden truncate">{formatCurrency(slot.price)}</p>
+                  <p className="text-xs text-[#7B8BA5] mt-1">{REBUY_MAX}/{REBUY_MAX} Re-buys completed</p>
                 </CardContent>
               </Card>
             );
@@ -271,11 +271,11 @@ export default function SlotsPage() {
                 <div className="absolute inset-0 rounded-xl" style={{ border: '1px solid', borderColor: `${grad.from}15`, opacity: 0.3 }} />
                 <CardContent className="p-5 flex flex-col flex-1 items-center text-center relative z-10">
                   <div className="absolute top-2 right-2">
-                    <Badge variant="success" className="px-2 py-0.5 text-[9px]">CLEARED</Badge>
+                    <Badge variant="success" className="px-2 py-0.5 text-xs">CLEARED</Badge>
                   </div>
                   <h3 className="text-sm font-bold text-white font-heading">{slot.name}</h3>
-                  <p className="text-lg font-mono font-bold text-[#00FFB2]">{formatCurrency(slot.price)}</p>
-                  <p className="text-[8px] text-[#4A5568] mt-1">Progressed past this slot</p>
+                  <p className="text-base sm:text-lg font-mono font-bold text-[#00FFB2] overflow-hidden truncate">{formatCurrency(slot.price)}</p>
+                  <p className="text-xs text-[#7B8BA5] mt-1">Progressed past this slot</p>
                 </CardContent>
               </Card>
             );
@@ -287,10 +287,10 @@ export default function SlotsPage() {
                 style={{ background: `linear-gradient(135deg, ${grad.from}06, ${grad.to}03)` }}>
                 <div className="absolute inset-0 rounded-xl" style={{ border: '1px solid', borderColor: `${grad.from}20`, opacity: 0.3 }} />
                 <CardContent className="p-5 flex flex-col flex-1 items-center text-center relative z-10">
-                  <LockKeyhole size={22} className="text-[#4A5568] mb-2" />
-                  <h3 className="text-sm font-bold text-[#4A5568] font-heading">{slot.name}</h3>
-                  <p className="text-lg font-mono font-bold text-[#4A5568]">{formatCurrency(slot.price)}</p>
-                  <p className="text-[8px] text-[#4A5568] mt-1">Buy {SLOTS[index - 1].name} first</p>
+                  <LockKeyhole size={22} className="text-[#7B8BA5] mb-2" />
+                  <h3 className="text-sm font-bold text-[#7B8BA5] font-heading">{slot.name}</h3>
+                  <p className="text-base sm:text-lg font-mono font-bold text-[#7B8BA5] overflow-hidden truncate">{formatCurrency(slot.price)}</p>
+                  <p className="text-xs text-[#7B8BA5] mt-1">Buy {SLOTS[index - 1].name} first</p>
                 </CardContent>
               </Card>
             );
@@ -323,7 +323,7 @@ export default function SlotsPage() {
               )}
               {isCompleted && (
                 <div className="absolute top-2 right-2 z-10">
-                  <Badge variant="success" className="px-2 py-0.5 text-[9px]">DONE</Badge>
+                  <Badge variant="success" className="px-2 py-0.5 text-xs">DONE</Badge>
                 </div>
               )}
               <CardContent className="p-5 flex flex-col flex-1 relative z-10">
@@ -336,19 +336,19 @@ export default function SlotsPage() {
                   </Badge>
                 </div>
                 <h3 className="text-lg font-bold text-white mb-1 font-heading">{slot.name}</h3>
-                <p className="text-2xl font-bold font-mono text-white mb-4">{formatCurrency(slot.price)}</p>
+                <p className="text-xl sm:text-2xl font-bold font-mono text-white mb-4 overflow-hidden truncate">{formatCurrency(slot.price)}</p>
                 <div className="space-y-2.5 mb-5 flex-1">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-[#94A3B8] flex items-center gap-1.5"><TrendingUp size={14} /> Daily Yield (3%)</span>
+                    <span className="text-[#A8B8D0] flex items-center gap-1.5"><TrendingUp size={14} /> Daily Yield (3%)</span>
                     <span className="font-mono font-medium" style={{ color: grad.from }}>{formatCurrency(dailyYield)}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-[#94A3B8] flex items-center gap-1.5"><Shield size={14} /> Max Cap (200%)</span>
+                    <span className="text-[#A8B8D0] flex items-center gap-1.5"><Shield size={14} /> Max Cap (200%)</span>
                     <span className="font-mono font-medium text-white">{formatCurrency(maxCap)}</span>
                   </div>
                   {isActive && (
                     <div>
-                      <div className="flex justify-between text-[9px] text-[#4A5568] mb-1">
+                      <div className="flex justify-between text-xs text-[#7B8BA5] mb-1">
                         <span>Progress</span>
                         <span className="font-mono">{Math.min(progressPercent, 100).toFixed(0)}% / 200%</span>
                       </div>
@@ -359,7 +359,7 @@ export default function SlotsPage() {
                     </div>
                   )}
                   {isCompleted && (
-                    <div className="flex items-center justify-center gap-2 text-[9px]">
+                    <div className="flex items-center justify-center gap-2 text-xs">
                       <RotateCcw size={10} className="text-[#00FFB2]" />
                       <span className="text-[#00FFB2] font-semibold">Re-buy available ({totalPurchases}/{REBUY_MAX + 1})</span>
                     </div>
@@ -372,7 +372,7 @@ export default function SlotsPage() {
                 ) : isActive ? (
                   slotActive && (
                     <div className="w-full mt-1">
-                      <div className="flex items-center justify-between text-[8px] text-[#4A5568] mb-1">
+                      <div className="flex items-center justify-between text-xs text-[#7B8BA5] mb-1">
                         <span>Re-buy cycle</span>
                         <span className="font-mono" style={{ color: grad.from }}>{totalPurchases}/{REBUY_MAX + 1}</span>
                       </div>
@@ -395,7 +395,7 @@ export default function SlotsPage() {
                       onClick={() => timeLeft.expired && handlePurchase(slot)} loading={isBuying} disabled={isBuying || !address || !timeLeft.expired}>
                       {!timeLeft.expired ? <><LockKeyhole size={14} /> Locked</> : isBuying ? (purchaseStatus === 'approve' ? 'Approve...' : 'Confirming...') : <><Coins size={14} /> Buy {slot.name}</>}
                     </Button>
-                    <p className="text-[8px] text-[#4A5568] text-center">USDT to: {TREASURY_WALLET.slice(0, 6)}...{TREASURY_WALLET.slice(-4)}</p>
+                    <p className="text-xs text-[#7B8BA5] text-center">USDT to: {TREASURY_WALLET.slice(0, 6)}...{TREASURY_WALLET.slice(-4)}</p>
                   </div>
                 ) : null}
               </CardContent>

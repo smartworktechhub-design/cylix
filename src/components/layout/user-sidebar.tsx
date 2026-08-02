@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { NAV_LINKS } from '@/lib/constants';
 import { useAppStore } from '@/stores/app-store';
+import { useDisconnect } from 'wagmi';
 import {
   LayoutDashboard, Package, Orbit, GitBranch, TrendingUp,
   Vault, Wallet, ArrowLeftRight, Users, Trophy, BarChart3,
@@ -30,7 +31,14 @@ const iconMap: Record<string, React.ReactNode> = {
 
 export function UserSidebar() {
   const pathname = usePathname();
-  const { sidebarOpen, setSidebarOpen } = useAppStore();
+  const { sidebarOpen, setSidebarOpen, clearAll } = useAppStore();
+  const { disconnect } = useDisconnect();
+
+  const handleDisconnect = () => {
+    clearAll();
+    disconnect();
+    setSidebarOpen(false);
+  };
 
   return (
     <>
@@ -77,7 +85,7 @@ export function UserSidebar() {
         </nav>
 
         <div className="p-4 border-t border-[rgba(0,229,255,0.08)]">
-          <button className="sidebar-link w-full text-[#FF5C7A] hover:bg-[rgba(255,92,122,0.1)]">
+          <button onClick={handleDisconnect} className="sidebar-link w-full text-[#FF5C7A] hover:bg-[rgba(255,92,122,0.1)]">
             <LogOut size={18} />
             <span>Disconnect</span>
           </button>

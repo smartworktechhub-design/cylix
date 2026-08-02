@@ -4,7 +4,7 @@ import { validateAdminToken } from '../auth/route';
 
 export async function GET(request: Request) {
   const token = request.headers.get('x-admin-token');
-  if (!token || !validateAdminToken(token)) {
+  if (!token || !await validateAdminToken(token)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const sb = getServiceSupabase();
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
 
 export async function DELETE(req: Request) {
   const token = req.headers.get('x-admin-token');
-  if (!token || !validateAdminToken(token)) {
+  if (!token || !await validateAdminToken(token)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const { searchParams } = new URL(req.url);

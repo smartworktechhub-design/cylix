@@ -107,7 +107,7 @@ export default function AdminRegisterUser() {
           <UserPlus size={24} className="text-[#00E5FF]" />
           Register New User
         </h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Manually register a new user via wallet address</p>
+        <p className="text-[#A8B8D0] text-sm mt-1">Manually register a new user via wallet address</p>
       </div>
 
       <Card>
@@ -117,7 +117,7 @@ export default function AdminRegisterUser() {
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-[#94A3B8] mb-2">
+              <label className="block text-sm font-medium text-[#A8B8D0] mb-2">
                 <Wallet size={14} className="inline mr-1.5 text-[#00E5FF]" />
                 Wallet Address
               </label>
@@ -132,7 +132,7 @@ export default function AdminRegisterUser() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#94A3B8] mb-2">
+              <label className="block text-sm font-medium text-[#A8B8D0] mb-2">
                 <User size={14} className="inline mr-1.5 text-[#7B61FF]" />
                 Display Name
               </label>
@@ -146,7 +146,7 @@ export default function AdminRegisterUser() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#94A3B8] mb-2">
+              <label className="block text-sm font-medium text-[#A8B8D0] mb-2">
                 <Tag size={14} className="inline mr-1.5 text-[#00FFB2]" />
                 Sponsor Referral Code
               </label>
@@ -162,7 +162,7 @@ export default function AdminRegisterUser() {
 
             <div>
               <div className="flex items-center justify-between mb-3">
-                <label className="text-sm font-medium text-[#94A3B8] flex items-center gap-1.5">
+                <label className="text-sm font-medium text-[#A8B8D0] flex items-center gap-1.5">
                   <CircleDollarSign size={14} className="text-[#FFB800]" />
                   ROI Daily Yield
                 </label>
@@ -194,7 +194,7 @@ export default function AdminRegisterUser() {
 
             <div>
               <div className="flex items-center justify-between mb-3">
-                <label className="text-sm font-medium text-[#94A3B8] flex items-center gap-1.5">
+                <label className="text-sm font-medium text-[#A8B8D0] flex items-center gap-1.5">
                   <CircleDollarSign size={14} className="text-[#FFB800]" />
                   Select Slots
                 </label>
@@ -230,7 +230,7 @@ export default function AdminRegisterUser() {
                         </div>
                         <div>
                           <p className="text-xs font-medium text-white">{slot.name}</p>
-                          <p className="text-[10px] font-mono" style={{ color: slot.color }}>${slot.price.toLocaleString()}</p>
+                          <p className="text-xs font-mono" style={{ color: slot.color }}>${slot.price.toLocaleString()}</p>
                         </div>
                       </div>
                     </button>
@@ -263,10 +263,10 @@ export default function AdminRegisterUser() {
                   </p>
                   {result.user && (
                     <div className="mt-2 space-y-1">
-                      <p className="text-xs text-[#94A3B8]">
+                      <p className="text-xs text-[#A8B8D0]">
                         Wallet: <span className="text-[#00E5FF] font-mono">{result.user.wallet}</span>
                       </p>
-                      <p className="text-xs text-[#94A3B8]">
+                      <p className="text-xs text-[#A8B8D0]">
                         Referral Code:{' '}
                         <span className="text-[#7B61FF] font-mono font-bold">{result.user.referralCode}</span>
                         <button
@@ -278,12 +278,12 @@ export default function AdminRegisterUser() {
                         </button>
                       </p>
                       {result.user.displayName && (
-                        <p className="text-xs text-[#94A3B8]">
+                        <p className="text-xs text-[#A8B8D0]">
                           Name: <span className="text-white">{result.user.displayName}</span>
                         </p>
                       )}
                       {result.user.slotNames && result.user.slotNames.length > 0 && (
-                        <p className="text-xs text-[#94A3B8]">
+                        <p className="text-xs text-[#A8B8D0]">
                           Slots: {result.user.slotNames.map((n, i) => (
                             <span key={i}>
                               <span className="text-[#FFB800] font-semibold">{n}</span>
@@ -292,7 +292,7 @@ export default function AdminRegisterUser() {
                           ))}
                         </p>
                       )}
-                      <p className="text-xs text-[#94A3B8]">
+                      <p className="text-xs text-[#A8B8D0]">
                         ROI:{' '}
                         <span className={`font-semibold ${result.user.roiEnabled ? 'text-[#00FFB2]' : 'text-[#FF5C7A]'}`}>
                           {result.user.roiEnabled ? 'Enabled' : 'Disabled'}
@@ -346,18 +346,18 @@ export default function AdminRegisterUser() {
                     </div>
                     <div>
                       <p className="text-sm text-white font-medium">{user.displayName || 'Unnamed'}</p>
-                      <p className="text-xs text-[#94A3B8] font-mono">{user.wallet.slice(0, 6)}...{user.wallet.slice(-4)}</p>
+                      <p className="text-xs text-[#A8B8D0] font-mono">{user.wallet.slice(0, 6)}...{user.wallet.slice(-4)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {user.slotNames && user.slotNames.map((name, i) => (
-                      <Badge key={i} className="bg-[rgba(255,184,0,0.15)] text-[#FFB800] border-[rgba(255,184,0,0.3)] text-[10px]">
+                      <Badge key={i} className="bg-[rgba(255,184,0,0.15)] text-[#FFB800] border-[rgba(255,184,0,0.3)] text-xs">
                         {name}
                       </Badge>
                     ))}
                     <Badge className={user.roiEnabled
-                      ? 'bg-[rgba(0,255,178,0.15)] text-[#00FFB2] border-[rgba(0,255,178,0.3)] text-[10px]'
-                      : 'bg-[rgba(255,92,122,0.15)] text-[#FF5C7A] border-[rgba(255,92,122,0.3)] text-[10px]'
+                      ? 'bg-[rgba(0,255,178,0.15)] text-[#00FFB2] border-[rgba(0,255,178,0.3)] text-xs'
+                      : 'bg-[rgba(255,92,122,0.15)] text-[#FF5C7A] border-[rgba(255,92,122,0.3)] text-xs'
                     }>
                       {user.roiEnabled ? 'ROI ON' : 'No ROI'}
                     </Badge>

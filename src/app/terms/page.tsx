@@ -85,7 +85,7 @@ export default function TermsPage() {
       <div className="relative z-10 flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-8">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-[#94A3B8] hover:text-[#00E5FF] transition-colors mb-8"
+          className="inline-flex items-center gap-2 text-sm text-[#A8B8D0] hover:text-[#00E5FF] transition-colors mb-8"
         >
           <ArrowLeft size={16} />
           Back to Home
@@ -102,7 +102,7 @@ export default function TermsPage() {
         >
           Terms & Conditions
         </h1>
-        <p className="text-[#94A3B8]/60 text-xs mb-10">Last updated: July 14, 2026</p>
+        <p className="text-[#A8B8D0]/60 text-xs mb-10">Last updated: July 14, 2026</p>
 
         <div className="space-y-6">
           {sections.map((s) => (
@@ -123,7 +123,7 @@ export default function TermsPage() {
               </h2>
               <div className="space-y-3">
                 {s.content.map((p, i) => (
-                  <p key={i} className="text-sm text-[#94A3B8] leading-relaxed">
+                  <p key={i} className="text-sm text-[#A8B8D0] leading-relaxed">
                     {p}
                   </p>
                 ))}

@@ -74,7 +74,7 @@ export default function NotificationsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold font-heading text-white">Notifications</h2>
-          <p className="text-sm text-[#94A3B8] mt-1">Stay updated with platform activity</p>
+          <p className="text-sm text-[#A8B8D0] mt-1">Stay updated with platform activity</p>
         </div>
         {unreadCount > 0 && (
           <Button variant="ghost" size="sm" onClick={markAllAsRead}>
@@ -95,24 +95,24 @@ export default function NotificationsPage() {
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     activeTab === tab
                       ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF]'
-                      : 'text-[#94A3B8] hover:text-white hover:bg-white/5'
+                      : 'text-[#A8B8D0] hover:text-white hover:bg-white/5'
                   }`}
                 >
                   {tab}
                   {tab === 'All' && unreadCount > 0 && (
-                    <span className="ml-2 px-1.5 py-0.5 text-[10px] rounded-full bg-[#FF5C7A] text-white">{unreadCount}</span>
+                    <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-[#FF5C7A] text-white">{unreadCount}</span>
                   )}
                 </button>
               ))}
             </div>
-            <Bell size={16} className="text-[#94A3B8]" />
+            <Bell size={16} className="text-[#A8B8D0]" />
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
           {filtered.length === 0 ? (
             <div className="text-center py-12">
               <CheckCircle size={40} className="mx-auto text-[#00FFB2] mb-3" />
-              <p className="text-[#94A3B8]">All caught up</p>
+              <p className="text-[#A8B8D0]">All caught up</p>
             </div>
           ) : (
             filtered.map((notification) => {
@@ -141,17 +141,17 @@ export default function NotificationsPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className={`text-sm font-medium ${isRead ? 'text-[#94A3B8]' : 'text-white'}`}>
+                            <p className={`text-sm font-medium ${isRead ? 'text-[#A8B8D0]' : 'text-white'}`}>
                               {notification.title}
                             </p>
                             {!isRead && (
                               <span className="w-2 h-2 rounded-full bg-[#00E5FF] shrink-0" />
                             )}
                           </div>
-                          <p className="text-xs text-[#94A3B8] mt-1">{notification.message}</p>
+                          <p className="text-xs text-[#A8B8D0] mt-1">{notification.message}</p>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          <span className="text-[10px] text-[#94A3B8] whitespace-nowrap">
+                          <span className="text-xs text-[#A8B8D0] whitespace-nowrap">
                             {formatRelativeTime(notification.timestamp)}
                           </span>
                           {!isRead && (

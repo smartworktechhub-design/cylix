@@ -69,7 +69,7 @@ export default function AdminSecurity() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white font-heading">Security</h2>
-          <p className="text-[#94A3B8] text-sm mt-1">Platform security overview and admin access</p>
+          <p className="text-[#A8B8D0] text-sm mt-1">Platform security overview and admin access</p>
         </div>
         <Button variant="outline" size="sm" onClick={loadData}>
           <RefreshCw size={14} />
@@ -84,7 +84,7 @@ export default function AdminSecurity() {
               <Users size={20} className="text-[#00E5FF]" />
             </div>
             <div>
-              <p className="text-[#94A3B8] text-xs">Total Users</p>
+              <p className="text-[#A8B8D0] text-xs">Total Users</p>
               <p className="text-white font-bold font-mono text-lg">{totalUsers}</p>
             </div>
           </div>
@@ -95,7 +95,7 @@ export default function AdminSecurity() {
               <Shield size={20} className="text-[#7B61FF]" />
             </div>
             <div>
-              <p className="text-[#94A3B8] text-xs">Admin Accounts</p>
+              <p className="text-[#A8B8D0] text-xs">Admin Accounts</p>
               <p className="text-white font-bold font-mono text-lg">{adminCount}</p>
             </div>
           </div>
@@ -106,7 +106,7 @@ export default function AdminSecurity() {
               <XCircle size={20} className="text-[#FF5C7A]" />
             </div>
             <div>
-              <p className="text-[#94A3B8] text-xs">Banned Users</p>
+              <p className="text-[#A8B8D0] text-xs">Banned Users</p>
               <p className="text-white font-bold font-mono text-lg">{bannedUsers}</p>
             </div>
           </div>
@@ -117,7 +117,7 @@ export default function AdminSecurity() {
               <AlertTriangle size={20} className="text-[#FFB800]" />
             </div>
             <div>
-              <p className="text-[#94A3B8] text-xs">Pending Appeals</p>
+              <p className="text-[#A8B8D0] text-xs">Pending Appeals</p>
               <p className="text-white font-bold font-mono text-lg">{banAppeals.filter((a: any) => a.status === 'pending').length}</p>
             </div>
           </div>
@@ -131,7 +131,7 @@ export default function AdminSecurity() {
               <History size={16} className="text-[#00E5FF]" />
               <h3 className="text-white font-semibold font-heading">Recent Users</h3>
             </div>
-            <p className="text-[#94A3B8] text-sm">Latest registered users</p>
+            <p className="text-[#A8B8D0] text-sm">Latest registered users</p>
           </CardHeader>
           <CardContent>
             <Table>
@@ -149,7 +149,7 @@ export default function AdminSecurity() {
                   <TableRow key={u.id}>
                     <TableCell className="font-mono text-xs text-[#00E5FF]">{shortenAddr(u.wallet)}</TableCell>
                     <TableCell className="font-mono text-xs">{u.referral_code}</TableCell>
-                    <TableCell className="font-mono text-xs text-[#94A3B8]">{u.last_ip || '---'}</TableCell>
+                    <TableCell className="font-mono text-xs text-[#A8B8D0]">{u.last_ip || '---'}</TableCell>
                     <TableCell>
                       {u.is_active ? (
                         <Badge variant="success"><CheckCircle size={10} className="mr-1" />Active</Badge>
@@ -157,7 +157,7 @@ export default function AdminSecurity() {
                         <Badge variant="danger"><XCircle size={10} className="mr-1" />Banned</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-xs text-[#94A3B8]">{formatDate(u.created_at)}</TableCell>
+                    <TableCell className="text-xs text-[#A8B8D0]">{formatDate(u.created_at)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -171,7 +171,7 @@ export default function AdminSecurity() {
               <Globe size={16} className="text-[#7B61FF]" />
               <h3 className="text-white font-semibold font-heading">Recent Transactions</h3>
             </div>
-            <p className="text-[#94A3B8] text-sm">Latest platform activity</p>
+            <p className="text-[#A8B8D0] text-sm">Latest platform activity</p>
           </CardHeader>
           <CardContent>
             <Table>
@@ -192,8 +192,8 @@ export default function AdminSecurity() {
                       </Badge>
                     </TableCell>
                     <TableCell className="font-mono text-xs">${Number(tx.amount).toFixed(2)}</TableCell>
-                    <TableCell className="text-xs text-[#94A3B8] truncate max-w-[150px]">{tx.description || '---'}</TableCell>
-                    <TableCell className="text-xs text-[#94A3B8]">{formatDate(tx.created_at)}</TableCell>
+                    <TableCell className="text-xs text-[#A8B8D0] truncate max-w-[150px]">{tx.description || '---'}</TableCell>
+                    <TableCell className="text-xs text-[#A8B8D0]">{formatDate(tx.created_at)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -208,11 +208,11 @@ export default function AdminSecurity() {
             <AlertTriangle size={16} className="text-[#FF5C7A]" />
             <h3 className="text-white font-semibold font-heading">Ban Appeals</h3>
           </div>
-          <p className="text-[#94A3B8] text-sm">Recent user ban appeal requests</p>
+          <p className="text-[#A8B8D0] text-sm">Recent user ban appeal requests</p>
         </CardHeader>
         <CardContent>
           {banAppeals.length === 0 ? (
-            <p className="text-[#94A3B8] text-sm text-center py-6">No ban appeals yet</p>
+            <p className="text-[#A8B8D0] text-sm text-center py-6">No ban appeals yet</p>
           ) : (
             <Table>
               <TableHead>
@@ -229,13 +229,13 @@ export default function AdminSecurity() {
                   <TableRow key={a.id}>
                     <TableCell className="font-mono text-xs text-[#00E5FF]">{a.user_id?.slice(0, 8)}...</TableCell>
                     <TableCell className="font-mono text-xs">{shortenAddr(a.wallet)}</TableCell>
-                    <TableCell className="text-xs text-[#94A3B8] truncate max-w-[200px]">{a.reason}</TableCell>
+                    <TableCell className="text-xs text-[#A8B8D0] truncate max-w-[200px]">{a.reason}</TableCell>
                     <TableCell>
                       <Badge variant={a.status === 'pending' ? 'warning' : a.status === 'approved' ? 'success' : 'danger'}>
                         {a.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-[#94A3B8]">{formatDate(a.created_at)}</TableCell>
+                    <TableCell className="text-xs text-[#A8B8D0]">{formatDate(a.created_at)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

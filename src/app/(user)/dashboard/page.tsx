@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useInitData } from '@/lib/use-data';
-import { getMatrixStats, getMatrixTree, getUserMatrixLevel, getRecentJoins, getActiveCampaign, getUserDirectCount, getUserCampaignRequest, submitCampaignRequest } from '@/lib/db';
+import { getMatrixStats, getMatrixTree, getMatrixDownline, getUserMatrixLevel, getRecentJoins, getActiveCampaign, getUserDirectCount, getUserCampaignRequest, submitCampaignRequest, userHasActiveSlot } from '@/lib/db';
 import { SLOTS, REBUY_MAX, APP_VERSION } from '@/lib/constants';
 import { useAccount } from 'wagmi';
 import Link from 'next/link';
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { BanScreen } from '@/components/ui/ban-screen';
 import { useDisconnect } from 'wagmi';
+import { TokenBanner } from '@/components/ui/token-banner';
 import { PublicFooter } from '@/components/layout/public-footer';
 
 const cn = (...classes: (string | boolean | undefined | null)[]) => classes.filter(Boolean).join(' ');
@@ -48,12 +49,12 @@ const formatTimeAgo = (dateStr: string) => {
 };
 
 const PLACEMENT_LABELS: Record<string, string> = {
-  root: 'Self', left: 'Direct', right: 'Spillover',
+  self: 'Self', direct: 'Direct', spillover: 'Spillover', crossline: 'Crossline',
 };
 
 export default function DashboardPage() {
   useEffect(() => { document.title = 'Dashboard — CYLIX'; }, []);
-  const { user, slots, earnings, vault, transactions, adminStats, needsReferral, setNeedsReferral } = useAppStore();
+  const { user, slots, earnings, vault, transactions, adminStats, needsReferral, setNeedsReferral, clearAll } = useAppStore();
   const { loading, isBanned, banReason } = useInitData();
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
@@ -77,9 +78,13 @@ export default function DashboardPage() {
   const [showBanner, setShowBanner] = useState(true);
   const [showTgPopup, setShowTgPopup] = useState(false);
   const [tgCountdown, setTgCountdown] = useState(5);
+  const [hasActiveSlot, setHasActiveSlot] = useState(false);
+  const [crosslineCount, setCrosslineCount] = useState(0);
+  const [globalCount, setGlobalCount] = useState(0);
 
   useEffect(() => {
     if (user) {
+      userHasActiveSlot(user.id).then(setHasActiveSlot);
       getMatrixStats(user.id).then(setMatrixStats);
       getUserMatrixLevel(user.id).then(setMatrixLevels);
       getRecentJoins(5).then(setRecentJoins);
@@ -90,24 +95,52 @@ export default function DashboardPage() {
           getUserCampaignRequest(c.id, user.id).then(setUserCampaignRequest);
         }
       });
-      getMatrixTree(user.id).then(tree => {
+      Promise.all([
+        getMatrixTree(user.id),
+        getMatrixDownline(user.id),
+      ]).then(([res, dlResult]) => {
+        const { downline, crosslineCount: clCount, globalCount: gCount } = dlResult;
+        setCrosslineCount(clCount);
+        setGlobalCount(gCount);
         const levels: any[] = [];
         for (let lvl = 1; lvl <= 11; lvl++) levels.push({ level: lvl, nodes: [] });
-        if (tree) {
+        if (res?.tree) {
           function traverse(node: any, level: number) {
             if (!node) return;
+            if (node.isSelf) {
+              traverse(node.left, level + 1);
+              traverse(node.right, level + 1);
+              return;
+            }
             const lvlIdx = Math.min(level, 11) - 1;
             if (levels[lvlIdx]) {
               levels[lvlIdx].nodes.push({
                 id: node.userId, wallet: node.wallet,
-                type: node.side || 'root', level,
+                type: node.side === 'left' ? 'direct' : node.side === 'right' ? 'spillover' : 'self',
+                level,
+                isSelf: node.isSelf,
                 position: levels[lvlIdx].nodes.length,
+                source: 'tree',
               });
             }
             traverse(node.left, level + 1);
             traverse(node.right, level + 1);
           }
-          traverse(tree, 1);
+          traverse(res.tree, 1);
+        }
+        for (const d of downline) {
+          const lvlIdx = d.level - 1;
+          if (lvlIdx >= 0 && lvlIdx < 11) {
+            const alreadyInLevel = levels[lvlIdx].nodes.some((n: any) => n.id === d.userId);
+            if (alreadyInLevel) continue;
+            levels[lvlIdx].nodes.push({
+              id: d.userId, wallet: d.wallet,
+              type: d.inTree ? 'spillover' : 'crossline', level: d.level,
+              isSelf: false,
+              position: levels[lvlIdx].nodes.length,
+              source: 'matrix_11', totalEarnings: d.totalEarnings,
+            });
+          }
         }
         setMatrixTreeNodes(levels);
       });
@@ -158,8 +191,10 @@ export default function DashboardPage() {
   const completedSlotIds = new Set(completedSlots.map(s => s.slotId));
   const ownedSlotIds = new Set([...activeSlotIds, ...completedSlotIds]);
 
-  const totalEarnings = earnings.total;
-  const availableBalance = Number(user?.totalEarned || 0) - Number(user?.ascensionBalance || 0);
+  const walletBalance = Number(user?.totalEarned || 0);
+  const ascensionVault = Number(user?.ascensionBalance || 0);
+  const totalEarnings = walletBalance + ascensionVault;
+  const availableBalance = walletBalance;
   const dailyYield = activeSlots.reduce((sum, s) => sum + s.dailyEarned, 0);
   const refCode = user?.referralCode || '';
 
@@ -188,8 +223,8 @@ export default function DashboardPage() {
   const autoFlowStats = [
     { label: 'Direct', value: matrixStats?.directsCount || 0, color: '#00E5FF' },
     { label: 'Spillover', value: Math.max(0, (matrixStats?.total || 0) - (matrixStats?.directsCount || 0)), color: '#7B61FF' },
-    { label: 'Crossline', value: 0, color: '#00FFB2' },
-    { label: 'Global', value: 0, color: '#FFB800' },
+    { label: 'Crossline', value: crosslineCount, color: '#00FFB2' },
+    { label: 'Global', value: globalCount, color: '#FFB800' },
   ];
 
   const recentTxns = transactions.slice(0, 5);
@@ -204,7 +239,7 @@ export default function DashboardPage() {
   ];
 
   const NavIcon = ({ id, active }: { id: string; active: boolean }) => {
-    const cls = active ? 'text-[#00E5FF]' : 'text-[#4A5568]';
+    const cls = active ? 'text-[#00E5FF]' : 'text-[#7B8BA5]';
     const sz = 20;
     switch (id) {
       case 'dashboard': return <svg className={cls} width={sz} height={sz} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="9" /><rect x="14" y="3" width="7" height="5" /><rect x="14" y="12" width="7" height="9" /><rect x="3" y="16" width="7" height="5" /></svg>;
@@ -226,7 +261,7 @@ export default function DashboardPage() {
   }
 
   if (isBanned) {
-    return <BanScreen reason={banReason} walletAddress={address} userId={user?.id} onLogout={() => disconnect()} />;
+    return <BanScreen reason={banReason} walletAddress={address} userId={user?.id} onLogout={() => { clearAll(); disconnect(); }} />;
   }
 
   if (needsReferral) {
@@ -237,12 +272,12 @@ export default function DashboardPage() {
             <Users size={20} className="text-[#00E5FF]" />
           </div>
           <h2 className="text-lg font-bold text-white font-heading mb-2">Referral Code Required</h2>
-          <p className="text-xs text-[#94A3B8] mb-4">Enter your sponsor&apos;s referral code to continue</p>
+          <p className="text-xs text-[#A8B8D0] mb-4">Enter your sponsor&apos;s referral code to continue</p>
           <input
             value={refInput}
             onChange={(e) => { setRefInput(e.target.value.toUpperCase()); setRefError(''); }}
             placeholder="Enter referral code"
-            className="w-full h-11 px-4 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#94A3B8]/50 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)] mb-2"
+            className="w-full h-11 px-4 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#A8B8D0]/50 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)] mb-2"
           />
           {refError && <p className="text-[#FF5C7A] text-xs mb-3">{refError}</p>}
           <button
@@ -293,14 +328,14 @@ export default function DashboardPage() {
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
               </div>
               <h3 className="text-white font-bold text-lg mb-1" style={{ fontFamily: "'Orbitron',sans-serif" }}>Join Our Community</h3>
-              <p className="text-[#94A3B8] text-sm mb-4">Stay updated with latest news, updates & rewards</p>
+              <p className="text-[#A8B8D0] text-sm mb-4">Stay updated with latest news, updates & rewards</p>
               <a href="https://t.me/cylixdefi" target="_blank" rel="noopener noreferrer"
                 className="block w-full py-3 rounded-xl font-bold text-sm text-black transition-all hover:opacity-90"
                 style={{ background: tgCountdown > 0 ? 'linear-gradient(135deg, #0088cc, #00c2ff)' : 'linear-gradient(135deg, #00E5FF, #7B61FF)' }}>
                 {tgCountdown > 0 ? `Join Telegram in ${tgCountdown}s` : 'JOIN TELEGRAM'}
               </a>
               <button onClick={dismissTgPopup}
-                className="w-full mt-3 py-2.5 rounded-xl text-[#4A5568] text-sm hover:text-white transition-colors">
+                className="w-full mt-3 py-2.5 rounded-xl text-[#7B8BA5] text-sm hover:text-white transition-colors">
                 Maybe later
               </button>
             </div>
@@ -320,7 +355,7 @@ export default function DashboardPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-sm font-bold text-white font-heading" style={{ fontFamily: "'Orbitron',sans-serif" }}>CYLIX MATRIX DeFi</h1>
-                  <span className="text-[6px] px-1 py-0.5 rounded bg-[rgba(0,229,255,0.08)] text-[#00E5FF] font-mono font-bold">v{APP_VERSION}</span>
+                  <span className="text-sm px-1 py-0.5 rounded bg-[rgba(0,229,255,0.08)] text-[#00E5FF] font-mono font-bold">v{APP_VERSION}</span>
                 </div>
               </div>
             </div>
@@ -329,46 +364,51 @@ export default function DashboardPage() {
                 <User size={14} className="text-[#050816]" />
               </div>
               <div className="text-right">
-                <p className="text-[8px] text-[#4A5568] font-mono">ID: {user?.id?.slice(0, 8) || '---'}</p>
-                <p className="text-[9px] text-[#00E5FF] font-mono">{shortenAddress(address) || 'Not Connected'}</p>
+                <p className="text-xs text-[#7B8BA5] font-mono">ID: {user?.id?.slice(0, 8) || '---'}</p>
+                <p className="text-xs text-[#00E5FF] font-mono">{shortenAddress(address) || 'Not Connected'}</p>
               </div>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2.5">
-            <div className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)]" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.04), rgba(123,97,255,0.04))' }}>
-              <p className="text-[8px] text-[#4A5568] uppercase tracking-wider mb-1">Total Earnings</p>
-              <p className="text-lg font-bold text-white font-mono">{formatCompact(totalEarnings)}</p>
-              <p className="text-[8px] text-[#00E5FF] mt-0.5">+{formatCurrency(dailyYield)}/day</p>
+            <div className="rounded-xl p-2.5 sm:p-3 border border-[rgba(0,229,255,0.06)] overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.04), rgba(123,97,255,0.04))' }}>
+              <p className="text-[10px] sm:text-xs text-[#7B8BA5] uppercase tracking-wider mb-0.5">Total Earnings</p>
+              <p className="text-base sm:text-lg font-bold text-white font-mono truncate">{formatCompact(totalEarnings)}</p>
+              <p className="text-[10px] sm:text-xs text-[#00E5FF] mt-0.5 truncate">+{formatCurrency(dailyYield)}/day</p>
             </div>
-            <div className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)]" style={{ background: 'rgba(28,38,58,0.6)' }}>
-              <p className="text-[8px] text-[#4A5568] uppercase tracking-wider mb-1">Available</p>
-              <p className="text-lg font-bold text-[#00FFB2] font-mono">{formatCompact(availableBalance)}</p>
-              <p className="text-[8px] text-[#4A5568] mt-0.5">{formatCurrency(user?.ascensionBalance || 0)} vault</p>
+            <div className="rounded-xl p-2.5 sm:p-3 border border-[rgba(0,229,255,0.06)] overflow-hidden" style={{ background: 'rgba(28,38,58,0.6)' }}>
+              <p className="text-[10px] sm:text-xs text-[#7B8BA5] uppercase tracking-wider mb-0.5 truncate">Withdrawable</p>
+              <p className="text-base sm:text-lg font-bold text-[#00FFB2] font-mono truncate">{formatCompact(availableBalance)}</p>
+              <p className="text-[10px] sm:text-xs text-[#A8B8D0] mt-0.5 truncate">Ready to withdraw</p>
             </div>
-            <Link href="/withdrawals" className="rounded-xl p-3 border border-[rgba(0,229,255,0.06)] flex flex-col items-center justify-center cursor-pointer hover:border-[rgba(0,229,255,0.2)] transition-all" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.08), rgba(123,97,255,0.08))' }}>
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] flex items-center justify-center mb-1 shadow-md shadow-[rgba(0,229,255,0.15)]">
-                <ArrowUpRight size={16} className="text-[#050816]" />
+            <Link href="/withdrawals" className="rounded-xl p-2.5 sm:p-3 border border-[rgba(0,229,255,0.06)] flex flex-col items-center justify-center cursor-pointer hover:border-[rgba(0,229,255,0.2)] transition-all" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.08), rgba(123,97,255,0.08))' }}>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] flex items-center justify-center mb-1 shadow-md shadow-[rgba(0,229,255,0.15)]">
+                <ArrowUpRight size={14} className="text-[#050816]" />
               </div>
-              <span className="text-[9px] font-bold text-white">Withdraw</span>
+              <span className="text-[10px] sm:text-xs font-bold text-white">Withdraw</span>
             </Link>
           </div>
           {/* Summary boxes */}
-          <div className="grid grid-cols-3 gap-2 mt-2">
-            <div className="rounded-lg p-2 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(0,229,255,0.02)' }}>
-              <p className="text-[6px] text-[#4A5568] uppercase tracking-wider mb-0.5">Wallet</p>
-              <p className="text-[11px] font-mono font-bold text-white">{formatCompact(usdtBalance)} <span className="text-[6px] text-[#4A5568]">USDT</span></p>
-              <p className="text-[6px] text-[#00E5FF] font-mono">{shortenAddress(address) || 'Not Connected'}</p>
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mt-2">
+            <div className="rounded-lg p-2 sm:p-2.5 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(0,229,255,0.02)' }}>
+              <p className="text-[9px] sm:text-[10px] text-[#7B8BA5] uppercase tracking-wider mb-0.5">Wallet</p>
+              <p className="text-xs sm:text-sm font-mono font-bold text-white truncate">{formatCompact(usdtBalance)} <span className="text-[9px] sm:text-[10px] text-[#7B8BA5]">USDT</span></p>
+              <p className="text-[9px] sm:text-[10px] text-[#00E5FF] font-mono truncate">{shortenAddress(address) || 'Not Connected'}</p>
             </div>
-            <div className="rounded-lg p-2 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(0,229,255,0.02)' }}>
-              <p className="text-[6px] text-[#4A5568] uppercase tracking-wider mb-0.5">Community</p>
-              <p className="text-xs font-mono font-bold text-[#00E5FF]">{adminStats?.totalUsers || 0}</p>
+            <div className="rounded-lg p-2 sm:p-2.5 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(0,229,255,0.02)' }}>
+              <p className="text-[9px] sm:text-[10px] text-[#7B8BA5] uppercase tracking-wider mb-0.5">Community</p>
+              <p className="text-xs sm:text-sm font-mono font-bold text-[#00E5FF]">{adminStats?.totalUsers || 0}</p>
             </div>
-            <div className="rounded-lg p-2 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(0,229,255,0.02)' }}>
-              <p className="text-[6px] text-[#4A5568] uppercase tracking-wider mb-0.5">24h Growth</p>
-              <p className="text-xs font-mono font-bold text-[#00FFB2]">+{adminStats?.newUsersToday || 0}</p>
+            <div className="rounded-lg p-2 sm:p-2.5 border border-[rgba(0,229,255,0.04)] text-center" style={{ background: 'rgba(0,229,255,0.02)' }}>
+              <p className="text-[9px] sm:text-[10px] text-[#7B8BA5] uppercase tracking-wider mb-0.5">24h Growth</p>
+              <p className="text-xs sm:text-sm font-mono font-bold text-[#00FFB2]">+{adminStats?.newUsersToday || 0}</p>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ====== TOKEN LAUNCH BANNER ====== */}
+      <div className="px-4 mb-3">
+        <TokenBanner />
       </div>
 
       {/* ====== REFERRAL CARD ====== */}
@@ -383,13 +423,13 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h3 className="text-xs font-bold text-white" style={{ fontFamily: "'Orbitron',sans-serif" }}>INVITE & EARN</h3>
-                <p className="text-[10px] text-[#94A3B8]">Share your referral code with others</p>
+                <p className="text-sm text-[#A8B8D0]">Share your referral code with others</p>
               </div>
             </div>
 
             <div className="rounded-xl p-3 relative z-10" style={{ background: 'rgba(0,229,255,0.05)', border: '1px solid rgba(0,229,255,0.12)' }}>
               <div className="flex items-center justify-between gap-3">
-                <code className="text-xl font-mono font-bold text-[#00E5FF] tracking-widest">{refCode || '...'}</code>
+                <code className="text-lg sm:text-xl font-mono font-bold text-[#00E5FF] tracking-wider truncate">{refCode || '...'}</code>
                 <button
                   disabled={!refCode}
                   onClick={() => { navigator.clipboard.writeText(`${location.origin}/?ref=${refCode}`); setRefCopied(true); setTimeout(() => setRefCopied(false), 2000); }}
@@ -408,63 +448,63 @@ export default function DashboardPage() {
         <div className="px-4 mb-3">
           <div className="relative rounded-2xl overflow-hidden p-[1px]" style={{ background: 'linear-gradient(135deg, #00E5FF, #7B61FF)' }}>
             <div className="rounded-2xl p-4 relative" style={{ background: 'linear-gradient(135deg, rgba(9,11,20,0.95), rgba(22,32,52,0.95))' }}>
-              <button onClick={() => setShowBanner(false)} className="absolute top-3 right-3 text-[#4A5568] hover:text-white text-xs">✕</button>
+              <button onClick={() => setShowBanner(false)} className="absolute top-3 right-3 text-[#7B8BA5] hover:text-white text-xs">✕</button>
 
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-2 h-2 rounded-full bg-[#00FFB2] animate-pulse" />
-                <span className="text-[8px] font-bold text-[#00E5FF] uppercase tracking-wider">Live Campaign</span>
+                <span className="text-xs font-bold text-[#00E5FF] uppercase tracking-wider">Live Campaign</span>
               </div>
 
               <h3 className="text-lg font-bold text-white font-heading mb-1" style={{ fontFamily: "'Orbitron',sans-serif" }}>{campaign.name}</h3>
-              <p className="text-[10px] text-[#94A3B8] mb-3">{campaign.description}</p>
+              <p className="text-sm text-[#A8B8D0] mb-3">{campaign.description}</p>
 
-              <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-3">
                 <div className="text-center">
-                  <p className="text-2xl font-bold font-mono text-white">{String(countdown.days).padStart(2, '0')}</p>
-                  <p className="text-[7px] text-[#4A5568] uppercase">DAYS</p>
+                  <p className="text-xl sm:text-2xl font-bold font-mono text-white">{String(countdown.days).padStart(2, '0')}</p>
+                  <p className="text-[10px] sm:text-sm text-[#7B8BA5] uppercase">DAYS</p>
                 </div>
-                <span className="text-lg text-[#4A5568] font-mono">:</span>
+                <span className="text-base sm:text-lg text-[#7B8BA5] font-mono">:</span>
                 <div className="text-center">
-                  <p className="text-2xl font-bold font-mono text-white">{String(countdown.hours).padStart(2, '0')}</p>
-                  <p className="text-[7px] text-[#4A5568] uppercase">HRS</p>
+                  <p className="text-xl sm:text-2xl font-bold font-mono text-white">{String(countdown.hours).padStart(2, '0')}</p>
+                  <p className="text-[10px] sm:text-sm text-[#7B8BA5] uppercase">HRS</p>
                 </div>
-                <span className="text-lg text-[#4A5568] font-mono">:</span>
+                <span className="text-base sm:text-lg text-[#7B8BA5] font-mono">:</span>
                 <div className="text-center">
-                  <p className="text-2xl font-bold font-mono text-white">{String(countdown.minutes).padStart(2, '0')}</p>
-                  <p className="text-[7px] text-[#4A5568] uppercase">MIN</p>
+                  <p className="text-xl sm:text-2xl font-bold font-mono text-white">{String(countdown.minutes).padStart(2, '0')}</p>
+                  <p className="text-[10px] sm:text-sm text-[#7B8BA5] uppercase">MIN</p>
                 </div>
-                <span className="text-lg text-[#4A5568] font-mono">:</span>
+                <span className="text-base sm:text-lg text-[#7B8BA5] font-mono">:</span>
                 <div className="text-center">
-                  <p className="text-2xl font-bold font-mono text-white">{String(countdown.seconds).padStart(2, '0')}</p>
-                  <p className="text-[7px] text-[#4A5568] uppercase">SEC</p>
+                  <p className="text-xl sm:text-2xl font-bold font-mono text-white">{String(countdown.seconds).padStart(2, '0')}</p>
+                  <p className="text-[10px] sm:text-sm text-[#7B8BA5] uppercase">SEC</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <div className="rounded-lg p-2 text-center" style={{ background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.1)' }}>
-                  <p className="text-[7px] text-[#4A5568] uppercase tracking-wider">Reward</p>
+                  <p className="text-sm text-[#7B8BA5] uppercase tracking-wider">Reward</p>
                   <p className="text-sm font-bold font-mono text-[#00FFB2]">{formatCurrency(campaign.reward_per_referral)}/ref</p>
                 </div>
                 <div className="rounded-lg p-2 text-center" style={{ background: 'rgba(123,97,255,0.06)', border: '1px solid rgba(123,97,255,0.1)' }}>
-                  <p className="text-[7px] text-[#4A5568] uppercase tracking-wider">Minimum</p>
+                  <p className="text-sm text-[#7B8BA5] uppercase tracking-wider">Minimum</p>
                   <p className="text-sm font-bold font-mono text-[#7B61FF]">{campaign.min_referrals_required} refs</p>
                 </div>
               </div>
 
               <div className="flex items-center justify-between mb-3 px-1">
                 <div>
-                  <p className="text-[7px] text-[#4A5568] uppercase tracking-wider">Your Directs</p>
+                  <p className="text-sm text-[#7B8BA5] uppercase tracking-wider">Your Directs</p>
                   <p className="text-sm font-bold font-mono text-white">{userDirectCount}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[7px] text-[#4A5568] uppercase tracking-wider">Eligible For</p>
+                  <p className="text-sm text-[#7B8BA5] uppercase tracking-wider">Eligible For</p>
                   <p className="text-sm font-bold font-mono text-[#00FFB2]">{formatCurrency(Math.max(0, userDirectCount) * campaign.reward_per_referral)}</p>
                 </div>
               </div>
 
               {userCampaignRequest ? (
                 <div className="rounded-lg p-2.5 text-center" style={{ background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.1)' }}>
-                  <p className="text-[9px] font-semibold" style={{
+                  <p className="text-xs font-semibold" style={{
                     color: userCampaignRequest.status === 'approved' ? '#00FFB2' :
                            userCampaignRequest.status === 'rejected' ? '#FF5C7A' :
                            userCampaignRequest.status === 'paid' ? '#00E5FF' : '#FFB800'
@@ -489,7 +529,7 @@ export default function DashboardPage() {
                   disabled={campaignLoading || userDirectCount < campaign.min_referrals_required}
                   className={`w-full h-10 rounded-xl font-semibold text-sm transition-all ${
                     campaignLoading || userDirectCount < campaign.min_referrals_required
-                      ? 'bg-[rgba(0,229,255,0.05)] text-[#4A5568] cursor-not-allowed'
+                      ? 'bg-[rgba(0,229,255,0.05)] text-[#7B8BA5] cursor-not-allowed'
                       : 'bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] hover:opacity-90'
                   }`}
                 >
@@ -508,7 +548,7 @@ export default function DashboardPage() {
       <div className="px-4 mb-3">
         <div className="flex items-center gap-2 mb-2">
           <Layers size={12} className="text-[#00E5FF]" />
-          <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Packages</h2>
+          <h2 className="text-xs font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Packages</h2>
           <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.15)] to-transparent" />
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
@@ -529,10 +569,10 @@ export default function DashboardPage() {
             if (isLockedPermanent) {
               return (
                 <div key={slotDef.id} className="relative rounded-xl p-3 flex flex-col items-center text-center overflow-hidden" style={{ background: `linear-gradient(135deg, ${grad.from}06, ${grad.to}03)`, border: `1px solid ${grad.from}15`, opacity: 0.4 }}>
-                  <Lock size={12} className="text-[#4A5568] mb-1" />
-                  <p className="text-[10px] font-bold text-[#4A5568] font-heading">{slotDef.name}</p>
-                  <p className="text-[11px] font-mono font-bold text-[#4A5568]">{formatCurrency(slotDef.price)}</p>
-                  <p className="text-[6px] text-[#4A5568] mt-0.5">{REBUY_MAX}/{REBUY_MAX} Re-buys</p>
+                  <Lock size={10} className="text-[#7B8BA5] mb-1" />
+                  <p className="text-xs font-bold text-[#7B8BA5] font-heading truncate w-full">{slotDef.name}</p>
+                  <p className="text-xs font-mono font-bold text-[#7B8BA5]">{formatCurrency(slotDef.price)}</p>
+                  <p className="text-xs text-[#7B8BA5] mt-0.5">{REBUY_MAX}/{REBUY_MAX} buys</p>
                 </div>
               );
             }
@@ -540,9 +580,9 @@ export default function DashboardPage() {
             if (isLocked) {
               return (
                 <div key={slotDef.id} className="relative rounded-xl p-3 flex flex-col items-center text-center overflow-hidden" style={{ background: `linear-gradient(135deg, ${grad.from}06, ${grad.to}03)`, border: `1px solid ${grad.from}15`, opacity: 0.3 }}>
-                  <Lock size={12} className="text-[#4A5568] mb-1" />
-                  <p className="text-[10px] font-bold text-[#4A5568] font-heading">{slotDef.name}</p>
-                  <p className="text-[11px] font-mono font-bold text-[#4A5568]">{formatCurrency(slotDef.price)}</p>
+                  <Lock size={10} className="text-[#7B8BA5] mb-1" />
+                  <p className="text-xs font-bold text-[#7B8BA5] font-heading truncate w-full">{slotDef.name}</p>
+                  <p className="text-xs font-mono font-bold text-[#7B8BA5]">{formatCurrency(slotDef.price)}</p>
                 </div>
               );
             }
@@ -551,12 +591,12 @@ export default function DashboardPage() {
               const canRebuy = totalPurchases < REBUY_MAX + 1;
               return (
                 <div key={slotDef.id} className="relative rounded-xl p-3 flex flex-col items-center text-center overflow-hidden" style={{ background: `linear-gradient(135deg, ${grad.from}08, ${grad.to}05)`, border: `1px solid ${grad.from}30`, opacity: canRebuy ? 1 : 0.4 }}>
-                  <div className="absolute top-1 right-1"><span className="text-[5px] px-1 py-0.5 rounded-full bg-[rgba(0,255,178,0.1)] text-[#00FFB2] font-bold">{canRebuy ? 'CAPPED' : 'LOCKED'}</span></div>
-                  <p className="text-[10px] font-bold text-white font-heading pr-5">{slotDef.name}</p>
-                  <p className="text-[11px] font-mono font-bold text-[#00FFB2]">{formatCurrency(slotDef.price)}</p>
-                  <p className="text-[6px] text-[#00FFB2] mt-0.5">{totalPurchases}/{REBUY_MAX + 1} re-buys</p>
+                  <div className="absolute top-1 right-1"><span className="text-xs px-1 py-0.5 rounded-full bg-[rgba(0,255,178,0.1)] text-[#00FFB2] font-bold leading-none">{canRebuy ? 'CAPPED' : 'DONE'}</span></div>
+                  <p className="text-xs font-bold text-white font-heading pr-6 truncate w-full">{slotDef.name}</p>
+                  <p className="text-xs font-mono font-bold text-[#00FFB2]">{formatCurrency(slotDef.price)}</p>
+                  <p className="text-xs text-[#00FFB2] mt-0.5">{totalPurchases}/{REBUY_MAX + 1} buys</p>
                   {canRebuy && (
-                    <Link href={`/slots?rebuy=${slotDef.id}`} className="mt-1.5 w-full py-1 rounded-lg text-[#050816] text-[7px] font-bold text-center" style={{ background: `linear-gradient(135deg, ${grad.from}, ${grad.to})` }}>
+                    <Link href={`/slots?rebuy=${slotDef.id}`} className="mt-1.5 w-full py-1 rounded-lg text-[#050816] text-xs font-bold text-center" style={{ background: `linear-gradient(135deg, ${grad.from}, ${grad.to})` }}>
                       RE-BUY
                     </Link>
                   )}
@@ -567,9 +607,9 @@ export default function DashboardPage() {
             if (isCleared) {
               return (
                 <div key={slotDef.id} className="relative rounded-xl p-3 flex flex-col items-center text-center overflow-hidden opacity-50" style={{ background: `linear-gradient(135deg, ${grad.from}06, ${grad.to}03)`, border: `1px solid ${grad.from}15` }}>
-                  <div className="absolute top-1 right-1"><span className="text-[5px] px-1 py-0.5 rounded-full bg-[rgba(0,229,255,0.08)] text-[#00E5FF] font-bold">CLRD</span></div>
-                  <p className="text-[10px] font-bold text-white font-heading pr-5">{slotDef.name}</p>
-                  <p className="text-[11px] font-mono font-bold text-[#4A5568]">{formatCurrency(slotDef.price)}</p>
+                  <div className="absolute top-1 right-1"><span className="text-xs px-1 py-0.5 rounded-full bg-[rgba(0,229,255,0.08)] text-[#00E5FF] font-bold leading-none">CLRD</span></div>
+                  <p className="text-xs font-bold text-white font-heading pr-6 truncate w-full">{slotDef.name}</p>
+                  <p className="text-xs font-mono font-bold text-[#7B8BA5]">{formatCurrency(slotDef.price)}</p>
                 </div>
               );
             }
@@ -587,25 +627,25 @@ export default function DashboardPage() {
                   transition: 'all 0.3s ease',
                 }}>
                 {isActive && (
-                  <div className="absolute top-1 right-1"><span className="text-[5px] px-1 py-0.5 rounded-full bg-[rgba(0,229,255,0.12)] text-[#00E5FF] font-bold">LIVE</span></div>
+                  <div className="absolute top-1 right-1"><span className="text-xs px-1 py-0.5 rounded-full bg-[rgba(0,229,255,0.12)] text-[#00E5FF] font-bold leading-none">LIVE</span></div>
                 )}
                 {isNextBuy && (
-                  <div className="absolute top-1 right-1"><span className="text-[5px] px-1 py-0.5 rounded-full bg-[rgba(0,229,255,0.15)] text-[#00E5FF] font-bold">BUY</span></div>
+                  <div className="absolute top-1 right-1"><span className="text-xs px-1 py-0.5 rounded-full bg-[rgba(0,229,255,0.15)] text-[#00E5FF] font-bold leading-none">BUY</span></div>
                 )}
-                <p className="text-[10px] font-bold text-white font-heading pr-5">{slotDef.name}</p>
-                <p className="text-[11px] font-mono font-bold text-white mt-0.5">{formatCurrency(slotDef.price)}</p>
+                <p className="text-xs font-bold text-white font-heading pr-6 truncate w-full">{slotDef.name}</p>
+                <p className="text-xs font-mono font-bold text-white mt-0.5">{formatCurrency(slotDef.price)}</p>
 
                 {isActive && (
                   <div className="w-full mt-1.5 space-y-1">
                     <div className="flex items-center justify-center gap-1">
-                      <TrendingUp size={6} className="text-[#00E5FF]" />
-                      <span className="text-[6px] text-[#00E5FF] font-semibold">3% daily</span>
+                      <TrendingUp size={8} className="text-[#00E5FF]" />
+                      <span className="text-xs text-[#00E5FF] font-semibold">3% daily</span>
                     </div>
                     <div>
                       <div className="h-1 rounded-full bg-[rgba(11,16,32,0.6)] overflow-hidden">
                         <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(progressPercent, 100)}%`, background: `linear-gradient(90deg, ${grad.from}, ${grad.to})` }} />
                       </div>
-                      <div className="flex justify-between text-[5px] text-[#4A5568] mt-0.5">
+                      <div className="flex justify-between text-xs text-[#7B8BA5] mt-0.5">
                         <span>{Math.min(progressPercent, 100).toFixed(0)}%</span>
                         <span>200%</span>
                       </div>
@@ -624,7 +664,7 @@ export default function DashboardPage() {
                 )}
 
                 {!isOwned && !isCleared && index === lastOwnedIndex + 1 && (
-                  <Link href="/slots" className="mt-2 w-full py-1 rounded-lg text-[#050816] text-[7px] font-bold text-center" style={{ background: `linear-gradient(135deg, ${grad.from}, ${grad.to})` }}>
+                  <Link href="/slots" className="mt-2 w-full py-1 rounded-lg text-[#050816] text-xs font-bold text-center" style={{ background: `linear-gradient(135deg, ${grad.from}, ${grad.to})` }}>
                     BUY
                   </Link>
                 )}
@@ -636,34 +676,36 @@ export default function DashboardPage() {
 
       {/* ====== MATRIX EXPLORER ====== */}
       <div className="px-4 mb-3">
+        {hasActiveSlot ? (
+          <>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <GitBranch size={12} className="text-[#00E5FF]" />
-            <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Matrix Explorer</h2>
+            <h2 className="text-xs font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Matrix Explorer</h2>
           </div>
           <div className="flex gap-1">
             <button onClick={() => setMatrixView('explorer')}
-              className={cn('px-2 py-1 rounded text-[7px] font-semibold transition-all', matrixView === 'explorer' ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF]' : 'text-[#4A5568] hover:text-white')}>Tree</button>
+              className={cn('px-2 py-1 rounded text-sm font-semibold transition-all', matrixView === 'explorer' ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF]' : 'text-[#7B8BA5] hover:text-white')}>Tree</button>
             <button onClick={() => setMatrixView('activity')}
-              className={cn('px-2 py-1 rounded text-[7px] font-semibold transition-all', matrixView === 'activity' ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF]' : 'text-[#4A5568] hover:text-white')}>Activity</button>
+              className={cn('px-2 py-1 rounded text-sm font-semibold transition-all', matrixView === 'activity' ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF]' : 'text-[#7B8BA5] hover:text-white')}>Activity</button>
           </div>
         </div>
 
         {matrixView === 'explorer' ? (
           <div className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3 overflow-x-auto" style={{ background: 'rgba(22,32,52,0.6)' }}>
             <div className="flex flex-wrap gap-3 mb-3">
-              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full" style={{ background: '#00E5FF', boxShadow: '0 0 6px rgba(0,229,255,0.4)' }} /><span className="text-[7px] text-[#4A5568]">Self</span></div>
-              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#00E5FF]" /><span className="text-[7px] text-[#4A5568]">Direct</span></div>
-              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#7B61FF]" /><span className="text-[7px] text-[#4A5568]">Spillover</span></div>
-              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#00FFB2]" /><span className="text-[7px] text-[#4A5568]">Crossline</span></div>
-              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#FFB800]" /><span className="text-[7px] text-[#4A5568]">Global</span></div>
+              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full" style={{ background: '#00E5FF', boxShadow: '0 0 6px rgba(0,229,255,0.4)' }} /><span className="text-xs text-[#7B8BA5]">Self</span></div>
+              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#00E5FF]" /><span className="text-xs text-[#7B8BA5]">Direct</span></div>
+              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#7B61FF]" /><span className="text-xs text-[#7B8BA5]">Spillover</span></div>
+              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#00FFB2]" /><span className="text-xs text-[#7B8BA5]">Crossline</span></div>
+              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#FFB800]" /><span className="text-xs text-[#7B8BA5]">Global</span></div>
             </div>
 
             {matrixTreeNodes.length === 0 ? (
               <div className="text-center py-6">
-                <GitBranch size={20} className="mx-auto mb-2 text-[#4A5568]" />
-                <p className="text-[8px] text-[#4A5568]">No matrix data yet</p>
-                <p className="text-[7px] text-[#4A5568] mt-1">Invite referrals to build your team</p>
+                <GitBranch size={20} className="mx-auto mb-2 text-[#7B8BA5]" />
+                <p className="text-xs text-[#7B8BA5]">No matrix data yet</p>
+                <p className="text-sm text-[#7B8BA5] mt-1">Invite referrals to build your team</p>
               </div>
             ) : (
               <div className="space-y-1.5">
@@ -674,16 +716,19 @@ export default function DashboardPage() {
                   return (
                   <div key={level.level}>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[6px] text-[#4A5568] font-mono w-4">L{level.level}</span>
+                      <span className="text-xs text-[#7B8BA5] font-mono w-4">L{level.level}</span>
                       <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.05)] to-transparent" />
-                      <span className="text-[6px] text-[#4A5568] font-mono">{nodeCount}</span>
+                      <span className="text-xs text-[#7B8BA5] font-mono">{nodeCount}</span>
                     </div>
                     {nodeCount > 0 ? (
                       <div className="flex flex-wrap gap-1 justify-center">
                         {level.nodes.slice(0, 64).map((node: any, i: number) => {
                           const isSelf = level.level === 1 && i === 0;
-                          const colors: Record<string, string> = {
-                            root: '#00E5FF', left: '#00E5FF', right: '#7B61FF',
+                           const colors: Record<string, string> = {
+                            self: '#00E5FF', direct: '#00E5FF', left: '#00E5FF',
+                            spillover: '#7B61FF', right: '#7B61FF',
+                            crossline: '#00FFB2',
+                            global: '#FFB800',
                           };
                           return (
                             <button key={i} onClick={() => node.id && setSelectedNode(node)}
@@ -699,11 +744,11 @@ export default function DashboardPage() {
                             </button>
                           );
                         })}
-                        {nodeCount > 64 && <span className="text-[7px] text-[#4A5568] self-center">+{nodeCount - 64}</span>}
+                        {nodeCount > 64 && <span className="text-xs text-[#7B8BA5] self-center">+{nodeCount - 64}</span>}
                       </div>
                     ) : (
                       <div className="flex items-center justify-center py-1">
-                        <span className="text-[7px] text-[#4A5568]/40">Empty</span>
+                        <span className="text-xs text-[#7B8BA5]/40">Empty</span>
                       </div>
                     )}
                   </div>
@@ -715,32 +760,32 @@ export default function DashboardPage() {
             {/* Node Detail Panel */}
             {selectedNode && selectedNode.id && (
               <div className="mt-3 rounded-xl border border-[rgba(0,229,255,0.08)] p-3 relative" style={{ background: 'rgba(11,16,32,0.8)' }}>
-                <button onClick={() => setSelectedNode(null)} className="absolute top-2 right-2 text-[#4A5568] hover:text-white">
+                <button onClick={() => setSelectedNode(null)} className="absolute top-2 right-2 text-[#7B8BA5] hover:text-white">
                   <EyeOff size={12} />
                 </button>
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#00E5FF] to-[#7B61FF] flex items-center justify-center">
                     <User size={10} className="text-[#050816]" />
                   </div>
-                  <p className="text-[10px] font-mono font-bold text-white">{shortenAddress(selectedNode.wallet || selectedNode.id)}</p>
+                  <p className="text-sm font-mono font-bold text-white">{shortenAddress(selectedNode.wallet || selectedNode.id)}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-[8px]">
-                  <div><span className="text-[#4A5568]">User ID:</span> <span className="text-white font-mono">{selectedNode.id?.slice(0, 10)}</span></div>
-                  <div><span className="text-[#4A5568]">Source:</span> <span className="font-semibold" style={{ color: selectedNode.type === 'root' ? '#00E5FF' : selectedNode.type === 'left' ? '#00E5FF' : '#7B61FF' }}>{PLACEMENT_LABELS[selectedNode.type] || selectedNode.type}</span></div>
-                  <div><span className="text-[#4A5568]">Level:</span> <span className="text-white">Level {selectedNode.level}</span></div>
-                  <div><span className="text-[#4A5568]">Position:</span> <span className="text-white">#{selectedNode.position + 1}</span></div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div><span className="text-[#7B8BA5]">User ID:</span> <span className="text-white font-mono">{selectedNode.id?.slice(0, 10)}</span></div>
+                  <div><span className="text-[#7B8BA5]">Source:</span> <span className="font-semibold" style={{ color: selectedNode.type === 'root' ? '#00E5FF' : selectedNode.type === 'left' ? '#00E5FF' : '#7B61FF' }}>{PLACEMENT_LABELS[selectedNode.type] || selectedNode.type}</span></div>
+                  <div><span className="text-[#7B8BA5]">Level:</span> <span className="text-white">Level {selectedNode.level}</span></div>
+                  <div><span className="text-[#7B8BA5]">Position:</span> <span className="text-white">#{selectedNode.position + 1}</span></div>
                 </div>
               </div>
             )}
 
             {/* Auto Flow Placement Stats */}
             <div className="mt-3 border-t border-[rgba(0,229,255,0.05)] pt-3">
-              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider font-semibold mb-2">Placement Sources</p>
-              <div className="grid grid-cols-4 gap-2">
+              <p className="text-xs text-[#7B8BA5] uppercase tracking-wider font-semibold mb-2">Placement Sources</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {autoFlowStats.map(s => (
                   <div key={s.label} className="rounded-lg p-2 text-center" style={{ background: `${s.color}08`, border: `1px solid ${s.color}15` }}>
-                    <p className="text-xs font-mono font-bold" style={{ color: s.color }}>{s.value}</p>
-                    <p className="text-[6px] text-[#4A5568] uppercase tracking-wider">{s.label}</p>
+                    <p className="text-sm sm:text-xs font-mono font-bold" style={{ color: s.color }}>{s.value}</p>
+                    <p className="text-[10px] sm:text-xs text-[#7B8BA5] uppercase tracking-wider">{s.label}</p>
                   </div>
                 ))}
               </div>
@@ -749,7 +794,7 @@ export default function DashboardPage() {
         ) : (
           /* ====== MATRIX ACTIVITY ====== */
           <div className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3" style={{ background: 'rgba(22,32,52,0.6)' }}>
-            <p className="text-[7px] text-[#4A5568] uppercase tracking-wider font-semibold mb-2">Matrix Activity History</p>
+            <p className="text-xs text-[#7B8BA5] uppercase tracking-wider font-semibold mb-2">Matrix Activity History</p>
             {recentTxns.length > 0 ? (
               <div className="divide-y divide-[rgba(0,229,255,0.03)]">
                 {recentTxns.map((tx, i) => (
@@ -759,11 +804,11 @@ export default function DashboardPage() {
                         <Activity size={10} className="text-[#00E5FF]" />
                       </div>
                       <div>
-                        <p className="text-[8px] text-white font-semibold">{tx.description || 'Matrix Activity'}</p>
-                        <p className="text-[6px] text-[#4A5568]">{tx.timestamp ? new Date(tx.timestamp).toLocaleDateString() : '--'}</p>
+                        <p className="text-xs text-white font-semibold">{tx.description || 'Matrix Activity'}</p>
+                        <p className="text-xs text-[#7B8BA5]">{tx.timestamp ? new Date(tx.timestamp).toLocaleDateString() : '--'}</p>
                       </div>
                     </div>
-                    <span className="text-[9px] font-mono font-bold" style={{ color: tx.amount > 0 ? '#00FFB2' : '#FF5C7A' }}>
+                    <span className="text-xs font-mono font-bold" style={{ color: tx.amount > 0 ? '#00FFB2' : '#FF5C7A' }}>
                       {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
                     </span>
                   </div>
@@ -771,10 +816,19 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="text-center py-4">
-                <Activity size={14} className="mx-auto mb-1 text-[#4A5568]" />
-                <p className="text-[7px] text-[#4A5568]">No matrix activity yet</p>
+                <Activity size={14} className="mx-auto mb-1 text-[#7B8BA5]" />
+                <p className="text-xs text-[#7B8BA5]">No matrix activity yet</p>
               </div>
             )}
+          </div>
+        )}
+          </>
+        ) : (
+          <div className="rounded-xl border border-[rgba(255,184,0,0.15)] p-6 text-center" style={{ background: 'rgba(22,32,52,0.6)' }}>
+            <Lock size={24} className="mx-auto mb-2 text-[#FFB800]" />
+            <p className="text-sm text-white font-semibold mb-1">Matrix Locked</p>
+            <p className="text-xs text-[#7B8BA5]">Purchase a slot to unlock your matrix</p>
+            <Link href="/slots" className="mt-3 inline-block px-4 py-1.5 rounded-lg bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-xs text-white font-bold">Buy Slot</Link>
           </div>
         )}
       </div>
@@ -783,25 +837,25 @@ export default function DashboardPage() {
       <div className="px-4 mb-3">
         <div className="flex items-center gap-2 mb-2">
           <Trophy size={12} className="text-[#FFB800]" />
-          <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Global Apex Pool</h2>
+          <h2 className="text-xs font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Global Apex Pool</h2>
           <div className="flex-1 h-px bg-gradient-to-r from-[rgba(255,184,0,0.15)] to-transparent" />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <Link href="/apex-pool" className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3 block" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.02), rgba(123,97,255,0.02))' }}>
             <div className="flex items-center gap-2 mb-2">
               <Crown size={10} className="text-[#00E5FF]" />
-              <span className="text-[7px] font-bold text-[#00E5FF] uppercase tracking-wider">Champions Pool</span>
+              <span className="text-xs font-bold text-[#00E5FF] uppercase tracking-wider">Champions</span>
             </div>
             <p className="text-sm font-bold font-mono text-white">{formatCompact(adminStats?.poolFund ? adminStats.poolFund / 2 : 0)}</p>
-            <p className="text-[6px] text-[#4A5568] mt-0.5">≥1 direct + team activity</p>
+            <p className="text-xs text-[#7B8BA5] mt-0.5">≥1 direct + activity</p>
           </Link>
           <Link href="/apex-pool" className="rounded-xl border border-[rgba(123,97,255,0.06)] p-3 block" style={{ background: 'linear-gradient(135deg, rgba(123,97,255,0.02), rgba(0,229,255,0.02))' }}>
             <div className="flex items-center gap-2 mb-2">
               <Users size={10} className="text-[#7B61FF]" />
-              <span className="text-[7px] font-bold text-[#7B61FF] uppercase tracking-wider">Active Pool</span>
+              <span className="text-xs font-bold text-[#7B61FF] uppercase tracking-wider">Active</span>
             </div>
             <p className="text-sm font-bold font-mono text-white">{formatCompact(adminStats?.poolFund ? adminStats.poolFund / 2 : 0)}</p>
-            <p className="text-[6px] text-[#4A5568] mt-0.5">Active + team activity</p>
+            <p className="text-xs text-[#7B8BA5] mt-0.5">Active + activity</p>
           </Link>
         </div>
       </div>
@@ -810,13 +864,13 @@ export default function DashboardPage() {
       <div className="px-4 mb-3">
         <div className="flex items-center gap-2 mb-2">
           <TrendingUp size={12} className="text-[#7B61FF]" />
-          <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Package Progress</h2>
+          <h2 className="text-xs font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Package Progress</h2>
           <div className="flex-1 h-px bg-gradient-to-r from-[rgba(123,97,255,0.15)] to-transparent" />
         </div>
         <div className="rounded-xl border border-[rgba(0,229,255,0.06)] p-3" style={{ background: 'rgba(22,32,52,0.6)' }}>
           {activeSlots.length > 0 ? (
             <div className="space-y-4">
-              <p className="text-[7px] text-[#4A5568] uppercase tracking-wider">{activeSlots.length} Active Package{activeSlots.length > 1 ? 's' : ''}</p>
+              <p className="text-xs text-[#7B8BA5] uppercase tracking-wider">{activeSlots.length} Active Package{activeSlots.length > 1 ? 's' : ''}</p>
               {activeSlots.map((aslot) => {
                 const sdef = SLOTS.find(s => s.id === aslot.slotId);
                 if (!sdef) return null;
@@ -825,14 +879,14 @@ export default function DashboardPage() {
                   <div key={aslot.id} className="grid grid-cols-2 gap-2">
                     <div>
                       <p className="text-xs font-bold text-white font-heading" style={{ color: g.from }}>{sdef.name}</p>
-                      <p className="text-[8px] font-mono text-[#4A5568]">Orbit #{sdef.orbit}</p>
+                      <p className="text-xs font-mono text-[#7B8BA5]">Orbit #{sdef.orbit}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[7px] text-[#4A5568] uppercase tracking-wider">Daily Yield</p>
-                      <p className="text-sm font-bold font-mono" style={{ color: g.from }}>{formatCurrency(aslot.dailyEarned)}</p>
+                      <p className="text-xs text-[#7B8BA5] uppercase tracking-wider">Daily Yield</p>
+                      <p className="text-xs font-bold font-mono" style={{ color: g.from }}>{formatCurrency(aslot.dailyEarned)}</p>
                     </div>
                     <div className="col-span-2">
-                      <div className="flex justify-between text-[6px] text-[#4A5568] mb-0.5">
+                      <div className="flex justify-between text-xs text-[#7B8BA5] mb-0.5">
                         <span className="font-mono">{formatCurrency(aslot.earned)} / {formatCurrency(aslot.maxCap)}</span>
                         <span>{Math.min((aslot.earned / aslot.maxCap) * 100, 100).toFixed(0)}%</span>
                       </div>
@@ -842,13 +896,13 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div className="col-span-2 flex items-center justify-between">
-                      <span className="text-[6px] text-[#4A5568]">Re-buys</span>
+                      <span className="text-xs text-[#7B8BA5]">Re-buys</span>
                       <div className="flex items-center gap-1">
                         {Array.from({ length: REBUY_MAX + 1 }).map((_, i) => (
                           <div key={i} className="w-2 h-2 rounded-full"
                             style={{ background: i < rebuyCount(sdef.id) ? g.from : `${g.from}20` }} />
                         ))}
-                        <span className="text-[7px] font-mono text-[#4A5568] ml-1">{rebuyCount(sdef.id)}/{REBUY_MAX + 1}</span>
+                        <span className="text-xs font-mono text-[#7B8BA5] ml-1">{rebuyCount(sdef.id)}/{REBUY_MAX + 1}</span>
                       </div>
                     </div>
                   </div>
@@ -857,14 +911,14 @@ export default function DashboardPage() {
             </div>
           ) : nextSlotDef ? (
             <div className="text-center py-3">
-              <p className="text-[9px] text-[#4A5568]">No active package</p>
-              <Link href="/slots" className="inline-flex items-center gap-1 mt-2 text-[8px] text-[#00E5FF] font-semibold hover:underline">
+              <p className="text-xs text-[#7B8BA5]">No active package</p>
+              <Link href="/slots" className="inline-flex items-center gap-1 mt-2 text-xs text-[#00E5FF] font-semibold hover:underline">
                 Activate {nextSlotDef.name} <ChevronRight size={10} />
               </Link>
             </div>
           ) : (
             <div className="text-center py-3">
-              <p className="text-[9px] text-[#4A5568]">All packages completed</p>
+              <p className="text-xs text-[#7B8BA5]">All packages completed</p>
             </div>
           )}
         </div>
@@ -874,7 +928,7 @@ export default function DashboardPage() {
       <div className="px-4 mb-3">
         <div className="flex items-center gap-2 mb-2">
           <Activity size={12} className="text-[#00E5FF]" />
-          <h2 className="text-[9px] font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Live Feed</h2>
+          <h2 className="text-xs font-bold text-white uppercase tracking-[0.15em]" style={{ fontFamily: "'Orbitron',sans-serif" }}>Live Feed</h2>
           <div className="flex-1 h-px bg-gradient-to-r from-[rgba(0,229,255,0.15)] to-transparent" />
         </div>
         <div className="rounded-xl border border-[rgba(0,229,255,0.06)] overflow-hidden" style={{ background: 'rgba(22,32,52,0.6)' }}>
@@ -887,18 +941,18 @@ export default function DashboardPage() {
                       <UserPlus size={10} className="text-[#00E5FF]" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[8px] font-semibold text-white truncate">{shortenAddress(j.wallet || j.id)}</p>
-                      <p className="text-[6px] text-[#4A5568] font-mono">Ref: {j.referralCode || '---'}</p>
+                      <p className="text-xs font-semibold text-white truncate">{shortenAddress(j.wallet || j.id)}</p>
+                      <p className="text-xs text-[#7B8BA5] font-mono">Ref: {j.referralCode || '---'}</p>
                     </div>
                   </div>
-                  <span className="text-[7px] text-[#4A5568] font-mono">{j.timestamp ? formatTimeAgo(j.timestamp) : '--'}</span>
+                  <span className="text-xs text-[#7B8BA5] font-mono">{j.timestamp ? formatTimeAgo(j.timestamp) : '--'}</span>
                 </div>
               ))}
             </div>
           ) : (
             <div className="p-4 text-center">
-              <UserPlus size={16} className="mx-auto mb-2 text-[#4A5568]" />
-              <p className="text-[8px] text-[#4A5568]">No recent joins</p>
+              <UserPlus size={16} className="mx-auto mb-2 text-[#7B8BA5]" />
+              <p className="text-xs text-[#7B8BA5]">No recent joins</p>
             </div>
           )}
         </div>
@@ -907,16 +961,16 @@ export default function DashboardPage() {
 
 
       {/* ====== BOTTOM NAVIGATION ====== */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[rgba(0,229,255,0.08)] backdrop-blur-xl" style={{ background: 'rgba(5,8,22,0.92)' }}>
-        <div className="flex items-center justify-around max-w-lg mx-auto px-2 py-1.5">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[rgba(0,229,255,0.08)] backdrop-blur-xl" style={{ background: 'rgba(5,8,22,0.92)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="flex items-center justify-between max-w-lg mx-auto px-1 py-1.5">
           {navItems.map((item) => {
             const active = pathname === item.href || (item.href === '/dashboard' && pathname === '/');
             return (
               <Link key={item.href} href={item.href}
-                className={cn('flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative', active ? 'text-[#00E5FF]' : 'text-[#4A5568] hover:text-[#94A3B8]')}>
-                {active && <div className="absolute -top-[5px] w-8 h-0.5 rounded-full bg-[#00E5FF]" />}
+                className={cn('flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-xl transition-all relative min-w-0', active ? 'text-[#00E5FF]' : 'text-[#7B8BA5] hover:text-[#A8B8D0]')}>
+                {active && <div className="absolute -top-[5px] w-6 h-0.5 rounded-full bg-[#00E5FF]" />}
                 <NavIcon id={item.icon} active={active} />
-                <span className={cn('text-[8px] font-semibold tracking-wider', active && 'text-[#00E5FF]')}>{item.label}</span>
+                <span className={cn('text-[10px] font-semibold tracking-wide truncate', active && 'text-[#00E5FF]')}>{item.label}</span>
               </Link>
             );
           })}

@@ -29,14 +29,14 @@ export default function AdminAnnouncements() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">Announcements</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Create and manage platform announcements</p>
+        <p className="text-[#A8B8D0] text-sm mt-1">Create and manage platform announcements</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <h3 className="text-white font-semibold font-heading">Create Announcement</h3>
-            <p className="text-[#94A3B8] text-sm">Send notifications to all users</p>
+            <p className="text-[#A8B8D0] text-sm">Send notifications to all users</p>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -47,9 +47,9 @@ export default function AdminAnnouncements() {
                 onChange={(e) => setTitle(e.target.value)}
               />
               <div>
-                <label className="block text-sm font-medium text-[#94A3B8] mb-2">Message</label>
+                <label className="block text-sm font-medium text-[#A8B8D0] mb-2">Message</label>
                 <textarea
-                  className="w-full h-24 px-4 py-3 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#94A3B8]/50 text-sm transition-all duration-200 focus:outline-none focus:border-[rgba(0,229,255,0.3)] resize-none"
+                  className="w-full h-24 px-4 py-3 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#A8B8D0]/50 text-sm transition-all duration-200 focus:outline-none focus:border-[rgba(0,229,255,0.3)] resize-none"
                   placeholder="Announcement message"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
@@ -82,7 +82,7 @@ export default function AdminAnnouncements() {
         <Card>
           <CardHeader>
             <h3 className="text-white font-semibold font-heading">Previous Announcements</h3>
-            <p className="text-[#94A3B8] text-sm">Manage sent announcements</p>
+            <p className="text-[#A8B8D0] text-sm">Manage sent announcements</p>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -100,7 +100,7 @@ export default function AdminAnnouncements() {
                         </div>
                         <div>
                           <h4 className="text-sm font-medium text-white">{ann.title}</h4>
-                          <p className="text-xs text-[#94A3B8]">{formatDate(ann.date)}</p>
+                          <p className="text-xs text-[#A8B8D0]">{formatDate(ann.date)}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -117,7 +117,7 @@ export default function AdminAnnouncements() {
                         </Button>
                       </div>
                     </div>
-                    <p className="text-sm text-[#94A3B8] line-clamp-2">{ann.message}</p>
+                    <p className="text-sm text-[#A8B8D0] line-clamp-2">{ann.message}</p>
                   </div>
                 );
               })}

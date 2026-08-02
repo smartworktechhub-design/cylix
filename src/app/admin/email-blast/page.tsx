@@ -61,7 +61,7 @@ export default function EmailBlastPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">Email Blast</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Send emails to launch subscribers</p>
+        <p className="text-[#A8B8D0] text-sm mt-1">Send emails to launch subscribers</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -72,7 +72,7 @@ export default function EmailBlastPage() {
                 <Users size={20} className="text-[#00E5FF]" />
               </div>
               <div>
-                <p className="text-[#94A3B8] text-xs">Subscribers</p>
+                <p className="text-[#A8B8D0] text-xs">Subscribers</p>
                 <p className="text-white text-xl font-bold font-mono">{formatNumber(subscribers.length)}</p>
               </div>
             </div>
@@ -85,7 +85,7 @@ export default function EmailBlastPage() {
                 <Send size={20} className="text-[#00FFB2]" />
               </div>
               <div>
-                <p className="text-[#94A3B8] text-xs">Status</p>
+                <p className="text-[#A8B8D0] text-xs">Status</p>
                 <Badge variant={sent ? 'success' : 'default'}>{sent ? 'Sent!' : 'Ready'}</Badge>
               </div>
             </div>
@@ -98,7 +98,7 @@ export default function EmailBlastPage() {
                 <Clock size={20} className="text-[#FFB800]" />
               </div>
               <div>
-                <p className="text-[#94A3B8] text-xs">Last Blast</p>
+                <p className="text-[#A8B8D0] text-xs">Last Blast</p>
                 <p className="text-white text-sm">—</p>
               </div>
             </div>
@@ -117,23 +117,23 @@ export default function EmailBlastPage() {
           <CardContent>
             <div className="space-y-4">
               <div>
-                <label className="text-[#94A3B8] text-xs mb-1 block">Subject</label>
+                <label className="text-[#A8B8D0] text-xs mb-1 block">Subject</label>
                 <input
                   type="text"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="Email subject..."
-                  className="w-full bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.12)] rounded-xl px-4 py-3 text-sm text-white placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[rgba(0,229,255,0.3)]"
+                  className="w-full bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.12)] rounded-xl px-4 py-3 text-sm text-white placeholder:text-[#A8B8D0]/50 focus:outline-none focus:border-[rgba(0,229,255,0.3)]"
                 />
               </div>
               <div>
-                <label className="text-[#94A3B8] text-xs mb-1 block">Body</label>
+                <label className="text-[#A8B8D0] text-xs mb-1 block">Body</label>
                 <textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   placeholder="Write your email content here..."
                   rows={10}
-                  className="w-full bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.12)] rounded-xl px-4 py-3 text-sm text-white placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[rgba(0,229,255,0.3)] resize-none"
+                  className="w-full bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.12)] rounded-xl px-4 py-3 text-sm text-white placeholder:text-[#A8B8D0]/50 focus:outline-none focus:border-[rgba(0,229,255,0.3)] resize-none"
                 />
               </div>
               <Button
@@ -156,14 +156,14 @@ export default function EmailBlastPage() {
           <CardContent>
             <div className="space-y-2 max-h-[400px] overflow-y-auto">
               {subscribers.length === 0 ? (
-                <p className="text-[#94A3B8] text-sm text-center py-4">No subscribers yet</p>
+                <p className="text-[#A8B8D0] text-sm text-center py-4">No subscribers yet</p>
               ) : (
                 subscribers.map((sub) => (
                   <div key={sub.id} className="flex items-center gap-3 p-2 rounded-lg bg-[rgba(11,16,32,0.3)] border border-[rgba(0,229,255,0.04)]">
                     <div className="w-2 h-2 rounded-full bg-[#00FFB2]" />
                     <div className="min-w-0 flex-1">
                       <p className="text-white text-xs truncate">{sub.email}</p>
-                      <p className="text-[#94A3B8] text-[10px]">{formatDate(sub.created_at)}</p>
+                      <p className="text-[#A8B8D0] text-xs">{formatDate(sub.created_at)}</p>
                     </div>
                   </div>
                 ))

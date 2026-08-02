@@ -92,7 +92,7 @@ export default function ApexPoolPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold font-heading text-white">Global Apex Pool</h2>
-        <p className="text-sm text-[#94A3B8] mt-1">
+        <p className="text-sm text-[#A8B8D0] mt-1">
           <span className="text-[#00E5FF]">{POOL_SPLIT.championsPercent}% Champions</span>
           {' + '}
           <span className="text-[#7B61FF]">{POOL_SPLIT.communityPercent}% Community</span>
@@ -109,12 +109,12 @@ export default function ApexPoolPage() {
           </div>
           <div className="flex-1">
             <p className="text-white font-semibold text-sm">Auto-Distribution Daily at 12:00 AM UTC</p>
-            <p className="text-[#94A3B8] text-xs mt-0.5">100% of pool funds distributed automatically. Zero-hold policy.</p>
+            <p className="text-[#A8B8D0] text-xs mt-0.5">100% of pool funds distributed automatically. Zero-hold policy.</p>
           </div>
           <div className="text-right shrink-0">
-            <p className="text-[#94A3B8] text-xs">Next Distribution</p>
-            <p className="text-white font-mono font-bold text-lg tabular-nums">
-              {String(diffH).padStart(2, '0')}:{String(diffM).padStart(2, '0')}:{String(diffS).padStart(2, '0')}
+            <p className="text-[#A8B8D0] text-xs">Next Distribution</p>
+            <p className="text-white font-mono font-bold text-base sm:text-lg tabular-nums">
+               {String(diffH).padStart(2, '0')}:{String(diffM).padStart(2, '0')}:{String(diffS).padStart(2, '0')}
             </p>
           </div>
         </div>
@@ -130,14 +130,14 @@ export default function ApexPoolPage() {
           className={cn('flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all border',
             tab === 'champions'
               ? 'bg-[rgba(0,229,255,0.08)] border-[rgba(0,229,255,0.2)] text-[#00E5FF]'
-              : 'border-transparent text-[#4A5568] hover:text-white hover:bg-[rgba(0,229,255,0.03)]')}>
+              : 'border-transparent text-[#7B8BA5] hover:text-white hover:bg-[rgba(0,229,255,0.03)]')}>
           <Crown size={16} /> Champions Pool
         </button>
         <button onClick={() => setTab('community')}
           className={cn('flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all border',
             tab === 'community'
               ? 'bg-[rgba(123,97,255,0.08)] border-[rgba(123,97,255,0.2)] text-[#7B61FF]'
-              : 'border-transparent text-[#4A5568] hover:text-white hover:bg-[rgba(123,97,255,0.03)]')}>
+              : 'border-transparent text-[#7B8BA5] hover:text-white hover:bg-[rgba(123,97,255,0.03)]')}>
           <Users size={16} /> Active Pool
         </button>
       </div>
@@ -147,14 +147,14 @@ export default function ApexPoolPage() {
         <Card hover>
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-[#94A3B8] uppercase tracking-wider">Pool Balance</span>
+              <span className="text-xs font-medium text-[#A8B8D0] uppercase tracking-wider">Pool Balance</span>
               <div className="w-9 h-9 rounded-lg flex items-center justify-center"
                 style={{ background: tab === 'champions' ? 'rgba(0,229,255,0.1)' : 'rgba(123,97,255,0.1)' }}>
                 <DollarSign size={16} className={tab === 'champions' ? 'text-[#00E5FF]' : 'text-[#7B61FF]'} />
               </div>
             </div>
-            <p className="text-2xl font-bold font-mono text-white">{formatCurrency(state.totalFund)}</p>
-            <p className="text-xs text-[#94A3B8] mt-1">
+            <p className="text-xl sm:text-2xl font-bold font-mono text-white overflow-hidden truncate">{formatCurrency(state.totalFund)}</p>
+            <p className="text-xs text-[#A8B8D0] mt-1">
               {tab === 'champions' ? `${POOL_SPLIT.championsPercent}% of 10% pool` : `${POOL_SPLIT.communityPercent}% of 10% pool`}
             </p>
           </CardContent>
@@ -163,7 +163,7 @@ export default function ApexPoolPage() {
         <Card hover>
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-[#94A3B8] uppercase tracking-wider">
+              <span className="text-xs font-medium text-[#A8B8D0] uppercase tracking-wider">
                 {tab === 'champions' ? 'Top Performers' : 'Qualified Members'}
               </span>
               <div className="w-9 h-9 rounded-lg flex items-center justify-center"
@@ -171,10 +171,10 @@ export default function ApexPoolPage() {
                 {tab === 'champions' ? <Medal size={16} className="text-[#FFB800]" /> : <UserCheck size={16} className="text-[#00FFB2]" />}
               </div>
             </div>
-            <p className="text-2xl font-bold font-mono text-white">
+            <p className="text-xl sm:text-2xl font-bold font-mono text-white overflow-hidden truncate">
               {tab === 'champions' ? formatNumber(champions.qualifiedCount) : formatNumber(community.qualifiedCount)}
             </p>
-            <p className="text-xs text-[#94A3B8] mt-1">
+            <p className="text-xs text-[#A8B8D0] mt-1">
               {tab === 'champions' ? '≥1 direct + team activity' : 'Active + team activity'}
             </p>
           </CardContent>
@@ -183,26 +183,50 @@ export default function ApexPoolPage() {
         <Card hover>
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-[#94A3B8] uppercase tracking-wider">Today's Distribution</span>
+              <span className="text-xs font-medium text-[#A8B8D0] uppercase tracking-wider">Today's Distribution</span>
               <div className="w-9 h-9 rounded-lg flex items-center justify-center"
                 style={{ background: tab === 'champions' ? 'rgba(0,255,178,0.1)' : 'rgba(0,255,178,0.1)' }}>
                 <TrendingUp size={16} className="text-[#00FFB2]" />
               </div>
             </div>
-            <p className="text-2xl font-bold font-mono text-[#00FFB2]">{formatCurrency(state.todayDistribution)}</p>
+            <p className="text-xl sm:text-2xl font-bold font-mono text-[#00FFB2] overflow-hidden truncate">{formatCurrency(state.todayDistribution)}</p>
           </CardContent>
         </Card>
 
         <Card hover>
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-[#94A3B8] uppercase tracking-wider">Lifetime Distributed</span>
+              <span className="text-xs font-medium text-[#A8B8D0] uppercase tracking-wider">Lifetime Distributed</span>
               <div className="w-9 h-9 rounded-lg flex items-center justify-center"
                 style={{ background: tab === 'champions' ? 'rgba(123,97,255,0.1)' : 'rgba(123,97,255,0.1)' }}>
                 <History size={16} className="text-[#7B61FF]" />
               </div>
             </div>
-            <p className="text-2xl font-bold font-mono text-[#7B61FF]">{formatCurrency(state.lifetimeDistribution)}</p>
+            <p className="text-xl sm:text-2xl font-bold font-mono text-[#7B61FF] overflow-hidden truncate">{formatCurrency(state.lifetimeDistribution)}</p>
+          </CardContent>
+        </Card>
+
+        <Card hover>
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium text-[#A8B8D0] uppercase tracking-wider">Per Person</span>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center"
+                style={{ background: 'rgba(255,184,0,0.1)' }}>
+                <Zap size={16} className="text-[#FFB800]" />
+              </div>
+            </div>
+            <p className="text-xl sm:text-2xl font-bold font-mono text-[#FFB800] overflow-hidden truncate">
+              {tab === 'champions'
+                ? (champions.qualifiedCount > 0 ? formatCurrency(champions.totalFund / champions.qualifiedCount) : '$0.00')
+                : (community.qualifiedCount > 0 ? formatCurrency(community.totalFund / community.qualifiedCount) : '$0.00')
+              }
+            </p>
+            <p className="text-xs text-[#A8B8D0] mt-1">
+              {tab === 'champions'
+                ? `${champions.qualifiedCount} qualifiers sharing equally`
+                : `${community.qualifiedCount} qualifiers sharing equally`
+              }
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -222,7 +246,7 @@ export default function ApexPoolPage() {
             {/* Timer + Info */}
             <div className="p-6 rounded-xl bg-[rgba(11,16,32,0.5)]">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-[#94A3B8]">Auto-Distribution at 12:00 AM UTC</span>
+                <span className="text-sm text-[#A8B8D0]">Auto-Distribution at 12:00 AM UTC</span>
                 <div className="flex items-center gap-2">
                   <Clock size={14} className={tab === 'champions' ? 'text-[#00E5FF]' : 'text-[#7B61FF]'} />
                   <span className="text-lg font-mono font-bold text-white tabular-nums">
@@ -235,8 +259,8 @@ export default function ApexPoolPage() {
                   style={{ width: `${progressPct}%`, background: tab === 'champions' ? 'linear-gradient(90deg, #00E5FF, #7B61FF)' : 'linear-gradient(90deg, #7B61FF, #00FFB2)' }} />
               </div>
               <div className="flex items-center gap-2">
-                <Zap size={14} className="text-[#94A3B8]" />
-                <span className="text-xs text-[#94A3B8]">
+                <Zap size={14} className="text-[#A8B8D0]" />
+                <span className="text-xs text-[#A8B8D0]">
                   {tab === 'champions'
                     ? `${champions.qualifiedCount} qualified champions — ${formatCurrency(champions.totalFund)} pool`
                     : `${community.qualifiedCount} qualified members — ${formatCurrency(community.totalFund)} pool`
@@ -261,9 +285,9 @@ export default function ApexPoolPage() {
                 </div>
                 {champions.leaderboard.length === 0 ? (
                   <div className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)] text-center">
-                    <Medal size={24} className="mx-auto mb-2 text-[#4A5568]" />
-                    <p className="text-sm text-[#94A3B8]">No performers today yet</p>
-                    <p className="text-xs text-[#4A5568] mt-1">Activity resets every 24 hours</p>
+                    <Medal size={24} className="mx-auto mb-2 text-[#7B8BA5]" />
+                    <p className="text-sm text-[#A8B8D0]">No performers today yet</p>
+                    <p className="text-xs text-[#7B8BA5] mt-1">Activity resets every 24 hours</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -278,7 +302,7 @@ export default function ApexPoolPage() {
                             </div>
                             <div>
                               <p className="text-sm font-mono font-semibold text-white">{shortenAddress(entry.wallet)}</p>
-                              <div className="flex items-center gap-3 text-[10px] text-[#4A5568] mt-0.5">
+                              <div className="flex items-center gap-3 text-xs text-[#7B8BA5] mt-0.5">
                                 <span>{entry.referrals24h} refs</span>
                                 <span>{entry.purchases24h} buys</span>
                                 <span>${entry.volume24h.toFixed(0)} vol</span>
@@ -287,8 +311,8 @@ export default function ApexPoolPage() {
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-mono font-bold" style={{ color: rankColor }}>{formatCurrency(entry.reward)}</p>
-                            <p className="text-[10px] text-[#4A5568]">score: {entry.score.toFixed(0)}</p>
-                            {entry.qualified && <p className="text-[10px] text-[#00FFB2]">qualified</p>}
+                            <p className="text-xs text-[#7B8BA5]">score: {entry.score.toFixed(0)}</p>
+                            {entry.qualified && <p className="text-xs text-[#00FFB2]">qualified</p>}
                           </div>
                         </div>
                       );
@@ -302,18 +326,18 @@ export default function ApexPoolPage() {
             {tab === 'community' && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)]">
-                  <p className="text-xs text-[#94A3B8] mb-1">Last Distribution</p>
+                  <p className="text-xs text-[#A8B8D0] mb-1">Last Distribution</p>
                   {community.lastDistribution ? (
                     <div className="flex items-center gap-2">
-                      <Clock size={14} className="text-[#94A3B8]" />
+                      <Clock size={14} className="text-[#A8B8D0]" />
                       <span className="text-sm font-mono text-white">{formatDate(community.lastDistribution)}</span>
                     </div>
                   ) : (
-                    <span className="text-sm text-[#94A3B8]">No distribution yet</span>
+                    <span className="text-sm text-[#A8B8D0]">No distribution yet</span>
                   )}
                 </div>
                 <div className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)]">
-                  <p className="text-xs text-[#94A3B8] mb-1">Pool Allocation</p>
+                  <p className="text-xs text-[#A8B8D0] mb-1">Pool Allocation</p>
                   <div className="flex items-center gap-2">
                     <TrendingUp size={14} className="text-[#7B61FF]" />
                     <span className="text-sm font-mono text-white">{ALLOCATION.poolPercent}% of purchases</span>
@@ -333,11 +357,11 @@ export default function ApexPoolPage() {
                   {community.history.map((d) => (
                     <div key={d.id} className="p-3 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(123,97,255,0.03)]">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-[#94A3B8]">{formatDate(d.distributedAt)}</span>
+                        <span className="text-xs text-[#A8B8D0]">{formatDate(d.distributedAt)}</span>
                         <span className="text-xs font-mono text-[#FFB800]">{formatCurrency(d.totalFund)}</span>
                       </div>
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-[#4A5568]">{d.qualifiedCount} qualifiers</span>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-[#7B8BA5]">{d.qualifiedCount} qualifiers</span>
                         <span className="text-[#00FFB2] font-mono">{formatCurrency(d.perPerson)} each</span>
                       </div>
                     </div>
@@ -349,7 +373,7 @@ export default function ApexPoolPage() {
             {/* Champions Distribution History hint */}
             {tab === 'champions' && champions.lifetimeDistribution > 0 && (
               <div className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)] text-center">
-                <p className="text-xs text-[#94A3B8]">
+                <p className="text-xs text-[#A8B8D0]">
                   <span className="text-[#FFB800]">{formatCurrency(champions.lifetimeDistribution)}</span> distributed to champions to date
                 </p>
               </div>
@@ -370,57 +394,57 @@ export default function ApexPoolPage() {
           <CardContent>
             {tab === 'champions' ? (
               <div className="space-y-3">
-                <p className="text-xs text-[#94A3B8]">Qualification requirements:</p>
+                <p className="text-xs text-[#A8B8D0]">Qualification requirements:</p>
                 <div className="space-y-2">
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-[rgba(0,229,255,0.03)] border border-[rgba(0,229,255,0.06)]">
                     <Users size={16} className="text-[#00E5FF]" />
                     <div>
                       <p className="text-xs font-semibold text-white">At least 1 active direct referral</p>
-                      <p className="text-[10px] text-[#4A5568]">Must have sponsored at least one member</p>
+                      <p className="text-xs text-[#7B8BA5]">Must have sponsored at least one member</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-[rgba(0,229,255,0.03)] border border-[rgba(0,229,255,0.06)]">
                     <Zap size={16} className="text-[#00E5FF]" />
                     <div>
                       <p className="text-xs font-semibold text-white">Team Activity in 24h</p>
-                      <p className="text-[10px] text-[#4A5568]">New placements under your team in the last 24 hours</p>
+                      <p className="text-xs text-[#7B8BA5]">New placements under your team in the last 24 hours</p>
                     </div>
                   </div>
                 </div>
-                <p className="text-[10px] text-[#4A5568] mt-2">Qualified members share equally. If no one qualifies, funds carry forward.</p>
+                <p className="text-xs text-[#7B8BA5] mt-2">Qualified members share equally. If no one qualifies, funds carry forward.</p>
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-xs text-[#94A3B8]">Qualification requirements:</p>
+                <p className="text-xs text-[#A8B8D0]">Qualification requirements:</p>
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-[rgba(123,97,255,0.03)] border border-[rgba(123,97,255,0.06)]">
                   <UserCheck size={16} className="text-[#7B61FF]" />
                   <div>
                     <p className="text-xs font-semibold text-white">Active Slot</p>
-                    <p className="text-[10px] text-[#4A5568]">Must have at least one active package</p>
+                    <p className="text-xs text-[#7B8BA5]">Must have at least one active package</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-[rgba(123,97,255,0.03)] border border-[rgba(123,97,255,0.06)]">
                   <Zap size={16} className="text-[#7B61FF]" />
                   <div>
                     <p className="text-xs font-semibold text-white">Team Activity in 24h</p>
-                    <p className="text-[10px] text-[#4A5568]">New placements under your team in the last 24 hours</p>
+                    <p className="text-xs text-[#7B8BA5]">New placements under your team in the last 24 hours</p>
                   </div>
                 </div>
-                <p className="text-[10px] text-[#4A5568] mt-2">Qualified members share equally. If no one qualifies, funds carry forward.</p>
+                <p className="text-xs text-[#7B8BA5] mt-2">Qualified members share equally. If no one qualifies, funds carry forward.</p>
               </div>
             )}
 
             {/* Fund split card */}
             <div className="mt-4 p-4 rounded-xl bg-[rgba(11,16,32,0.5)]">
-              <p className="text-xs text-[#94A3B8] mb-2">Distribution Split</p>
+              <p className="text-xs text-[#A8B8D0] mb-2">Distribution Split</p>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-white">50% Wallet</span>
-                  <span className="text-[10px] text-[#00E5FF]">Instantly credited</span>
+                  <span className="text-xs text-[#00E5FF]">Instantly credited</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-white">50% Ascension Vault</span>
-                  <span className="text-[10px] text-[#7B61FF]">Auto-upgrade fund</span>
+                  <span className="text-xs text-[#7B61FF]">Auto-upgrade fund</span>
                 </div>
               </div>
             </div>

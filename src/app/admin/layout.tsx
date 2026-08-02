@@ -31,7 +31,7 @@ function AdminGuard({ children }: { children: React.ReactNode }) {
         <div className="text-center">
           <Lock size={48} className="text-[#FF5C7A] mx-auto mb-4" />
           <p className="text-white font-heading text-lg">Access Denied</p>
-          <p className="text-[#94A3B8] text-sm">Redirecting to login...</p>
+          <p className="text-[#A8B8D0] text-sm">Redirecting to login...</p>
         </div>
       </div>
     );

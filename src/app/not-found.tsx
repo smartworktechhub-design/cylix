@@ -72,7 +72,7 @@ export default function NotFound() {
           Page Not Found
         </p>
 
-        <p className="text-[#4A5568] text-xs md:text-sm mb-8 max-w-xs"
+        <p className="text-[#7B8BA5] text-xs md:text-sm mb-8 max-w-xs"
           style={{ fontFamily: "'Inter',sans-serif" }}>
           The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>

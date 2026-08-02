@@ -84,7 +84,7 @@ export default function AdminDashboard() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">Dashboard</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Platform overview and key metrics</p>
+        <p className="text-[#A8B8D0] text-sm mt-1">Platform overview and key metrics</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -99,7 +99,7 @@ export default function AdminDashboard() {
                 Active
               </Badge>
             </div>
-            <p className="text-[#94A3B8] text-xs mb-1">{stat.label}</p>
+            <p className="text-[#A8B8D0] text-xs mb-1">{stat.label}</p>
             <p className="text-xl font-bold text-white font-mono">
               {stat.isCurrency ? formatCurrency(stat.value) : formatNumber(stat.value)}
             </p>
@@ -113,7 +113,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-white font-semibold font-heading">Revenue Trend</h3>
-                <p className="text-[#94A3B8] text-sm">Monthly slot revenue performance</p>
+                <p className="text-[#A8B8D0] text-sm">Monthly slot revenue performance</p>
               </div>
               <Badge variant="success" className="flex items-center gap-1">
                 <ArrowUpRight size={12} />
@@ -125,7 +125,7 @@ export default function AdminDashboard() {
             <div className="flex items-end gap-2 h-48">
               {revenueData.map((val, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
-                  <span className="text-[10px] text-[#94A3B8] font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-xs text-[#A8B8D0] font-mono opacity-0 group-hover:opacity-100 transition-opacity">
                     {formatCurrency(val * 10000)}
                   </span>
                   <div
@@ -142,7 +142,7 @@ export default function AdminDashboard() {
             </div>
             <div className="flex justify-between mt-3">
               {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m) => (
-                <span key={m} className="text-[10px] text-[#94A3B8]">{m}</span>
+                <span key={m} className="text-xs text-[#A8B8D0]">{m}</span>
               ))}
             </div>
           </CardContent>
@@ -151,14 +151,14 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader>
             <h3 className="text-white font-semibold font-heading">Slot Distribution</h3>
-            <p className="text-[#94A3B8] text-sm">Active slots by orbit tier</p>
+            <p className="text-[#A8B8D0] text-sm">Active slots by orbit tier</p>
           </CardHeader>
           <CardContent className="space-y-4">
             {slotDistribution.map((s) => (
               <div key={s.name}>
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-sm text-white">{s.name}</span>
-                  <span className="text-xs text-[#94A3B8] font-mono">{formatNumber(s.count)}</span>
+                  <span className="text-xs text-[#A8B8D0] font-mono">{formatNumber(s.count)}</span>
                 </div>
                 <div className="h-2 rounded-full bg-[rgba(148,163,184,0.1)] overflow-hidden">
                   <div
@@ -170,7 +170,7 @@ export default function AdminDashboard() {
             ))}
             <div className="pt-3 border-t border-[rgba(0,229,255,0.08)]">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[#94A3B8]">Total Active</span>
+                <span className="text-[#A8B8D0]">Total Active</span>
                 <span className="text-white font-mono font-semibold">{formatNumber(adminStats?.activeSlots || 0)}</span>
               </div>
             </div>
@@ -181,7 +181,7 @@ export default function AdminDashboard() {
       <Card>
         <CardHeader>
           <h3 className="text-white font-semibold font-heading">Recent Users</h3>
-          <p className="text-[#94A3B8] text-sm">Latest registered users</p>
+          <p className="text-[#A8B8D0] text-sm">Latest registered users</p>
         </CardHeader>
         <CardContent>
           <Table>
@@ -200,7 +200,7 @@ export default function AdminDashboard() {
                   <TableCell className="font-mono text-[#00E5FF]">{shortenAddress(user.wallet)}</TableCell>
                   <TableCell className="font-mono text-xs text-[#7B61FF]">{user.referral}</TableCell>
                   <TableCell className="font-mono">{formatCurrency(user.invested)}</TableCell>
-                  <TableCell className="text-[#94A3B8]">{formatDate(user.joined)}</TableCell>
+                  <TableCell className="text-[#A8B8D0]">{formatDate(user.joined)}</TableCell>
                   <TableCell>
                     <Badge variant={user.status === 'active' ? 'success' : 'danger'}>
                       {user.status}

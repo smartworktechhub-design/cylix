@@ -98,7 +98,7 @@ export default function AdminCampaignRequests() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">Campaign Requests</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Review and process reward requests</p>
+        <p className="text-[#A8B8D0] text-sm mt-1">Review and process reward requests</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -108,7 +108,7 @@ export default function AdminCampaignRequests() {
               <Clock size={20} className="text-[#FFB800]" />
             </div>
             <div>
-              <p className="text-[#94A3B8] text-xs">Pending Rewards</p>
+              <p className="text-[#A8B8D0] text-xs">Pending Rewards</p>
               <p className="text-white font-bold font-mono text-lg">{formatCurrency(pendingTotal)}</p>
             </div>
           </div>
@@ -119,7 +119,7 @@ export default function AdminCampaignRequests() {
               <CheckCircle size={20} className="text-[#00FFB2]" />
             </div>
             <div>
-              <p className="text-[#94A3B8] text-xs">Approved Total</p>
+              <p className="text-[#A8B8D0] text-xs">Approved Total</p>
               <p className="text-white font-bold font-mono text-lg">{formatCurrency(approvedTotal)}</p>
             </div>
           </div>
@@ -130,7 +130,7 @@ export default function AdminCampaignRequests() {
               <DollarSign size={20} className="text-[#00E5FF]" />
             </div>
             <div>
-              <p className="text-[#94A3B8] text-xs">Total Paid</p>
+              <p className="text-[#A8B8D0] text-xs">Total Paid</p>
               <p className="text-white font-bold font-mono text-lg">{formatCurrency(paidTotal)}</p>
             </div>
           </div>
@@ -148,14 +148,14 @@ export default function AdminCampaignRequests() {
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     activeTab === tab.key
                       ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF]'
-                      : 'text-[#94A3B8] hover:text-white'
+                      : 'text-[#A8B8D0] hover:text-white'
                   }`}
                 >
                   {tab.label}
                 </button>
               ))}
             </div>
-            <span className="text-[#94A3B8] text-sm">{filtered.length} requests</span>
+            <span className="text-[#A8B8D0] text-sm">{filtered.length} requests</span>
           </div>
         </CardHeader>
         <CardContent>
@@ -178,7 +178,7 @@ export default function AdminCampaignRequests() {
                     <TableCell>
                       <div>
                         <p className="text-xs font-medium text-white">{r.userName || 'Unknown'}</p>
-                        <p className="text-[10px] text-[#94A3B8] font-mono">{shortenAddress(r.userWallet, 6)}</p>
+                        <p className="text-xs text-[#A8B8D0] font-mono">{shortenAddress(r.userWallet, 6)}</p>
                       </div>
                     </TableCell>
                     <TableCell className="font-mono text-white">{r.verifiedRefs}</TableCell>
@@ -190,7 +190,7 @@ export default function AdminCampaignRequests() {
                         {r.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-[#94A3B8] text-xs">{formatDate(r.createdAt)}</TableCell>
+                    <TableCell className="text-[#A8B8D0] text-xs">{formatDate(r.createdAt)}</TableCell>
                     {(activeTab === 'all' || activeTab === 'pending') && (
                       <TableCell>
                         {r.status === 'pending' ? (
@@ -225,7 +225,7 @@ export default function AdminCampaignRequests() {
                             Mark Paid
                           </Button>
                         ) : (
-                          <span className="text-[#94A3B8] text-xs">---</span>
+                          <span className="text-[#A8B8D0] text-xs">---</span>
                         )}
                       </TableCell>
                     )}
@@ -234,7 +234,7 @@ export default function AdminCampaignRequests() {
               })}
               {filtered.length === 0 && (
                 <TableRow>
-                  <td colSpan={6} className="text-center text-[#94A3B8] py-8">
+                  <td colSpan={6} className="text-center text-[#A8B8D0] py-8">
                     No {activeTab === 'all' ? '' : activeTab} requests found
                   </td>
                 </TableRow>

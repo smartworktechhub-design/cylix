@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
 import { getAllNotifications, deleteNotification } from '@/lib/db';
+import { getAdminToken } from '@/lib/admin-auth';
 import { Bell, Send, Info, AlertTriangle, CheckCircle, Loader2, Globe, MessageSquare, Trash2 } from 'lucide-react';
 
 const typeColors: Record<string, string> = {
@@ -45,7 +46,7 @@ export default function AdminNotifications() {
     try {
       const res = await fetch('/api/admin/notifications', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': getAdminToken() },
         body: JSON.stringify({ title, message, type }),
       });
       let data: any = {};
@@ -80,18 +81,18 @@ export default function AdminNotifications() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">Notifications</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">View and send platform notifications</p>
+        <p className="text-[#A8B8D0] text-sm mt-1">View and send platform notifications</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <h3 className="text-white font-semibold font-heading">Send Notification</h3>
-            <p className="text-[#94A3B8] text-sm">Broadcast to all users</p>
+            <p className="text-[#A8B8D0] text-sm">Broadcast to all users</p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[#94A3B8] mb-2">Type</label>
+              <label className="block text-sm font-medium text-[#A8B8D0] mb-2">Type</label>
               <div className="flex gap-2">
                 {['announcement', 'system', 'earnings'].map((t) => (
                   <button
@@ -100,7 +101,7 @@ export default function AdminNotifications() {
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize ${
                       type === t
                         ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF] border border-[rgba(0,229,255,0.2)]'
-                        : 'text-[#94A3B8] hover:text-white bg-[rgba(11,16,32,0.5)]'
+                        : 'text-[#A8B8D0] hover:text-white bg-[rgba(11,16,32,0.5)]'
                     }`}
                   >
                     {t}
@@ -109,18 +110,18 @@ export default function AdminNotifications() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#94A3B8] mb-2">Title</label>
+              <label className="block text-sm font-medium text-[#A8B8D0] mb-2">Title</label>
               <input
-                className="w-full px-4 py-3 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#94A3B8]/50 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)]"
+                className="w-full px-4 py-3 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#A8B8D0]/50 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)]"
                 placeholder="Notification title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#94A3B8] mb-2">Message</label>
+              <label className="block text-sm font-medium text-[#A8B8D0] mb-2">Message</label>
               <textarea
-                className="w-full h-24 px-4 py-3 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#94A3B8]/50 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)] resize-none"
+                className="w-full h-24 px-4 py-3 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#A8B8D0]/50 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)] resize-none"
                 placeholder="Notification message"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -148,7 +149,7 @@ export default function AdminNotifications() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Bell size={16} className="text-[#94A3B8]" />
+              <Bell size={16} className="text-[#A8B8D0]" />
               <h3 className="text-white font-semibold font-heading">Recent Notifications</h3>
             </div>
           </CardHeader>
@@ -174,7 +175,7 @@ export default function AdminNotifications() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <span className="text-xs text-[#94A3B8]">{formatDate(n.timestamp)}</span>
+                      <span className="text-xs text-[#A8B8D0]">{formatDate(n.timestamp)}</span>
                     </TableCell>
                     <TableCell>
                       <button onClick={() => handleDelete(n.id)} disabled={deleting === n.id}
@@ -187,7 +188,7 @@ export default function AdminNotifications() {
                 ))}
                 {notifications.length === 0 && (
                   <TableRow>
-                    <td colSpan={4} className="px-4 py-8 text-center text-[#94A3B8] text-sm">No notifications yet</td>
+                    <td colSpan={4} className="px-4 py-8 text-center text-[#A8B8D0] text-sm">No notifications yet</td>
                   </TableRow>
                 )}
               </TableBody>

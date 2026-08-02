@@ -128,15 +128,19 @@ async function addToMatrix(sb: any, sponsorId: string, userId: string) {
     }
   }
 
-  // Populate matrix_11 for commission tracking
+  // Populate matrix_11 for commission tracking (skip if exists)
   const visited = new Set<string>();
   let curSponsorId: string | null = sponsorId;
   let lvl = 1;
   while (curSponsorId && lvl <= 11 && !visited.has(curSponsorId)) {
     visited.add(curSponsorId);
-    await sb.from('matrix_11').insert({
-      user_id: userId, sponsor_id: curSponsorId, level: lvl,
-    });
+    const { data: existing11 } = await sb.from('matrix_11')
+      .select('id').eq('user_id', userId).eq('sponsor_id', curSponsorId).eq('level', lvl).maybeSingle();
+    if (!existing11) {
+      await sb.from('matrix_11').insert({
+        user_id: userId, sponsor_id: curSponsorId, level: lvl,
+      });
+    }
     const { data: uplineRow } = await sb.from('users').select('sponsor_id').eq('id', curSponsorId).single() as { data: { sponsor_id: string | null } | null };
     curSponsorId = uplineRow?.sponsor_id || null;
     lvl++;

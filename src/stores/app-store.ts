@@ -29,6 +29,7 @@ interface AppState {
   setAdminStats: (stats: AdminStats | null) => void;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
+  clearAll: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -63,4 +64,17 @@ export const useAppStore = create<AppState>((set) => ({
   setAdminStats: (adminStats) => set({ adminStats }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
+  clearAll: () => set({
+    user: null,
+    slots: [],
+    earnings: { daily: 0, total: 0, matrix: 0, pool: 0, referral: 0, ascension: 0 },
+    vault: null,
+    transactions: [],
+    withdrawals: [],
+    notifications: [],
+    referrals: [],
+    activities: [],
+    adminStats: null,
+    needsReferral: false,
+  }),
 }));

@@ -40,7 +40,7 @@ export default function AdminPackages() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white font-heading">Package Management</h2>
-          <p className="text-[#94A3B8] text-sm mt-1">{formatNumber(packages.length)} investment packages</p>
+          <p className="text-[#A8B8D0] text-sm mt-1">{formatNumber(packages.length)} investment packages</p>
         </div>
         <Button>
           <Plus size={16} />
@@ -58,14 +58,14 @@ export default function AdminPackages() {
                     <h3 className="text-lg font-semibold text-white font-heading">{pkg.name}</h3>
                     <Badge variant="info">Level {pkg.level}</Badge>
                   </div>
-                  <p className="text-[#94A3B8] text-xs mt-1">{formatNumber(pkg.totalPurchases)} purchases</p>
+                  <p className="text-[#A8B8D0] text-xs mt-1">{formatNumber(pkg.totalPurchases)} purchases</p>
                 </div>
                 <button
                   onClick={() => togglePackage(pkg.id)}
                   className={`p-2 rounded-lg transition-colors ${
                     pkg.enabled
                       ? 'bg-[rgba(0,255,178,0.1)] text-[#00FFB2]'
-                      : 'bg-[rgba(148,163,184,0.1)] text-[#94A3B8]'
+                      : 'bg-[rgba(148,163,184,0.1)] text-[#A8B8D0]'
                   }`}
                 >
                   {pkg.enabled ? <Power size={16} /> : <PowerOff size={16} />}
@@ -75,28 +75,28 @@ export default function AdminPackages() {
             <CardContent>
               <div className="space-y-3">
                 <div className="flex items-center justify-between py-2 border-b border-[rgba(0,229,255,0.05)]">
-                  <div className="flex items-center gap-2 text-[#94A3B8] text-sm">
+                  <div className="flex items-center gap-2 text-[#A8B8D0] text-sm">
                     <DollarSign size={14} />
                     Price
                   </div>
                   <span className="text-white font-mono font-semibold">{formatCurrency(pkg.price)}</span>
                 </div>
                 <div className="flex items-center justify-between py-2 border-b border-[rgba(0,229,255,0.05)]">
-                  <div className="flex items-center gap-2 text-[#94A3B8] text-sm">
+                  <div className="flex items-center gap-2 text-[#A8B8D0] text-sm">
                     <TrendingUp size={14} />
                     Daily Return
                   </div>
                   <span className="text-[#00E5FF] font-mono">{pkg.dailyReturn}%</span>
                 </div>
                 <div className="flex items-center justify-between py-2 border-b border-[rgba(0,229,255,0.05)]">
-                  <div className="flex items-center gap-2 text-[#94A3B8] text-sm">
+                  <div className="flex items-center gap-2 text-[#A8B8D0] text-sm">
                     <CheckCircle size={14} />
                     Total Return
                   </div>
                   <span className="text-[#00FFB2] font-mono">{pkg.totalReturn}%</span>
                 </div>
                 <div className="flex items-center justify-between py-2">
-                  <div className="flex items-center gap-2 text-[#94A3B8] text-sm">
+                  <div className="flex items-center gap-2 text-[#A8B8D0] text-sm">
                     <Layers size={14} />
                     Duration
                   </div>

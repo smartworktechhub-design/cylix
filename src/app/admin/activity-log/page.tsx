@@ -22,8 +22,8 @@ const actionIcons: Record<string, React.ReactNode> = {
   ban: <Ban size={14} className="text-[#FF5C7A]" />,
   unban: <Shield size={14} className="text-[#00FFB2]" />,
   roi_toggle: <Settings size={14} className="text-[#7B61FF]" />,
-  login: <Shield size={14} className="text-[#94A3B8]" />,
-  default: <Activity size={14} className="text-[#94A3B8]" />,
+  login: <Shield size={14} className="text-[#A8B8D0]" />,
+  default: <Activity size={14} className="text-[#A8B8D0]" />,
 };
 
 const actionColors: Record<string, string> = {
@@ -63,16 +63,16 @@ export default function ActivityLogPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">Activity Log</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Recent admin actions and system events</p>
+        <p className="text-[#A8B8D0] text-sm mt-1">Recent admin actions and system events</p>
       </div>
 
       <Card>
         <CardContent>
           {logs.length === 0 ? (
             <div className="text-center py-12">
-              <Activity size={48} className="text-[#94A3B8]/20 mx-auto mb-4" />
-              <p className="text-[#94A3B8] text-sm">No activity logged yet</p>
-              <p className="text-[#94A3B8]/60 text-xs mt-1">Actions will appear here as you manage users</p>
+              <Activity size={48} className="text-[#A8B8D0]/20 mx-auto mb-4" />
+              <p className="text-[#A8B8D0] text-sm">No activity logged yet</p>
+              <p className="text-[#A8B8D0]/60 text-xs mt-1">Actions will appear here as you manage users</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -90,11 +90,11 @@ export default function ActivityLogPage() {
                         <span className="text-[#00E5FF] text-xs font-mono">{shortenAddress(log.target_user, 8)}</span>
                       )}
                     </div>
-                    <p className="text-[#94A3B8] text-xs mt-1 truncate">{log.details}</p>
+                    <p className="text-[#A8B8D0] text-xs mt-1 truncate">{log.details}</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-[#94A3B8] text-xs">{formatDate(log.created_at)}</p>
-                    <p className="text-[#94A3B8]/60 text-[10px]">{log.admin_email}</p>
+                    <p className="text-[#A8B8D0] text-xs">{formatDate(log.created_at)}</p>
+                    <p className="text-[#A8B8D0]/60 text-xs">{log.admin_email}</p>
                   </div>
                 </div>
               ))}

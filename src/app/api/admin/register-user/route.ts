@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { validateAdminToken } from '../auth/route';
-import { SLOTS, MATRIX_LEVELS } from '@/lib/constants';
+import { SLOTS, MATRIX_LEVELS, SLOT_CONFIG } from '@/lib/constants';
 
 function generateReferralCode(): string {
   return 'CXL' + Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -10,7 +10,7 @@ function generateReferralCode(): string {
 export async function POST(req: Request) {
   try {
     const token = req.headers.get('x-admin-token');
-    if (!token || !validateAdminToken(token)) {
+    if (!token || !await validateAdminToken(token)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -119,9 +119,6 @@ export async function POST(req: Request) {
 }
 
 async function processMatrixCommission(sb: any, userId: string, amount: number) {
-  const { data: user } = await sb.from('users').select('sponsor_id').eq('id', userId).single();
-  if (!user?.sponsor_id) return;
-
   const { data: levels } = await sb.from('matrix_11')
     .select('id, sponsor_id, level')
     .eq('user_id', userId);
@@ -135,8 +132,11 @@ async function processMatrixCommission(sb: any, userId: string, amount: number) 
       const { data: sponsor } = await sb.from('users').select('directs').eq('id', m.sponsor_id).single();
       if (!sponsor || (sponsor.directs || 0) < config.directsRequired) continue;
     }
+    const { data: sponsorSlot } = await sb.from('user_slots')
+      .select('id').eq('user_id', m.sponsor_id).eq('status', 'active').limit(1).maybeSingle();
+    if (!sponsorSlot) continue;
     const commission = (amount * config.percent) / 100;
-    const walletShare = Math.round((commission * 50) / 100 * 100) / 100;
+    const walletShare = Math.round((commission * SLOT_CONFIG.walletSplitPercent) / 100 * 100) / 100;
     const ascensionShare = Math.round((commission - walletShare) * 100) / 100;
 
     await sb.from('matrix_earnings').insert({
@@ -246,9 +246,13 @@ async function addToMatrix(sb: any, sponsorId: string, userId: string) {
   let lvl = 1;
   while (walkId && lvl <= 11 && !visited.has(walkId)) {
     visited.add(walkId);
-    await sb.from('matrix_11').insert({
-      user_id: userId, sponsor_id: walkId, level: lvl,
-    });
+    const { data: existing11 } = await sb.from('matrix_11')
+      .select('id').eq('user_id', userId).eq('sponsor_id', walkId).eq('level', lvl).maybeSingle();
+    if (!existing11) {
+      await sb.from('matrix_11').insert({
+        user_id: userId, sponsor_id: walkId, level: lvl,
+      });
+    }
     const qResult: { data: { sponsor_id: string | null } | null } = await sb.from('users').select('sponsor_id').eq('id', walkId).single();
     const nextSponsor: string | null = qResult?.data?.sponsor_id || null;
     walkId = nextSponsor;

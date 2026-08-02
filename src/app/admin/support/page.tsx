@@ -82,7 +82,7 @@ export default function AdminSupport() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white font-heading">Support Tickets</h2>
-          <p className="text-[#94A3B8] text-sm mt-1">Manage user support requests</p>
+          <p className="text-[#A8B8D0] text-sm mt-1">Manage user support requests</p>
         </div>
         <Button variant="outline" size="sm" onClick={load}>
           <RefreshCw size={14} /> Refresh
@@ -93,12 +93,12 @@ export default function AdminSupport() {
         <div className="lg:col-span-1 space-y-4">
           <div className="relative">
             <input
-              className="w-full px-4 py-3 pl-10 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#94A3B8]/50 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)]"
+              className="w-full px-4 py-3 pl-10 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#A8B8D0]/50 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)]"
               placeholder="Search tickets..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8B8D0]" />
           </div>
 
           <div className="flex gap-2 flex-wrap">
@@ -109,7 +109,7 @@ export default function AdminSupport() {
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all capitalize ${
                   statusFilter === s
                     ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF]'
-                    : 'text-[#94A3B8] hover:text-white bg-[rgba(11,16,32,0.5)]'
+                    : 'text-[#A8B8D0] hover:text-white bg-[rgba(11,16,32,0.5)]'
                 }`}
               >
                 {s === 'in_progress' ? 'In Progress' : s}
@@ -136,11 +136,11 @@ export default function AdminSupport() {
                   </div>
                 </div>
                 <p className="text-sm text-white truncate">{ticket.subject}</p>
-                <p className="text-xs text-[#94A3B8] mt-1">{shortenAddress(ticket.wallet)}</p>
+                <p className="text-xs text-[#A8B8D0] mt-1">{shortenAddress(ticket.wallet)}</p>
               </button>
             ))}
             {filtered.length === 0 && (
-              <p className="text-center text-[#94A3B8] text-sm py-8">No tickets found</p>
+              <p className="text-center text-[#A8B8D0] text-sm py-8">No tickets found</p>
             )}
           </div>
         </div>
@@ -152,7 +152,7 @@ export default function AdminSupport() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-white font-semibold font-heading">{selectedTicket.subject}</h3>
-                    <p className="text-xs text-[#94A3B8] mt-1">
+                    <p className="text-xs text-[#A8B8D0] mt-1">
                       {shortenAddress(selectedTicket.wallet)} &middot; {formatDate(selectedTicket.createdAt)}
                     </p>
                   </div>
@@ -177,17 +177,17 @@ export default function AdminSupport() {
               <CardContent className="space-y-4">
                 <div className="p-4 rounded-xl bg-[rgba(11,16,32,0.5)]">
                   <p className="text-xs text-[#7B61FF] mb-2">User Message</p>
-                  <p className="text-sm text-[#94A3B8] leading-relaxed">{selectedTicket.message || 'No message'}</p>
+                  <p className="text-sm text-[#A8B8D0] leading-relaxed">{selectedTicket.message || 'No message'}</p>
                 </div>
 
                 {replies.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-[#94A3B8]">Replies</p>
+                    <p className="text-xs font-medium text-[#A8B8D0]">Replies</p>
                     {replies.map((r) => (
                       <div key={r.id} className="p-3 rounded-xl bg-[rgba(0,229,255,0.05)] border border-[rgba(0,229,255,0.08)]">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs text-[#00E5FF]">{shortenAddress(r.wallet) || 'Admin'}</span>
-                          <span className="text-[10px] text-[#94A3B8]">{formatDate(r.createdAt)}</span>
+                          <span className="text-xs text-[#A8B8D0]">{formatDate(r.createdAt)}</span>
                         </div>
                         <p className="text-sm text-white">{r.message}</p>
                       </div>
@@ -196,7 +196,7 @@ export default function AdminSupport() {
                 )}
 
                 <div>
-                  <p className="text-sm font-medium text-[#94A3B8] mb-2">Status</p>
+                  <p className="text-sm font-medium text-[#A8B8D0] mb-2">Status</p>
                   <Select
                     value={selectedTicket.status}
                     onChange={(e) => handleStatusChange(selectedTicket.id, e.target.value)}
@@ -210,9 +210,9 @@ export default function AdminSupport() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#94A3B8] mb-2">Reply</label>
+                  <label className="block text-sm font-medium text-[#A8B8D0] mb-2">Reply</label>
                   <textarea
-                    className="w-full h-24 px-4 py-3 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#94A3B8]/50 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)] resize-none"
+                    className="w-full h-24 px-4 py-3 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.1)] text-white placeholder:text-[#A8B8D0]/50 text-sm focus:outline-none focus:border-[rgba(0,229,255,0.3)] resize-none"
                     placeholder="Type your reply..."
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
@@ -233,8 +233,8 @@ export default function AdminSupport() {
           ) : (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16">
-                <MessageSquare size={48} className="text-[#94A3B8] mb-4 opacity-30" />
-                <p className="text-[#94A3B8] text-sm">Select a ticket to view details</p>
+                <MessageSquare size={48} className="text-[#A8B8D0] mb-4 opacity-30" />
+                <p className="text-[#A8B8D0] text-sm">Select a ticket to view details</p>
               </CardContent>
             </Card>
           )}

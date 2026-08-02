@@ -50,13 +50,13 @@ export default function MyOrbitPage() {
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold font-heading text-white">My Orbit</h2>
-          <p className="text-sm text-[#94A3B8] mt-1">Track your active slots and earnings progress</p>
+          <p className="text-sm text-[#A8B8D0] mt-1">Track your active slots and earnings progress</p>
         </div>
         <Card>
           <CardContent className="p-10 text-center">
-            <Orbit size={48} className="text-[#94A3B8] mx-auto mb-4" />
+            <Orbit size={48} className="text-[#A8B8D0] mx-auto mb-4" />
             <p className="text-lg text-white font-semibold mb-2">No Active Slots</p>
-            <p className="text-sm text-[#94A3B8] mb-6">Purchase your first orbit slot to start earning.</p>
+            <p className="text-sm text-[#A8B8D0] mb-6">Purchase your first orbit slot to start earning.</p>
             <Link href="/slots">
               <Button variant="primary" size="lg">
                 Browse Slots <ArrowUpRight size={16} />
@@ -72,7 +72,7 @@ export default function MyOrbitPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold font-heading text-white">My Orbit</h2>
-        <p className="text-sm text-[#94A3B8] mt-1">
+        <p className="text-sm text-[#A8B8D0] mt-1">
           {activeSlots.length} active slot{activeSlots.length !== 1 ? 's' : ''} &middot;{' '}
           {completedSlots.length} completed
         </p>
@@ -108,7 +108,7 @@ export default function MyOrbitPage() {
                       <h3 className="text-lg font-bold text-white font-heading">{slot.slotName}</h3>
                       <div className="flex items-center gap-2 mt-0.5">
                         <Badge variant="success" className="text-xs">Active</Badge>
-                        <span className="text-xs text-[#94A3B8]">Orbit #{slot.slotOrbit}</span>
+                        <span className="text-xs text-[#A8B8D0]">Orbit #{slot.slotOrbit}</span>
                       </div>
                     </div>
                   </div>
@@ -122,19 +122,19 @@ export default function MyOrbitPage() {
               <CardContent>
                 <div className="grid grid-cols-3 gap-4 mb-5">
                   <div className="p-3 rounded-xl bg-[rgba(11,16,32,0.5)]">
-                    <p className="text-xs text-[#94A3B8] mb-1">Daily Yield</p>
+                    <p className="text-xs text-[#A8B8D0] mb-1">Daily Yield</p>
                     <p className="text-base font-bold font-mono text-[#00E5FF]">
                       +{formatCurrency(slot.dailyEarned)}
                     </p>
                   </div>
                   <div className="p-3 rounded-xl bg-[rgba(11,16,32,0.5)]">
-                    <p className="text-xs text-[#94A3B8] mb-1">Earned So Far</p>
+                    <p className="text-xs text-[#A8B8D0] mb-1">Earned So Far</p>
                     <p className="text-base font-bold font-mono text-[#00FFB2]">
                       {formatCurrency(slot.earned)}
                     </p>
                   </div>
                   <div className="p-3 rounded-xl bg-[rgba(11,16,32,0.5)]">
-                    <p className="text-xs text-[#94A3B8] mb-1">Remaining</p>
+                    <p className="text-xs text-[#A8B8D0] mb-1">Remaining</p>
                     <p className="text-base font-bold font-mono text-[#FFB800]">
                       {formatCurrency(Math.max(0, remaining))}
                     </p>
@@ -143,7 +143,7 @@ export default function MyOrbitPage() {
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-[#94A3B8]">Cap Progress (200%)</span>
+                    <span className="text-sm text-[#A8B8D0]">Cap Progress (200%)</span>
                     <span className="text-sm font-mono text-white">
                       {formatCurrency(slot.earned)} / {formatCurrency(slot.maxCap)}
                     </span>
@@ -154,18 +154,18 @@ export default function MyOrbitPage() {
                       className="w-2 h-2 rounded-full"
                       style={{ backgroundColor: slot.progress >= 100 ? '#00FFB2' : color }}
                     />
-                    <span className="text-xs text-[#94A3B8]">
+                    <span className="text-xs text-[#A8B8D0]">
                       {slot.progress >= 100 ? 'Max cap reached - ready for ascension' : `${slot.progress.toFixed(1)}% toward 200% cap`}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-4 mt-4 pt-3 border-t border-[rgba(148,163,184,0.08)]">
-                  <div className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
+                  <div className="flex items-center gap-1.5 text-xs text-[#A8B8D0]">
                     <Clock size={12} />
                     Activated {new Date(slot.activatedAt).toLocaleDateString()}
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
+                  <div className="flex items-center gap-1.5 text-xs text-[#A8B8D0]">
                     <Zap size={12} />
                     {slot.dailyEarned}/day
                   </div>
@@ -196,7 +196,7 @@ export default function MyOrbitPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">{slot.slotName}</p>
-                    <p className="text-xs text-[#94A3B8] font-mono">
+                    <p className="text-xs text-[#A8B8D0] font-mono">
                       Earned {formatCurrency(slot.earned)}
                     </p>
                   </div>

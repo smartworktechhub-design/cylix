@@ -74,7 +74,7 @@ export default function PlatformSettingsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white font-heading">Platform Settings</h2>
-          <p className="text-[#94A3B8] text-sm mt-1">Configure platform-wide settings</p>
+          <p className="text-[#A8B8D0] text-sm mt-1">Configure platform-wide settings</p>
         </div>
         <Button variant="primary" onClick={saveSettings} loading={saving} disabled={saving}>
           <Save size={14} /> Save Changes
@@ -89,7 +89,7 @@ export default function PlatformSettingsPage() {
                 <Database size={20} className="text-[#00E5FF]" />
               </div>
               <div>
-                <p className="text-[#94A3B8] text-xs">Total Users</p>
+                <p className="text-[#A8B8D0] text-xs">Total Users</p>
                 <p className="text-white text-xl font-bold font-mono">{formatNumber(stats.users)}</p>
               </div>
             </div>
@@ -102,7 +102,7 @@ export default function PlatformSettingsPage() {
                 <Globe size={20} className="text-[#00FFB2]" />
               </div>
               <div>
-                <p className="text-[#94A3B8] text-xs">Active Slots</p>
+                <p className="text-[#A8B8D0] text-xs">Active Slots</p>
                 <p className="text-[#00FFB2] text-xl font-bold font-mono">{formatNumber(stats.slots)}</p>
               </div>
             </div>
@@ -115,7 +115,7 @@ export default function PlatformSettingsPage() {
                 <DollarSign size={20} className="text-[#FFB800]" />
               </div>
               <div>
-                <p className="text-[#94A3B8] text-xs">Withdrawals</p>
+                <p className="text-[#A8B8D0] text-xs">Withdrawals</p>
                 <p className="text-[#FFB800] text-xl font-bold font-mono">{formatCurrency(stats.withdrawals)}</p>
               </div>
             </div>
@@ -128,7 +128,7 @@ export default function PlatformSettingsPage() {
                 <Clock size={20} className="text-[#7B61FF]" />
               </div>
               <div>
-                <p className="text-[#94A3B8] text-xs">Daily Yield</p>
+                <p className="text-[#A8B8D0] text-xs">Daily Yield</p>
                 <p className="text-[#7B61FF] text-xl font-bold font-mono">{SLOT_CONFIG.dailyYieldPercent}%</p>
               </div>
             </div>
@@ -213,7 +213,7 @@ function ToggleSetting({ label, description, enabled, onToggle, color }: {
     <div className="flex items-center justify-between p-4 rounded-xl bg-[rgba(11,16,32,0.5)] border border-[rgba(0,229,255,0.06)]">
       <div>
         <p className="text-white text-sm font-medium">{label}</p>
-        <p className="text-[#94A3B8] text-xs mt-0.5">{description}</p>
+        <p className="text-[#A8B8D0] text-xs mt-0.5">{description}</p>
       </div>
       <button onClick={onToggle} className="relative">
         <div className={`w-12 h-6 rounded-full transition-colors ${enabled ? '' : 'bg-[rgba(148,163,184,0.2)]'}`}
@@ -229,7 +229,7 @@ function ToggleSetting({ label, description, enabled, onToggle, color }: {
 function ConfigRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between py-2 border-b border-[rgba(0,229,255,0.04)] last:border-0">
-      <span className="text-[#94A3B8] text-xs">{label}</span>
+      <span className="text-[#A8B8D0] text-xs">{label}</span>
       <span className="text-white text-xs font-mono font-bold">{value}</span>
     </div>
   );

@@ -114,13 +114,13 @@ export default function AdminEarnings() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white font-heading">Earnings Management</h2>
-        <p className="text-[#94A3B8] text-sm mt-1">Adjust user earnings and view audit trail</p>
+        <p className="text-[#A8B8D0] text-sm mt-1">Adjust user earnings and view audit trail</p>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 size={32} className="text-[#00E5FF] animate-spin" />
-          <span className="ml-3 text-[#94A3B8]">Loading earnings data...</span>
+          <span className="ml-3 text-[#A8B8D0]">Loading earnings data...</span>
         </div>
       ) : (
         <>
@@ -131,7 +131,7 @@ export default function AdminEarnings() {
                   <DollarSign size={20} className="text-[#00E5FF]" />
                 </div>
                 <div>
-                  <p className="text-[#94A3B8] text-xs">Total Earnings Distributed</p>
+                  <p className="text-[#A8B8D0] text-xs">Total Earnings Distributed</p>
                   <p className="text-white font-bold font-mono text-lg">{formatCurrency(stats.totalEarnings)}</p>
                 </div>
               </div>
@@ -142,7 +142,7 @@ export default function AdminEarnings() {
                   <TrendingUp size={20} className="text-[#00FFB2]" />
                 </div>
                 <div>
-                  <p className="text-[#94A3B8] text-xs">Today&apos;s Earnings</p>
+                  <p className="text-[#A8B8D0] text-xs">Today&apos;s Earnings</p>
                   <p className="text-white font-bold font-mono text-lg">{formatCurrency(stats.todayEarnings)}</p>
                 </div>
               </div>
@@ -153,7 +153,7 @@ export default function AdminEarnings() {
                   <RotateCcw size={20} className="text-[#7B61FF]" />
                 </div>
                 <div>
-                  <p className="text-[#94A3B8] text-xs">Total Transactions</p>
+                  <p className="text-[#A8B8D0] text-xs">Total Transactions</p>
                   <p className="text-white font-bold font-mono text-lg">{formatCurrency(stats.transactionCount).replace('.00', '')}</p>
                 </div>
               </div>
@@ -164,7 +164,7 @@ export default function AdminEarnings() {
             <Card>
               <CardHeader>
                 <h3 className="text-white font-semibold font-heading">Adjust Earnings</h3>
-                <p className="text-[#94A3B8] text-sm">Add or deduct earnings for a user</p>
+                <p className="text-[#A8B8D0] text-sm">Add or deduct earnings for a user</p>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -209,12 +209,12 @@ export default function AdminEarnings() {
             <Card>
               <CardHeader>
                 <h3 className="text-white font-semibold font-heading">Audit Log</h3>
-                <p className="text-[#94A3B8] text-sm">Recent earnings transactions</p>
+                <p className="text-[#A8B8D0] text-sm">Recent earnings transactions</p>
               </CardHeader>
               <CardContent>
                 {auditLog.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-[#94A3B8] text-sm">No transactions yet</p>
+                    <p className="text-[#A8B8D0] text-sm">No transactions yet</p>
                   </div>
                 ) : (
                   <Table>
@@ -239,8 +239,8 @@ export default function AdminEarnings() {
                               {entry.type}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-[#94A3B8] text-xs">{formatDate(entry.date)}</TableCell>
-                          <TableCell className="text-xs text-[#94A3B8] max-w-[140px] truncate">{entry.description}</TableCell>
+                          <TableCell className="text-[#A8B8D0] text-xs">{formatDate(entry.date)}</TableCell>
+                          <TableCell className="text-xs text-[#A8B8D0] max-w-[140px] truncate">{entry.description}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

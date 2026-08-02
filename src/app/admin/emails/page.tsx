@@ -58,7 +58,7 @@ export default function AdminEmailsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold font-heading text-white">Email Export</h2>
-        <p className="text-sm text-[#94A3B8] mt-1">View and export all collected subscriber emails</p>
+        <p className="text-sm text-[#A8B8D0] mt-1">View and export all collected subscriber emails</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -68,7 +68,7 @@ export default function AdminEmailsPage() {
               <Mail size={20} className="text-[#00E5FF]" />
             </div>
             <div>
-              <p className="text-[#94A3B8] text-xs">Total Emails</p>
+              <p className="text-[#A8B8D0] text-xs">Total Emails</p>
               <p className="text-white font-bold font-mono text-lg">{emails.length}</p>
             </div>
           </div>
@@ -102,7 +102,7 @@ export default function AdminEmailsPage() {
               <Loader2 className="w-6 h-6 animate-spin text-[#00E5FF]" />
             </div>
           ) : emails.length === 0 ? (
-            <p className="text-[#94A3B8] text-sm text-center py-8">No emails collected yet</p>
+            <p className="text-[#A8B8D0] text-sm text-center py-8">No emails collected yet</p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -117,9 +117,9 @@ export default function AdminEmailsPage() {
                 <TableBody>
                   {emails.map((e, i) => (
                     <TableRow key={e.id}>
-                      <TableCell className="text-[#4A5568] text-xs">{i + 1}</TableCell>
+                      <TableCell className="text-[#7B8BA5] text-xs">{i + 1}</TableCell>
                       <TableCell className="text-white font-mono text-xs">{e.email}</TableCell>
-                      <TableCell className="text-[#94A3B8] text-xs">{formatDate(e.created_at)}</TableCell>
+                      <TableCell className="text-[#A8B8D0] text-xs">{formatDate(e.created_at)}</TableCell>
                       <TableCell>
                         <button onClick={() => deleteEmail(e.id)} disabled={deleting === e.id}
                           className="text-[#FF5C7A] hover:text-[#FF5C7A]/80 transition-all disabled:opacity-40">

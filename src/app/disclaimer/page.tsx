@@ -80,7 +80,7 @@ export default function DisclaimerPage() {
       <div className="relative z-10 flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-8">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-[#94A3B8] hover:text-[#00E5FF] transition-colors mb-8"
+          className="inline-flex items-center gap-2 text-sm text-[#A8B8D0] hover:text-[#00E5FF] transition-colors mb-8"
         >
           <ArrowLeft size={16} />
           Back to Home
@@ -97,7 +97,7 @@ export default function DisclaimerPage() {
         >
           Disclaimer
         </h1>
-        <p className="text-[#94A3B8] text-sm mb-6 max-w-2xl">
+        <p className="text-[#A8B8D0] text-sm mb-6 max-w-2xl">
           Important legal disclaimers for the CYLIX MATRIX DeFi platform.
         </p>
 
@@ -134,7 +134,7 @@ export default function DisclaimerPage() {
               </h2>
               <div className="space-y-3">
                 {d.content.map((p, i) => (
-                  <p key={i} className="text-sm text-[#94A3B8] leading-relaxed">
+                  <p key={i} className="text-sm text-[#A8B8D0] leading-relaxed">
                     {p}
                   </p>
                 ))}
@@ -150,7 +150,7 @@ export default function DisclaimerPage() {
             border: '1px solid rgba(255,184,0,0.12)',
           }}
         >
-          <p className="text-sm text-[#94A3B8] leading-relaxed">
+          <p className="text-sm text-[#A8B8D0] leading-relaxed">
             By accessing and using the CYLIX MATRIX DeFi platform, you acknowledge that you have read,
             understood, and agree to all disclaimers stated above. You accept full responsibility for your
             investment decisions and any outcomes resulting from your participation.

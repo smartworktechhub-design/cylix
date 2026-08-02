@@ -23,7 +23,7 @@ function getRankDisplay(rank: number) {
     const color = rankColors[rank - 1];
     return <Icon size={20} style={{ color }} />;
   }
-  return <span className="font-mono text-[#94A3B8] font-bold">#{rank}</span>;
+  return <span className="font-mono text-[#A8B8D0] font-bold">#{rank}</span>;
 }
 
 export default function LeaderboardPage() {
@@ -35,7 +35,7 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     getLeaderboard(10).then((data) => {
-      setLeaderboardData(data.map((e: any, i: number) => ({ ...e, rank: i + 1, referrals: Math.floor(Math.random() * 20) + 1 })));
+      setLeaderboardData(data.map((e: any, i: number) => ({ ...e, rank: i + 1 })));
       setLoading(false);
     });
   }, []);
@@ -66,7 +66,7 @@ export default function LeaderboardPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold font-heading text-white">Leaderboard</h2>
-        <p className="text-sm text-[#94A3B8] mt-1">Top performers across the platform</p>
+        <p className="text-sm text-[#A8B8D0] mt-1">Top performers across the platform</p>
       </div>
 
       <Card>
@@ -83,7 +83,7 @@ export default function LeaderboardPage() {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   activeTab === tab
                     ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF]'
-                    : 'text-[#94A3B8] hover:text-white hover:bg-white/5'
+                    : 'text-[#A8B8D0] hover:text-white hover:bg-white/5'
                 }`}
               >
                 {tab}
@@ -124,10 +124,10 @@ export default function LeaderboardPage() {
                             <Star size={10} style={{ color: rankColors[entry.rank - 1] }} />
                           </div>
                         )}
-                        <span className={`font-mono text-sm ${entry.rank <= 3 ? 'text-white font-medium' : 'text-[#94A3B8]'}`}>
+                        <span className={`font-mono text-sm ${entry.rank <= 3 ? 'text-white font-medium' : 'text-[#A8B8D0]'}`}>
                           {shortenAddress(entry.wallet)}
                         </span>
-                        {isYou && <Badge variant="info" className="text-[10px]">You</Badge>}
+                        {isYou && <Badge variant="info" className="text-xs">You</Badge>}
                       </div>
                     </TableCell>
                     <TableCell>

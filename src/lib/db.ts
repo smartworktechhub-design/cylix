@@ -5,17 +5,19 @@ import type { User, UserSlot, Transaction, Withdrawal, Notification, Earnings, R
 function sb() { return getSupabase(); }
 
 async function incrementField(table: string, userId: string, field: string, amount: number): Promise<void> {
-  const { data: row } = await sb().from(table).select(field).eq('id', userId).single();
+  const adminSb = getServiceSupabase();
+  const { data: row } = await adminSb.from(table).select(field).eq('id', userId).single();
   const current = Number((row as any)?.[field] || 0);
   const newVal = Math.round((current + amount) * 100) / 100;
-  const { error } = await sb().from(table).update({ [field]: newVal }).eq('id', userId);
+  const { error } = await adminSb.from(table).update({ [field]: newVal }).eq('id', userId);
   if (error) {
     console.error(`incrementField error: ${table}.${field} for ${userId}`, error);
   }
 }
 
 export async function reconcileUserBalances(userId: string): Promise<void> {
-  const { data: earnings } = await sb().from('earnings').select('type, amount').eq('user_id', userId);
+  const adminSb = getServiceSupabase();
+  const { data: earnings } = await adminSb.from('earnings').select('type, amount').eq('user_id', userId);
   if (!earnings) return;
 
   let dailySum = 0, ascensionSum = 0, matrixSum = 0, poolSum = 0, referralSum = 0;
@@ -28,27 +30,42 @@ export async function reconcileUserBalances(userId: string): Promise<void> {
     else if (e.type === 'referral') referralSum += amt;
   }
 
-  const correctTotalEarned = Math.round((dailySum + matrixSum / 2 + poolSum / 2 + referralSum) * 100) / 100;
-  const correctAscension = Math.round((ascensionSum + matrixSum / 2 + poolSum / 2) * 100) / 100;
+  const grossTotalEarned = Math.round((dailySum + matrixSum / 2 + poolSum / 2 + referralSum) * 100) / 100;
+  const grossAscension = Math.round((ascensionSum + matrixSum / 2 + poolSum / 2) * 100) / 100;
 
-  const { data: user } = await sb().from('users').select('total_earned, ascension_balance').eq('id', userId).single();
+  const { data: wdData } = await adminSb.from('withdrawals')
+    .select('amount, status').eq('user_id', userId);
+  const totalWithdrawn = (wdData || [])
+    .filter((w: any) => w.status === 'completed' || w.status === 'held')
+    .reduce((sum: number, w: any) => sum + Number(w.amount), 0);
+
+  const { data: txData } = await adminSb.from('transactions')
+    .select('type, amount').eq('user_id', userId);
+  const totalAscensionSpent = (txData || [])
+    .filter((t: any) => t.type === 'upgrade')
+    .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+
+  const correctTotalEarned = Math.max(0, Math.round((grossTotalEarned - totalWithdrawn) * 100) / 100);
+  const correctAscension = Math.max(0, Math.round((grossAscension - totalAscensionSpent) * 100) / 100);
+
+  const { data: user } = await adminSb.from('users').select('total_earned, ascension_balance').eq('id', userId).single();
   if (!user) return;
 
   const curTE = Number(user.total_earned || 0);
   const curAB = Number(user.ascension_balance || 0);
 
   if (Math.abs(curTE - correctTotalEarned) > 0.01 || Math.abs(curAB - correctAscension) > 0.01) {
-    await sb().from('users').update({
+    await adminSb.from('users').update({
       total_earned: correctTotalEarned,
       ascension_balance: correctAscension,
     }).eq('id', userId);
   }
 
-  const { data: slots } = await sb().from('user_slots').select('id, invested').eq('user_id', userId);
+  const { data: slots } = await adminSb.from('user_slots').select('id, invested').eq('user_id', userId);
   const correctInvested = (slots || []).reduce((s: number, sl: any) => s + Number(sl.invested), 0);
   const curInv = Number((user as any)?.total_invested || 0);
   if (Math.abs(curInv - correctInvested) > 0.01) {
-    await sb().from('users').update({ total_invested: correctInvested }).eq('id', userId);
+    await adminSb.from('users').update({ total_invested: correctInvested }).eq('id', userId);
   }
 }
 
@@ -168,39 +185,61 @@ function generateReferralCode(): string {
 
 // ─── 2x11 FORCED BINARY MATRIX WITH ZERO-DEPTH SPILLOVER ───
 // Root is level 0 (1 node), L1=2, L2=4, ..., L11=2048 → total 4095
+// Each user appears in ALL upline trees (Forsage-style propagation)
 
 // Find first empty position in owner's tree using BFS level-order
 async function findEmptyPosition(ownerId: string): Promise<{ parentNodeId: string | null; side: 'left' | 'right'; level: number } | null> {
   const { data: root } = await sb().from('matrix_tree').select('id').eq('user_id', ownerId).eq('owner_id', ownerId).maybeSingle();
-  if (!root) return { parentNodeId: null, side: 'left', level: 0 }; // Tree empty, place as root (level 0)
+  if (!root) return { parentNodeId: null, side: 'left', level: 0 };
 
   const { data: allNodes } = await sb().from('matrix_tree')
     .select('id, parent_id, side, level')
     .eq('owner_id', ownerId)
     .order('level').order('position');
-  if (!allNodes) return null;
+  if (!allNodes || allNodes.length === 0) return null;
 
-  // BFS to find first empty left or right child
-  // Level 0 = root, Level 1 = L1 (2 nodes), ..., Level 11 = L11 (2048 nodes)
   for (const node of allNodes) {
-    if (node.level >= 11) continue; // L11 is the max level
+    if (node.level >= 11) continue;
     const hasLeft = allNodes.some((n: any) => n.parent_id === node.id && n.side === 'left');
     const hasRight = allNodes.some((n: any) => n.parent_id === node.id && n.side === 'right');
     if (!hasLeft) return { parentNodeId: node.id, side: 'left', level: node.level + 1 };
     if (!hasRight) return { parentNodeId: node.id, side: 'right', level: node.level + 1 };
   }
 
-  // Also check direct left/right under root at level 1 if BFS missed them
-  const hasLeft = allNodes.some((n: any) => n.parent_id === root.id && n.side === 'left');
-  const hasRight = allNodes.some((n: any) => n.parent_id === root.id && n.side === 'right');
-  if (!hasLeft) return { parentNodeId: root.id, side: 'left', level: 1 };
-  if (!hasRight) return { parentNodeId: root.id, side: 'right', level: 1 };
+  return null;
+}
 
-  return null; // Full tree
+async function findEmptyChildOfNode(ownerId: string, parentNodeId: string, parentLevel: number): Promise<{ parentNodeId: string; side: 'left' | 'right'; level: number } | null> {
+  if (parentLevel >= 11) return null;
+
+  const { data: allNodes } = await sb().from('matrix_tree')
+    .select('id, parent_id, side, level')
+    .eq('owner_id', ownerId)
+    .order('level').order('position');
+  if (!allNodes || allNodes.length === 0) return null;
+
+  const queue: any[] = [];
+  const startNode = allNodes.find((n: any) => n.id === parentNodeId);
+  if (!startNode) return null;
+  queue.push(startNode);
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current || current.level >= 11) continue;
+    const hasLeft = allNodes.some((n: any) => n.parent_id === current.id && n.side === 'left');
+    const hasRight = allNodes.some((n: any) => n.parent_id === current.id && n.side === 'right');
+    if (!hasLeft) return { parentNodeId: current.id, side: 'left', level: current.level + 1 };
+    if (!hasRight) return { parentNodeId: current.id, side: 'right', level: current.level + 1 };
+    const leftChild = allNodes.find((n: any) => n.parent_id === current.id && n.side === 'left');
+    const rightChild = allNodes.find((n: any) => n.parent_id === current.id && n.side === 'right');
+    if (leftChild) queue.push(leftChild);
+    if (rightChild) queue.push(rightChild);
+  }
+
+  return null;
 }
 
 export async function addToMatrix(sponsorId: string, userId: string): Promise<void> {
-  // Ensure sponsor has a root node (level 0)
   const { data: sponsorRoot } = await sb().from('matrix_tree').select('id').eq('user_id', sponsorId).eq('owner_id', sponsorId).maybeSingle();
   if (!sponsorRoot) {
     await sb().from('matrix_tree').insert({
@@ -209,11 +248,9 @@ export async function addToMatrix(sponsorId: string, userId: string): Promise<vo
     });
   }
 
-  // Step 1: Try sponsor's tree first (BFS spillover)
   let placed = await findEmptyPosition(sponsorId);
   let treeOwnerId = sponsorId;
 
-  // Step 2: If full, spill over to upline
   if (!placed) {
     let uplineId = await getDirectSponsor(sponsorId);
     while (uplineId && !placed) {
@@ -223,7 +260,7 @@ export async function addToMatrix(sponsorId: string, userId: string): Promise<vo
     }
   }
 
-  if (!placed) return; // No room anywhere
+  if (!placed) return;
 
   const { count: posCount } = await sb().from('matrix_tree').select('*', { count: 'exact', head: true }).eq('owner_id', treeOwnerId);
   const position = (posCount || 0) + 1;
@@ -234,15 +271,43 @@ export async function addToMatrix(sponsorId: string, userId: string): Promise<vo
     level: placed.level, position,
   });
 
-  // Add to matrix_11 for unilevel earnings (owner's upline chain)
+  // PROPAGATE: Place user in ALL upline trees under sponsor's node
+  let propagateUplineId = await getDirectSponsor(treeOwnerId);
+  while (propagateUplineId) {
+    const { data: sponsorInUpline } = await sb().from('matrix_tree')
+      .select('id, level')
+      .eq('user_id', treeOwnerId)
+      .eq('owner_id', propagateUplineId)
+      .maybeSingle();
+    if (!sponsorInUpline || sponsorInUpline.level >= 11) break;
+
+    const emptySpot = await findEmptyChildOfNode(propagateUplineId, sponsorInUpline.id, sponsorInUpline.level);
+    if (!emptySpot) break;
+
+    const { count: upCount } = await sb().from('matrix_tree').select('*', { count: 'exact', head: true }).eq('owner_id', propagateUplineId);
+    await sb().from('matrix_tree').insert({
+      user_id: userId, owner_id: propagateUplineId,
+      parent_id: emptySpot.parentNodeId, side: emptySpot.side,
+      level: emptySpot.level, position: (upCount || 0) + 1,
+    });
+
+    await updateTeamSize(propagateUplineId);
+    propagateUplineId = await getDirectSponsor(propagateUplineId);
+  }
+
+  // Add to matrix_11 for unilevel earnings
   const visited = new Set<string>();
   let currentId: string | null = sponsorId;
   let lvl = 1;
   while (currentId && lvl <= 11 && !visited.has(currentId)) {
     visited.add(currentId);
-    await sb().from('matrix_11').insert({
-      user_id: userId, sponsor_id: currentId, level: lvl,
-    });
+    const { data: existing11 } = await sb().from('matrix_11')
+      .select('id').eq('user_id', userId).eq('sponsor_id', currentId).eq('level', lvl).maybeSingle();
+    if (!existing11) {
+      await sb().from('matrix_11').insert({
+        user_id: userId, sponsor_id: currentId, level: lvl,
+      });
+    }
     const upline = await getDirectSponsor(currentId);
     currentId = upline;
     lvl++;
@@ -256,6 +321,171 @@ async function getDirectSponsor(userId: string): Promise<string | null> {
   return data?.sponsor_id || null;
 }
 
+export async function rebuildMatrixTree(): Promise<{ rebuilt: number; trees: number; totalNodes: number; errors: string[] }> {
+  const errors: string[] = [];
+
+  // Step 1: Fetch all active users
+  const { data: users, error: uErr } = await sb().from('users')
+    .select('id, display_name, sponsor_id, created_at')
+    .eq('is_active', true)
+    .order('created_at');
+  if (uErr || !users) {
+    return { rebuilt: 0, trees: 0, totalNodes: 0, errors: [`Failed to fetch users: ${uErr?.message}`] };
+  }
+
+  const sponsorMap = new Map<string, string | null>();
+  users.forEach(u => sponsorMap.set(u.id, u.sponsor_id || null));
+
+  function getUplineChain(userId: string): string[] {
+    const chain: string[] = [];
+    let current = sponsorMap.get(userId);
+    while (current && !chain.includes(current)) {
+      chain.push(current);
+      current = sponsorMap.get(current);
+    }
+    return chain;
+  }
+
+  // Step 2: Build all trees in memory
+  // Each tree: owner_id -> nodes placed by BFS
+  type TreeNode = { userId: string; parentUserId: string | null; side: 'left' | 'right'; level: number };
+  const trees = new Map<string, TreeNode[]>();
+  const rootUsers = new Set<string>();
+
+  // Ensure roots for anyone who sponsors someone or is root
+  for (const user of users) {
+    if (!user.sponsor_id || users.some(u => u.sponsor_id === user.id)) {
+      rootUsers.add(user.id);
+    }
+  }
+
+  function placeInTree(ownerId: string, userId: string) {
+    if (!trees.has(ownerId)) trees.set(ownerId, []);
+    const nodes = trees.get(ownerId)!;
+
+    const childMap = new Map<string, { left: string | null; right: string | null }>();
+    // Root's children
+    childMap.set(ownerId, { left: null, right: null });
+    for (const node of nodes) {
+      const key = node.parentUserId || ownerId;
+      if (!childMap.has(key)) childMap.set(key, { left: null, right: null });
+      const ch = childMap.get(key)!;
+      if (node.side === 'left') ch.left = node.userId;
+      if (node.side === 'right') ch.right = node.userId;
+    }
+
+    // BFS from root
+    const queue: { parentId: string; level: number }[] = [{ parentId: ownerId, level: 0 }];
+    while (queue.length > 0) {
+      const { parentId, level } = queue.shift()!;
+      if (level >= 11) continue;
+      const ch = childMap.get(parentId) || { left: null, right: null };
+      if (!ch.left) {
+        nodes.push({ userId, parentUserId: parentId, side: 'left', level: level + 1 });
+        return;
+      }
+      if (!ch.right) {
+        nodes.push({ userId, parentUserId: parentId, side: 'right', level: level + 1 });
+        return;
+      }
+      if (ch.left) queue.push({ parentId: ch.left, level: level + 1 });
+      if (ch.right) queue.push({ parentId: ch.right, level: level + 1 });
+    }
+  }
+
+  // Place each user in sponsor's tree + all upline trees
+  for (const user of users) {
+    if (!user.sponsor_id) continue;
+    placeInTree(user.sponsor_id, user.id);
+    for (const uplineId of getUplineChain(user.sponsor_id)) {
+      placeInTree(uplineId, user.id);
+    }
+  }
+
+  // Step 3: Clear old data
+  await sb().from('matrix_tree').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await sb().from('matrix_11').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+  // Step 4: Insert ALL nodes (roots + tree nodes) WITHOUT parent_id first
+  const allInserts: any[] = [];
+  for (const rootId of rootUsers) {
+    allInserts.push({
+      user_id: rootId, owner_id: rootId,
+      parent_id: null, side: null, level: 0, position: 1,
+    });
+  }
+  for (const [ownerId, nodes] of trees) {
+    for (let i = 0; i < nodes.length; i++) {
+      allInserts.push({
+        user_id: nodes[i].userId, owner_id: ownerId,
+        parent_id: null, side: nodes[i].side,
+        level: nodes[i].level, position: i + 2,
+      });
+    }
+  }
+
+  // Batch insert (50 at a time)
+  for (let i = 0; i < allInserts.length; i += 50) {
+    const batch = allInserts.slice(i, i + 50);
+    const { error } = await sb().from('matrix_tree').insert(batch);
+    if (error) errors.push(`Insert batch ${i}: ${error.message}`);
+  }
+
+  // Step 5: Update parent_ids - fetch all inserted nodes, build user_id+owner_id -> db_id map
+  const { data: allInserted } = await sb().from('matrix_tree')
+    .select('id, user_id, owner_id, level');
+  if (!allInserted) {
+    return { rebuilt: users.length, trees: trees.size + rootUsers.size, totalNodes: allInserts.length, errors };
+  }
+
+  const dbIdMap = new Map<string, string>(); // "userId_ownerId" -> db_id
+  allInserted.forEach((n: any) => dbIdMap.set(`${n.user_id}_${n.owner_id}`, n.id));
+
+  // Build updates: for each non-root node, set parent_id
+  const updates: { id: string; parent_id: string | null }[] = [];
+  for (const [ownerId, nodes] of trees) {
+    for (const node of nodes) {
+      const childDbId = dbIdMap.get(`${node.userId}_${ownerId}`);
+      if (!childDbId) continue;
+      const parentDbId = node.parentUserId ? dbIdMap.get(`${node.parentUserId}_${ownerId}`) || null : null;
+      updates.push({ id: childDbId, parent_id: parentDbId });
+    }
+  }
+
+  // Batch update parent_ids
+  for (let i = 0; i < updates.length; i += 50) {
+    const batch = updates.slice(i, i + 50);
+    await Promise.all(batch.map(u =>
+      sb().from('matrix_tree').update({ parent_id: u.parent_id }).eq('id', u.id)
+    ));
+  }
+
+  // Step 6: Insert matrix_11 entries
+  const m11Inserts: any[] = [];
+  for (const user of users) {
+    if (!user.sponsor_id) continue;
+    const chain = [user.sponsor_id, ...getUplineChain(user.sponsor_id)];
+    for (let i = 0; i < chain.length && i < 11; i++) {
+      m11Inserts.push({ user_id: user.id, sponsor_id: chain[i], level: i + 1 });
+    }
+  }
+  for (let i = 0; i < m11Inserts.length; i += 100) {
+    const batch = m11Inserts.slice(i, i + 100);
+    const { error } = await sb().from('matrix_11').insert(batch);
+    if (error) errors.push(`matrix_11 batch ${i}: ${error.message}`);
+  }
+
+  // Step 7: Update team sizes
+  for (const user of users) {
+    const treeNodes = trees.get(user.id);
+    const teamSize = treeNodes ? new Set(treeNodes.map(n => n.userId)).size : 0;
+    const directs = users.filter(u => u.sponsor_id === user.id).length;
+    await sb().from('users').update({ directs, team_size: teamSize }).eq('id', user.id);
+  }
+
+  return { rebuilt: users.length, trees: trees.size + rootUsers.size, totalNodes: allInserts.length, errors };
+}
+
 async function updateTeamSize(userId: string): Promise<void> {
   const { count: directs } = await sb().from('users').select('*', { count: 'exact', head: true }).eq('sponsor_id', userId);
   const { count: treeCount } = await sb().from('matrix_tree').select('*', { count: 'exact', head: true }).eq('owner_id', userId);
@@ -266,22 +496,19 @@ async function updateTeamSize(userId: string): Promise<void> {
 }
 
 export async function getMatrixTree(userId: string): Promise<any> {
-  const { data: root } = await sb().from('matrix_tree')
-    .select('id, user_id, owner_id, parent_id, level, side, position')
-    .eq('user_id', userId).eq('owner_id', userId).eq('level', 0).maybeSingle();
-  if (!root) return null;
-
   const { data: nodes } = await sb().from('matrix_tree')
     .select('id, user_id, owner_id, parent_id, level, side, position, users!matrix_tree_user_id_fkey(wallet)')
     .eq('owner_id', userId)
-    .order('level').order('position');
-  if (!nodes || nodes.length === 0) return null;
+    .order('level').order('position')
+    .limit(5000);
+  if (!nodes || nodes.length === 0) return { tree: null, selfId: userId };
 
   const map = new Map<string, any>();
   nodes.forEach((n: any) => {
     map.set(n.id, {
       id: n.id, userId: n.user_id, wallet: n.users?.wallet || '',
       level: n.level, side: n.side, parentId: n.parent_id,
+      isSelf: n.user_id === userId,
       left: null, right: null,
     });
   });
@@ -299,12 +526,20 @@ export async function getMatrixTree(userId: string): Promise<any> {
 
   function fillChildren(node: any): any {
     if (!node) return null;
-    return {
-      ...node, left: fillChildren(node.left), right: fillChildren(node.right),
-    };
+    return { ...node, left: fillChildren(node.left), right: fillChildren(node.right) };
   }
 
-  return fillChildren(treeRoot);
+  return { tree: fillChildren(treeRoot), selfId: userId, treeOwnerId: userId };
+}
+
+export async function getMatrixDownline(userId: string): Promise<{ downline: any[]; crosslineCount: number; globalCount: number }> {
+  try {
+    const res = await fetch(`/api/matrix-downline?userId=${userId}`);
+    const json = await res.json();
+    return { downline: json.downline || [], crosslineCount: json.crosslineCount || 0, globalCount: json.globalCount || 0 };
+  } catch {
+    return { downline: [], crosslineCount: 0, globalCount: 0 };
+  }
 }
 
 export async function getUserMatrixLevel(userId: string): Promise<any[]> {
@@ -327,15 +562,23 @@ export async function getMatrixStats(userId: string): Promise<any> {
   for (let i = 1; i <= 11; i++) levelCounts.push(treeNodes.filter((n: any) => n.level === i).length);
 
   return {
-    total: Math.max(0, treeNodes.length - 1), // exclude self (root)
+    total: Math.max(0, treeNodes.length - 1),
     totalSponsored: treeNodes.filter((n: any) => n.level === 1).length,
     directsCount: directs || 0,
     levels: levelCounts,
   };
 }
 
-export async function processMatrixCommission(purchaserId: string, amount: number): Promise<void> {
-  const { data: levels } = await sb().from('matrix_11')
+export async function userHasActiveSlot(userId: string): Promise<boolean> {
+  const { count } = await sb().from('user_slots')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId).eq('status', 'active');
+  return (count || 0) > 0;
+}
+
+export async function processMatrixCommission(purchaserId: string, amount: number, client?: any): Promise<void> {
+  const _sb = client || sb();
+  const { data: levels } = await _sb.from('matrix_11')
     .select('id, sponsor_id, level')
     .eq('user_id', purchaserId);
   if (!levels) return;
@@ -344,32 +587,35 @@ export async function processMatrixCommission(purchaserId: string, amount: numbe
     const config = MATRIX_LEVELS.find(l => l.level === m.level);
     if (!config) continue;
     if (config.directsRequired > 0) {
-      const { data: sponsor } = await sb().from('users').select('directs').eq('id', m.sponsor_id).single();
+      const { data: sponsor } = await _sb.from('users').select('directs').eq('id', m.sponsor_id).single();
       if (!sponsor || (sponsor.directs || 0) < config.directsRequired) continue;
     }
+    const { data: sponsorSlot } = await _sb.from('user_slots')
+      .select('id').eq('user_id', m.sponsor_id).eq('status', 'active').limit(1).maybeSingle();
+    if (!sponsorSlot) continue;
     const commission = (amount * config.percent) / 100;
     const walletShare = Math.round((commission * SLOT_CONFIG.walletSplitPercent) / 100 * 100) / 100;
     const ascensionShare = Math.round((commission - walletShare) * 100) / 100;
-    await sb().from('matrix_earnings').insert({
+    await _sb.from('matrix_earnings').insert({
       matrix_id: m.id, earned_from: purchaserId,
       level: m.level, amount: commission,
     });
-    const { data: mRow } = await sb().from('matrix_11').select('total_earnings').eq('id', m.id).single();
-    await sb().from('matrix_11').update({
+    const { data: mRow } = await _sb.from('matrix_11').select('total_earnings').eq('id', m.id).single();
+    await _sb.from('matrix_11').update({
       total_earnings: Number((mRow as any)?.total_earnings || 0) + commission,
     }).eq('id', m.id);
-    await sb().from('earnings').insert({
+    await _sb.from('earnings').insert({
       user_id: m.sponsor_id, type: 'matrix', amount: commission,
       source: `Level ${m.level} commission from slot purchase`,
     });
-    const { data: purchaser } = await sb().from('users').select('referral_code').eq('id', purchaserId).single();
-    await sb().from('transactions').insert({
+    const { data: purchaser } = await _sb.from('users').select('referral_code').eq('id', purchaserId).single();
+    await _sb.from('transactions').insert({
       user_id: m.sponsor_id, type: 'matrix_earning',
       amount: commission, description: `L${m.level} from ${purchaser?.referral_code || purchaserId.slice(0, 8)}`,
     });
     if (ascensionShare > 0) {
       await incrementField('users', m.sponsor_id, 'ascension_balance', ascensionShare);
-      await sb().from('transactions').insert({
+      await _sb.from('transactions').insert({
         user_id: m.sponsor_id, type: 'ascension_credit',
         amount: ascensionShare,
         description: `50% ascension from L${m.level} matrix commission`,
@@ -638,15 +884,22 @@ async function getChampionsLeaderboard(): Promise<ChampionsEntry[]> {
 
   const entries: ChampionsEntry[] = [];
   const activeOwners = await getActiveOwnerIds();
+  const { data: activeSlotRows } = await sb().from('user_slots')
+    .select('user_id').eq('status', 'active');
+  const hasActiveSlot = new Set<string>();
+  (activeSlotRows || []).forEach((r: any) => hasActiveSlot.add(r.user_id));
+
   for (const u of users) {
+    const userHasActiveSlot = hasActiveSlot.has(u.id);
     const hasDirects = (u.directs || 0) > 0;
     const teamAct = hasDirects ? activeOwners.has(u.id) : false;
-    const qualified = hasDirects && teamAct;
+    const qualified = userHasActiveSlot && hasDirects && teamAct;
     const buys = purchaseCounts[u.id] || 0;
     const vol = volumes[u.id] || 0;
     const score = (refCounts[u.id] || 0) * 10 + buys * 5 + vol * 0.001;
     let qualifiedReason = '';
-    if (!hasDirects) qualifiedReason = 'No direct referrals';
+    if (!userHasActiveSlot) qualifiedReason = 'No active slot';
+    else if (!hasDirects) qualifiedReason = 'No direct referrals';
     else if (!teamAct) qualifiedReason = 'No team activity in 24h';
     entries.push({
       userId: u.id, wallet: u.wallet, score, rank: 0, reward: 0,
@@ -866,14 +1119,15 @@ export async function checkDailyProcess(userId: string): Promise<boolean> {
       .select('created_at').eq('user_id', userId).eq('type', 'daily')
       .order('created_at', { ascending: false }).limit(1).maybeSingle();
     if (lastDaily) {
-      return Date.now() - new Date(lastDaily.created_at).getTime() >= 24 * 60 * 60 * 1000;
+      const lastDate = new Date(lastDaily.created_at).toISOString().slice(0, 10);
+      const today = new Date().toISOString().slice(0, 10);
+      return lastDate < today;
     }
     return true;
   }
-  const { count } = await sb().from('earnings').select('*', { count: 'exact', head: true }).eq('user_id', userId);
-  if (count === 0) return true;
-  const lastProcess = new Date(data.last_daily_process).getTime();
-  return Date.now() - lastProcess >= 24 * 60 * 60 * 1000;
+  const lastDate = new Date(data.last_daily_process).toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+  return lastDate < today;
 }
 
 export async function updateLastDailyProcess(userId: string): Promise<void> {
@@ -883,12 +1137,15 @@ export async function updateLastDailyProcess(userId: string): Promise<void> {
 }
 
 export async function processAllDailyEarnings(): Promise<{ processed: number }> {
-  const { data: users } = await sb().from('users').select('id').eq('is_active', true);
+  const { data: activeSlotRows } = await sb().from('user_slots')
+    .select('user_id').eq('status', 'active');
+  const activeUserIds = [...new Set((activeSlotRows || []).map((r: any) => r.user_id))];
+  if (activeUserIds.length === 0) return { processed: 0 };
+  const { data: users } = await sb().from('users').select('id').in('id', activeUserIds).eq('is_active', true);
   if (!users) return { processed: 0 };
   let count = 0;
   for (const u of users) {
     await processSlotEarnings(u.id);
-    await updateLastDailyProcess(u.id);
     await checkAutoUpgrade(u.id);
     count++;
   }
@@ -910,13 +1167,18 @@ export async function getUserEarnings(userId: string): Promise<Earnings> {
   const result: Earnings = { daily: 0, total: 0, matrix: 0, pool: 0, referral: 0, ascension: 0 };
   (data || []).forEach((e: any) => {
     const amt = Number(e.amount);
-    result.total += amt;
-    if (e.type === 'daily') result.daily += amt;
-    else if (e.type === 'matrix') result.matrix += amt;
-    else if (e.type === 'pool') result.pool += amt;
-    else if (e.type === 'referral') result.referral += amt;
-    else if (e.type === 'ascension') result.ascension += amt;
+    if (e.type === 'daily') { result.daily += amt; result.total += amt; }
+    else if (e.type === 'matrix') { result.matrix += amt / 2; result.total += amt / 2; }
+    else if (e.type === 'pool') { result.pool += amt / 2; result.total += amt / 2; }
+    else if (e.type === 'referral') { result.referral += amt; result.total += amt; }
+    else if (e.type === 'ascension') { result.ascension += amt; }
   });
+  result.daily = Math.round(result.daily * 100) / 100;
+  result.matrix = Math.round(result.matrix * 100) / 100;
+  result.pool = Math.round(result.pool * 100) / 100;
+  result.referral = Math.round(result.referral * 100) / 100;
+  result.ascension = Math.round(result.ascension * 100) / 100;
+  result.total = Math.round(result.total * 100) / 100;
   return result;
 }
 
@@ -949,7 +1211,7 @@ export async function getWithdrawals(userId: string): Promise<Withdrawal[]> {
 }
 
 export async function requestWithdrawal(userId: string, amount: number, wallet: string): Promise<boolean> {
-  if (amount < 1) return false;
+  if (amount < 10) return false;
   const { data: user } = await sb().from('users').select('total_earned').eq('id', userId).single();
   if (!user) return false;
   if (Number(user.total_earned) < amount) return false;
@@ -999,11 +1261,21 @@ export async function getPendingWithdrawals(): Promise<Withdrawal[]> {
 }
 
 export async function deductUserBalance(userId: string, amount: number): Promise<boolean> {
+  if (amount === 0) return true;
+  if (amount < 0) {
+    const { data: user } = await sb().from('users').select('total_earned').eq('id', userId).single();
+    if (!user) return false;
+    const newBal = Math.round((Number(user.total_earned || 0) + Math.abs(amount)) * 100) / 100;
+    const { error } = await sb().from('users').update({ total_earned: newBal }).eq('id', userId);
+    return !error;
+  }
   const { data: user } = await sb().from('users').select('total_earned').eq('id', userId).single();
   if (!user) return false;
-  if (Number(user.total_earned) < amount) return false;
-  await incrementField('users', userId, 'total_earned', -amount);
-  return true;
+  const current = Number(user.total_earned || 0);
+  if (current < amount) return false;
+  const newBal = Math.round((current - amount) * 100) / 100;
+  const { error } = await sb().from('users').update({ total_earned: newBal }).eq('id', userId);
+  return !error;
 }
 
 // ─── NOTIFICATIONS ───
@@ -1115,11 +1387,11 @@ export async function getTicketReplies(ticketId: string): Promise<any[]> {
 
 export async function getLeaderboard(limit = 10): Promise<any[]> {
   const { data } = await sb().from('users')
-    .select('wallet, total_earned, team_size')
+    .select('id, wallet, total_earned, team_size, directs')
     .order('total_earned', { ascending: false }).limit(limit);
   return (data || []).map((u: any, i: number) => ({
     wallet: u.wallet, earnings: Number(u.total_earned),
-    teamSize: u.team_size, rank: i + 1,
+    teamSize: u.team_size, referrals: u.directs || 0, rank: i + 1,
   }));
 }
 

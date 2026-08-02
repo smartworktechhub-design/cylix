@@ -1,10 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
+import { randomBytes } from 'crypto';
 
-const ADMIN_TOKEN_SECRET = process.env.ADMIN_TOKEN_SECRET || '';
+function generateSessionToken(): string {
+  return randomBytes(32).toString('hex');
+}
 
-export function validateAdminToken(token: string): boolean {
-  return token === ADMIN_TOKEN_SECRET;
+export async function validateAdminToken(token: string): Promise<boolean> {
+  if (!token) return false;
+  const sb = getServiceSupabase();
+  const { data } = await sb
+    .from('admin_sessions')
+    .select('id, expires_at')
+    .eq('token', token)
+    .gt('expires_at', new Date().toISOString())
+    .single();
+  return !!data;
 }
 
 export async function POST(req: Request) {
@@ -33,8 +44,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
+    const sessionToken = generateSessionToken();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+    await sb.from('admin_sessions').delete().eq('admin_id', admin.id);
+    const { error: sessionErr } = await sb.from('admin_sessions').insert({
+      admin_id: admin.id,
+      token: sessionToken,
+      expires_at: expiresAt,
+    });
+
+    if (sessionErr) {
+      console.error('Failed to create admin session:', sessionErr);
+      return NextResponse.json({ error: 'Session creation failed' }, { status: 500 });
+    }
+
     return NextResponse.json({
-      token: ADMIN_TOKEN_SECRET,
+      token: sessionToken,
       admin: {
         id: admin.id,
         email: admin.email,

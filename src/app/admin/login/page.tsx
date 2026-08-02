@@ -43,35 +43,35 @@ export default function AdminLoginPage() {
               <Lock size={28} className="text-[#050816]" />
             </div>
             <h1 className="text-2xl font-bold text-white font-heading">Admin Panel</h1>
-            <p className="text-[#94A3B8] text-sm mt-2">Sign in to your admin account</p>
+            <p className="text-[#A8B8D0] text-sm mt-2">Sign in to your admin account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
-              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8B8D0]" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 placeholder="Email address"
-                className="w-full bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.12)] rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[rgba(0,229,255,0.3)] transition-colors"
+                className="w-full bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.12)] rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-[#A8B8D0]/50 focus:outline-none focus:border-[rgba(0,229,255,0.3)] transition-colors"
                 autoFocus
               />
             </div>
 
             <div className="relative">
-              <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+              <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8B8D0]" />
               <input
                 type={showPw ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(''); }}
                 placeholder="Password"
-                className="w-full bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.12)] rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[rgba(0,229,255,0.3)] transition-colors font-mono"
+                className="w-full bg-[rgba(11,16,32,0.8)] border border-[rgba(0,229,255,0.12)] rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder:text-[#A8B8D0]/50 focus:outline-none focus:border-[rgba(0,229,255,0.3)] transition-colors font-mono"
               />
               <button
                 type="button"
                 onClick={() => setShowPw(!showPw)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-white"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A8B8D0] hover:text-white"
               >
                 {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -89,7 +89,7 @@ export default function AdminLoginPage() {
             </Button>
           </form>
 
-          <p className="text-center text-[#94A3B8]/50 text-xs mt-6">CYLIX Admin — Authorized Personnel Only</p>
+          <p className="text-center text-[#A8B8D0]/50 text-xs mt-6">CYLIX Admin — Authorized Personnel Only</p>
         </CardContent>
       </Card>
     </div>
