@@ -657,7 +657,7 @@ export async function purchaseSlot(userId: string, slotId: string): Promise<User
   }).select().single();
   if (error || !data) return null;
   const txType = isRebuy ? 'slot_purchase' : 'slot_purchase';
-  await sb().from('transactions').insert({
+  await getServiceSupabase().from('transactions').insert({
     user_id: userId, type: txType, amount: slot.price,
     description: isRebuy ? `Re-bought ${slot.name} slot (${rebuyCount + 1}/${REBUY_MAX + 1})` : `Purchased ${slot.name} slot`,
   });
@@ -713,13 +713,14 @@ async function markSlotCapped(s: any, userId?: string, earned?: number): Promise
 }
 
 export async function processSlotEarnings(userId: string): Promise<void> {
-  const { data: user } = await sb().from('users').select('roi_enabled, last_daily_process').eq('id', userId).single();
+  const adminSb = getServiceSupabase();
+  const { data: user } = await adminSb.from('users').select('roi_enabled, last_daily_process').eq('id', userId).single();
   if (user?.roi_enabled === false) return;
 
   const canProcess = await checkDailyProcess(userId);
   if (!canProcess) return;
   await updateLastDailyProcess(userId);
-  const { data: activeSlots } = await sb().from('user_slots')
+  const { data: activeSlots } = await adminSb.from('user_slots')
     .select('*').eq('user_id', userId).eq('status', 'active');
   if (!activeSlots || activeSlots.length === 0) return;
   for (const s of activeSlots) {
@@ -734,18 +735,18 @@ export async function processSlotEarnings(userId: string): Promise<void> {
     const newEarned = currentEarned + actualDaily;
     const walletShare = Math.round((actualDaily * SLOT_CONFIG.walletSplitPercent) / 100 * 100) / 100;
     const ascensionShare = Math.round((actualDaily - walletShare) * 100) / 100;
-    await sb().from('user_slots').update({
+    await adminSb.from('user_slots').update({
       earned: newEarned,
       progress: (newEarned / maxCap) * 100,
       last_earning_at: new Date().toISOString(),
     }).eq('id', s.id);
     if (ascensionShare > 0) {
       await incrementField('users', userId, 'ascension_balance', ascensionShare);
-      await sb().from('earnings').insert({
+      await adminSb.from('earnings').insert({
         user_id: userId, type: 'ascension', amount: ascensionShare,
         source: `50% ascension from ${s.slot_name}`,
       });
-      await sb().from('transactions').insert({
+      await adminSb.from('transactions').insert({
         user_id: userId, type: 'ascension_credit',
         amount: ascensionShare,
         description: `50% ascension from ${s.slot_name} daily yield`,
@@ -753,11 +754,11 @@ export async function processSlotEarnings(userId: string): Promise<void> {
     }
     if (walletShare > 0) {
       await incrementField('users', userId, 'total_earned', walletShare);
-      await sb().from('earnings').insert({
+      await adminSb.from('earnings').insert({
         user_id: userId, type: 'daily', amount: walletShare,
         source: `Daily yield from ${s.slot_name}`,
       });
-      await sb().from('transactions').insert({
+      await adminSb.from('transactions').insert({
         user_id: userId, type: 'daily_earning', amount: walletShare,
         description: `Daily yield from ${s.slot_name}`,
       });
@@ -767,7 +768,6 @@ export async function processSlotEarnings(userId: string): Promise<void> {
     }
   }
   await checkAutoUpgrade(userId);
-  await reconcileUserBalances(userId);
 }
 
 export async function getAscensionVault(userId: string): Promise<AscensionVault> {
@@ -787,37 +787,39 @@ export async function getAscensionVault(userId: string): Promise<AscensionVault>
 }
 
 async function checkAutoUpgrade(userId: string): Promise<void> {
-  const { data: user } = await sb().from('users').select('ascension_balance').eq('id', userId).single();
+  const adminSb = getServiceSupabase();
+  const { data: user } = await adminSb.from('users').select('ascension_balance').eq('id', userId).single();
   if (!user) return;
   const balance = Number(user.ascension_balance);
-  const { data: owned } = await sb().from('user_slots').select('slot_orbit').eq('user_id', userId).order('slot_orbit', { ascending: false });
+  const { data: owned } = await adminSb.from('user_slots').select('slot_orbit').eq('user_id', userId).order('slot_orbit', { ascending: false });
   const maxOrbit = owned?.length ? Math.max(...owned.map((o: any) => o.slot_orbit)) : 0;
   const nextAvailable = SLOTS.find(s => s.orbit === maxOrbit + 1);
   if (!nextAvailable || balance < nextAvailable.price) return;
   const result = await purchaseSlot(userId, nextAvailable.id);
   if (!result) return;
-  await sb().from('users').update({
+  await adminSb.from('users').update({
     ascension_balance: balance - nextAvailable.price,
   }).eq('id', userId);
-  await sb().from('transactions').insert({
+  await adminSb.from('transactions').insert({
     user_id: userId, type: 'upgrade', amount: nextAvailable.price,
     description: `Auto-upgraded to ${nextAvailable.name} via ascension vault`,
   });
 }
 
 async function processOrbit11Recycle(userId: string, slotId: string, earned: number): Promise<void> {
+  const adminSb = getServiceSupabase();
   const walletShare = Math.round(earned / 2 * 100) / 100;
   const rebuyShare = Math.round((earned - walletShare) * 100) / 100;
-  await sb().from('user_slots').insert({
+  await adminSb.from('user_slots').insert({
     user_id: userId, slot_id: 'orbit-11', slot_name: 'Infinity Core',
     slot_orbit: 11, invested: 0, earned: 0, daily_earned: 3000,
     max_cap: 200000, progress: 0, status: 'active',
   });
-  await sb().from('transactions').insert({
+  await adminSb.from('transactions').insert({
     user_id: userId, type: 'recycle', amount: walletShare,
     description: 'Orbit 11 re-cycle: 50% wallet (credited via daily yield) + 50% re-buy',
   });
-  await sb().from('transactions').insert({
+  await adminSb.from('transactions').insert({
     user_id: userId, type: 'slot_purchase', amount: rebuyShare,
     description: 'Auto re-buy Orbit 11 from re-cycle',
   });
@@ -935,6 +937,7 @@ export async function getChampionsPoolState(): Promise<ChampionsPoolState> {
 }
 
 async function distributeChampionsPool(totalFund: number): Promise<void> {
+  const adminSb = getServiceSupabase();
   const leaderboard = await getChampionsLeaderboard();
   const qualified = leaderboard.filter(e => e.qualified);
   if (qualified.length === 0) return;
@@ -942,7 +945,7 @@ async function distributeChampionsPool(totalFund: number): Promise<void> {
   for (const entry of qualified) {
     const walletShare = Math.round(perPerson * SLOT_CONFIG.walletSplitPercent / 100 * 100) / 100;
     const ascensionShare = Math.round((perPerson - walletShare) * 100) / 100;
-    await sb().from('champions_pool_winners').insert({
+    await adminSb.from('champions_pool_winners').insert({
       user_id: entry.userId, distribution_cycle: new Date().toISOString().slice(0, 10),
       score: entry.score, rank: entry.rank, reward: perPerson,
     });
@@ -952,16 +955,16 @@ async function distributeChampionsPool(totalFund: number): Promise<void> {
     if (ascensionShare > 0) {
       await incrementField('users', entry.userId, 'ascension_balance', ascensionShare);
     }
-    await sb().from('earnings').insert({
+    await adminSb.from('earnings').insert({
       user_id: entry.userId, type: 'pool', amount: perPerson,
       source: 'Champions Pool (equal share)',
     });
-    await sb().from('transactions').insert({
+    await adminSb.from('transactions').insert({
       user_id: entry.userId, type: 'pool_earning', amount: perPerson,
       description: `Champions Pool — ${qualified.length} qualifiers, $${perPerson.toFixed(2)} each`,
     });
     if (ascensionShare > 0) {
-      await sb().from('transactions').insert({
+      await adminSb.from('transactions').insert({
         user_id: entry.userId, type: 'ascension_credit', amount: ascensionShare,
         description: '50% ascension from Champions Pool',
       });
@@ -1012,7 +1015,8 @@ export async function getCommunityPoolState(): Promise<CommunityPoolState> {
 }
 
 async function distributeCommunityPool(totalFund: number): Promise<void> {
-  const { data: activeSlotUsers } = await sb().from('user_slots')
+  const adminSb = getServiceSupabase();
+  const { data: activeSlotUsers } = await adminSb.from('user_slots')
     .select('user_id').eq('status', 'active');
   const uniqueUserIds = [...new Set((activeSlotUsers || []).map((s: any) => s.user_id))];
 
@@ -1023,14 +1027,14 @@ async function distributeCommunityPool(totalFund: number): Promise<void> {
   }
   if (qualifiers.length === 0) return;
   const perPerson = totalFund / qualifiers.length;
-  const { data: dist } = await sb().from('community_pool_distributions').insert({
+  const { data: dist } = await adminSb.from('community_pool_distributions').insert({
     total_fund: totalFund, qualified_count: qualifiers.length, per_person: perPerson,
   }).select().single();
   if (!dist) return;
   for (const q of qualifiers) {
     const walletShare = Math.round(perPerson * SLOT_CONFIG.walletSplitPercent / 100 * 100) / 100;
     const ascensionShare = Math.round((perPerson - walletShare) * 100) / 100;
-    await sb().from('community_pool_qualifiers').insert({
+    await adminSb.from('community_pool_qualifiers').insert({
       distribution_id: dist.id, user_id: q.id, amount: perPerson, claimed: false,
     });
     if (walletShare > 0) {
@@ -1039,16 +1043,16 @@ async function distributeCommunityPool(totalFund: number): Promise<void> {
     if (ascensionShare > 0) {
       await incrementField('users', q.id, 'ascension_balance', ascensionShare);
     }
-    await sb().from('earnings').insert({
+    await adminSb.from('earnings').insert({
       user_id: q.id, type: 'pool', amount: perPerson,
       source: 'Active Pool (equal share)',
     });
-    await sb().from('transactions').insert({
+    await adminSb.from('transactions').insert({
       user_id: q.id, type: 'pool_earning', amount: perPerson,
       description: `Active Pool — ${qualifiers.length} qualifiers, $${perPerson.toFixed(2)} each`,
     });
     if (ascensionShare > 0) {
-      await sb().from('transactions').insert({
+      await adminSb.from('transactions').insert({
         user_id: q.id, type: 'ascension_credit', amount: ascensionShare,
         description: '50% ascension from Active Pool',
       });
@@ -1471,7 +1475,7 @@ export async function adminActivateSlot(userId: string, slotId: string): Promise
     progress: 0, status: 'active',
   }).select().single();
   if (error || !data) return null;
-  await sb().from('transactions').insert({
+  await getServiceSupabase().from('transactions').insert({
     user_id: userId, type: 'slot_purchase', amount: slot.price,
     description: `Admin activated ${slot.name} slot`,
   });
