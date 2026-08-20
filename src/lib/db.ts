@@ -1299,6 +1299,12 @@ export async function deleteNotification(id: string): Promise<boolean> {
   return !error;
 }
 
+export async function deleteNotifications(ids: string[]): Promise<boolean> {
+  if (ids.length === 0) return true;
+  const { error } = await sb().from('notifications').delete().in('id', ids);
+  return !error;
+}
+
 export async function getAllNotifications(): Promise<any[]> {
   const { data } = await sb().from('notifications')
     .select('*').order('created_at', { ascending: false }).limit(100);

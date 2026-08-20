@@ -95,6 +95,7 @@ export const ADMIN_NAV_LINKS = [
   { href: '/admin/ban-appeals', label: 'Ban Appeals', icon: 'ShieldOff' },
   { href: '/admin/platform-settings', label: 'Settings', icon: 'Settings' },
   { href: '/admin/announcements', label: 'Announcements', icon: 'Megaphone' },
+  { href: '/admin/notifications', label: 'Notifications', icon: 'Bell' },
   { href: '/admin/support', label: 'Support', icon: 'LifeBuoy' },
   { href: '/admin/security', label: 'Security', icon: 'Shield' },
 ];
