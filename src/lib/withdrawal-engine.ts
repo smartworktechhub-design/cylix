@@ -70,6 +70,18 @@ export async function processWithdrawal(withdrawalId: string): Promise<{ success
       error_message: err?.message || 'Unknown error',
     }).eq('id', withdrawalId);
 
+    if (newStatus === 'failed') {
+      const { data: user } = await sbAdmin().from('users').select('total_earned').eq('id', wd.user_id).single();
+      if (user) {
+        const newBal = Math.round((Number(user.total_earned || 0) + amount) * 100) / 100;
+        await sbAdmin().from('users').update({ total_earned: newBal }).eq('id', wd.user_id);
+      }
+      await sbAdmin().from('notifications').insert({
+        user_id: wd.user_id, type: 'withdrawal', title: 'Withdrawal Failed',
+        message: `Your $${amount} withdrawal has failed after ${MAX_RETRY} attempts. Amount refunded to your balance.`,
+      });
+    }
+
     return { success: false, error: err?.message || 'Transfer failed' };
   }
 }

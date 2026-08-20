@@ -1507,13 +1507,12 @@ export async function getAllTransactions(): Promise<Transaction[]> {
 }
 
 export async function approveWithdrawal(id: string): Promise<boolean> {
-  const { data: wd } = await sb().from('withdrawals').select('user_id, amount').eq('id', id).single();
+  const { data: wd } = await sb().from('withdrawals').select('user_id, amount, status').eq('id', id).single();
   if (!wd) return false;
   const { error } = await sb().from('withdrawals').update({
     status: 'approved', processed_at: new Date().toISOString(),
   }).eq('id', id);
   if (error) return false;
-  await incrementField('users', wd.user_id, 'total_earned', -Number(wd.amount));
   await sb().from('notifications').insert({
     user_id: wd.user_id, type: 'withdrawal', title: 'Withdrawal Approved',
     message: `$${Number(wd.amount)} withdrawal has been approved.`,
@@ -1522,8 +1521,17 @@ export async function approveWithdrawal(id: string): Promise<boolean> {
 }
 
 export async function rejectWithdrawal(id: string): Promise<boolean> {
+  const { data: wd } = await sb().from('withdrawals').select('user_id, amount, status').eq('id', id).single();
+  if (!wd) return false;
+  if (wd.status === 'rejected') return true;
   const { error } = await sb().from('withdrawals').update({ status: 'rejected' }).eq('id', id);
-  return !error;
+  if (error) return false;
+  await incrementField('users', wd.user_id, 'total_earned', Number(wd.amount));
+  await sb().from('notifications').insert({
+    user_id: wd.user_id, type: 'withdrawal', title: 'Withdrawal Rejected',
+    message: `$${Number(wd.amount)} withdrawal has been rejected. Amount refunded to your balance.`,
+  });
+  return true;
 }
 
 // ─── ACTIVITY ───
