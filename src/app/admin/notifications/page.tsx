@@ -1,13 +1,12 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
-import { getAllNotifications } from '@/lib/db';
 import { getAdminToken } from '@/lib/admin-auth';
-import { Bell, Send, Info, AlertTriangle, CheckCircle, Loader2, Globe, MessageSquare, Trash2, CheckSquare, Square, Search, Users } from 'lucide-react';
+import { Bell, Send, AlertTriangle, CheckCircle, Loader2, Globe, Trash2, CheckSquare, Square, Search, Users } from 'lucide-react';
 
 const typeColors: Record<string, string> = {
   system: '#94A3B8', earnings: '#00E5FF', slot: '#7B61FF',
@@ -36,8 +35,13 @@ export default function AdminNotifications() {
 
   async function load() {
     try {
-      const data = await getAllNotifications();
-      setNotifications(data);
+      const res = await fetch('/api/admin/notifications', {
+        headers: { 'x-admin-token': getAdminToken() },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data);
+      }
     } catch {}
     setLoading(false);
   }
@@ -80,25 +84,27 @@ export default function AdminNotifications() {
   }
 
   async function handleDelete(id: string) {
-    await fetch('/api/admin/notifications', {
+    const res = await fetch('/api/admin/notifications', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', 'x-admin-token': getAdminToken() },
       body: JSON.stringify({ ids: [id] }),
     });
-    load();
+    if (res.ok) load();
   }
 
   async function handleBulkDelete() {
     if (selectedIds.size === 0) return;
     setBulkDeleting(true);
-    await fetch('/api/admin/notifications', {
+    const res = await fetch('/api/admin/notifications', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', 'x-admin-token': getAdminToken() },
       body: JSON.stringify({ ids: Array.from(selectedIds) }),
     });
-    setSelectedIds(new Set());
+    if (res.ok) {
+      setSelectedIds(new Set());
+      load();
+    }
     setBulkDeleting(false);
-    load();
   }
 
   function toggleSelectAll() {
@@ -106,7 +112,7 @@ export default function AdminNotifications() {
     if (selectedIds.size === visible.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(visible.map(n => n.id)));
+      setSelectedIds(new Set(visible.map((n: any) => n.id)));
     }
   }
 
@@ -330,7 +336,7 @@ export default function AdminNotifications() {
                 <TableHeader className="w-8">
                   <input
                     type="checkbox"
-                    checked={selectedIds.size > 0 && selectedIds.size === notifications.slice(0, 50).length}
+                    checked={notifications.length > 0 && selectedIds.size === notifications.slice(0, 50).length}
                     onChange={toggleSelectAll}
                     className="accent-[#00E5FF]"
                   />
@@ -342,7 +348,7 @@ export default function AdminNotifications() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {notifications.slice(0, 50).map((n) => (
+              {notifications.slice(0, 50).map((n: any) => (
                 <TableRow key={n.id}>
                   <TableCell>
                     <input
@@ -369,7 +375,7 @@ export default function AdminNotifications() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="text-xs text-[#A8B8D0]">{formatDate(n.timestamp)}</span>
+                    <span className="text-xs text-[#A8B8D0]">{formatDate(n.created_at || n.timestamp)}</span>
                   </TableCell>
                   <TableCell>
                     <button onClick={() => handleDelete(n.id)}
