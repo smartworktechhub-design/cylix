@@ -286,11 +286,12 @@ export function CxlTokenCard() {
           {/* Presale Section */}
           {stats.day > 0 && stats.day <= 90 && (
             <div className="mt-3 pt-3 border-t border-[rgba(0,229,255,0.06)]">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-1">
                 <ShoppingCart size={12} className="text-[#FFB800]" />
                 <p className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Presale</p>
                 <span className="text-xs px-1.5 py-0.5 rounded bg-[rgba(255,184,0,0.1)] text-[#FFB800] font-mono">${stats.price.toFixed(2)}/CXL</span>
               </div>
+              <p className="text-[10px] text-[#7B8BA5] mb-2">Min 10 CXL, Max 100 CXL per purchase. USDT deducted from earnings.</p>
 
               <div className="flex gap-2">
                 <input
@@ -313,11 +314,11 @@ export function CxlTokenCard() {
               </div>
               {presaleAmount && parseFloat(presaleAmount) >= 10 && (
                 <p className="text-xs text-[#7B8BA5] mt-1 font-mono">
-                  Cost: ${(parseFloat(presaleAmount) * stats.price).toFixed(4)} USDT
+                  Cost: <span className="text-[#FFB800] font-bold">${(parseFloat(presaleAmount) * stats.price).toFixed(4)}</span> USDT
                 </p>
               )}
               {presaleMessage && (
-                <p className={`text-xs mt-1 font-semibold ${presaleMessage.includes('Error') || presaleMessage.includes('failed') ? 'text-[#FF5C7A]' : 'text-[#00FFB2]'}`}>
+                <p className={`text-xs mt-1 font-semibold ${presaleMessage.includes('Error') || presaleMessage.includes('failed') || presaleMessage.includes('Insufficient') ? 'text-[#FF5C7A]' : 'text-[#00FFB2]'}`}>
                   {presaleMessage}
                 </p>
               )}

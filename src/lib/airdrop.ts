@@ -279,7 +279,26 @@ export async function purchasePresale(userId: string, cxlAmount: number) {
   if (sold + cxlAmount > totalSupply) return { error: 'Insufficient CXL supply remaining' };
 
   const price = await getPresalePrice();
-  const totalUSDT = cxlAmount * price;
+  const totalUSDT = Math.round(cxlAmount * price * 10000) / 10000;
+
+  const { data: userProfile, error: userErr } = await supabase
+    .from('users')
+    .select('id, total_earned')
+    .eq('id', userId)
+    .single();
+
+  if (userErr || !userProfile) return { error: 'User not found' };
+
+  const balance = Number(userProfile.total_earned) || 0;
+  if (balance < totalUSDT) return { error: `Insufficient USDT balance. Need $${totalUSDT.toFixed(4)}, you have $${balance.toFixed(4)}` };
+
+  const newBalance = Math.round((balance - totalUSDT) * 100) / 100;
+  const { error: deductErr } = await supabase
+    .from('users')
+    .update({ total_earned: newBalance })
+    .eq('id', userId);
+
+  if (deductErr) return { error: 'Failed to deduct USDT balance' };
 
   const { error: insertErr } = await supabase.from('presale_purchases').insert({
     user_id: userId,
@@ -291,16 +310,23 @@ export async function purchasePresale(userId: string, cxlAmount: number) {
 
   if (insertErr) return { error: insertErr.message };
 
+  await supabase.from('transactions').insert({
+    user_id: userId,
+    type: 'presale_purchase',
+    amount: -totalUSDT,
+    description: `Presale: ${cxlAmount} CXL @ $${price.toFixed(4)}/CXL (Day ${day})`,
+  });
+
   await setConfig('cxl_sold', String(sold + cxlAmount));
 
-  const balance = await getUserBalance(userId);
-  if (balance) {
+  const tokenBalance = await getUserBalance(userId);
+  if (tokenBalance) {
     await supabase
       .from('user_token_balances')
       .update({
-        cxl_balance: balance.cxl_balance + cxlAmount,
-        cxl_earned_total: balance.cxl_earned_total + cxlAmount,
-        cxl_liquid: balance.cxl_liquid + cxlAmount,
+        cxl_balance: tokenBalance.cxl_balance + cxlAmount,
+        cxl_earned_total: tokenBalance.cxl_earned_total + cxlAmount,
+        cxl_liquid: tokenBalance.cxl_liquid + cxlAmount,
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', userId);
@@ -310,11 +336,11 @@ export async function purchasePresale(userId: string, cxlAmount: number) {
     user_id: userId,
     type: 'earnings',
     title: 'CXL Presale Purchase',
-    message: `Purchased ${cxlAmount} CXL for $${totalUSDT.toFixed(4)} at $${price.toFixed(2)}/CXL on Day ${day}`,
+    message: `Purchased ${cxlAmount} CXL for $${totalUSDT.toFixed(4)} at $${price.toFixed(4)}/CXL on Day ${day}`,
     data: { type: 'presale_purchase', cxlAmount, price, totalUSDT, day },
   });
 
-  return { success: true, cxlAmount, price, totalUSDT, day };
+  return { success: true, cxlAmount, price, totalUSDT, day, newUSDTBalance: newBalance };
 }
 
 export async function processDayEnd() {

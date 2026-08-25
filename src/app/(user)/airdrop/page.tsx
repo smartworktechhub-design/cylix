@@ -337,7 +337,7 @@ export default function AirdropPage() {
               <h3 className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Presale</h3>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(255,184,0,0.1)] text-[#FFB800] font-mono font-bold">${stats.price.toFixed(2)}/CXL</span>
             </div>
-            <p className="text-[10px] text-[#7B8BA5]">Buy CXL tokens at the current day price. Min 10 CXL, Max 100 CXL per purchase.</p>
+            <p className="text-[10px] text-[#7B8BA5]">Buy CXL tokens at the current day price. Min 10 CXL, Max 100 CXL per purchase. USDT deducted from earnings.</p>
           </div>
           <div className="p-4 pt-3">
             <div className="flex gap-2 mb-2">
@@ -365,7 +365,7 @@ export default function AirdropPage() {
               </p>
             )}
             {presaleMessage && (
-              <p className={`text-xs font-semibold ${presaleMessage.includes('Error') || presaleMessage.includes('failed') ? 'text-[#FF5C7A]' : 'text-[#00FFB2]'}`}>
+              <p className={`text-xs font-semibold ${presaleMessage.includes('Error') || presaleMessage.includes('failed') || presaleMessage.includes('Insufficient') ? 'text-[#FF5C7A]' : 'text-[#00FFB2]'}`}>
                 {presaleMessage}
               </p>
             )}
