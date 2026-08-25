@@ -96,6 +96,8 @@ export const ADMIN_NAV_LINKS = [
   { href: '/admin/platform-settings', label: 'Settings', icon: 'Settings' },
   { href: '/admin/announcements', label: 'Announcements', icon: 'Megaphone' },
   { href: '/admin/notifications', label: 'Notifications', icon: 'Bell' },
+  { href: '/admin/cxl-airdrop', label: 'CXL Airdrop', icon: 'Coins' },
+  { href: '/admin/cxl-presale', label: 'CXL Presale', icon: 'ShoppingCart' },
   { href: '/admin/support', label: 'Support', icon: 'LifeBuoy' },
   { href: '/admin/security', label: 'Security', icon: 'Shield' },
 ];
@@ -109,3 +111,44 @@ export const TREASURY_WALLET = '0xb0bf2a92b33caa2de9c4a24836eadb137fe77373';
 export const BSC_RPC_URL = 'https://bsc-dataseed.binance.org/';
 export const BSC_CHAIN_ID = 56;
 export const USDT_DECIMALS = 18;
+
+// ============================================
+// CXL TOKEN ECOSYSTEM
+// ============================================
+
+export const CXL_SUPPLY = 1_100_000;
+
+export const CXL_PHASES = {
+  1: { name: 'Phase 1 (Early Access)', bonus: 10, startDay: 1, endDay: 30 },
+  2: { name: 'Phase 2 (Growth)', bonus: 7, startDay: 31, endDay: 60 },
+  3: { name: 'Phase 3 (Public)', bonus: 5, startDay: 61, endDay: 90 },
+} as const;
+
+export const AIRDROP_DAILY_RATES = {
+  L1: 0.50,
+  L2: 0.30,
+  L3: 0.20,
+  L4: 0.10,
+  L5: 0.10,
+} as const;
+
+export const AIRDROP_MAX_DAILY = Object.values(AIRDROP_DAILY_RATES).reduce((s, v) => s + v, 0);
+
+export const AIRDROP_DURATION_DAYS = 90;
+
+export const PRESALE = {
+  minCXL: 10,
+  maxCXL: 100,
+  startPrice: 0.01,
+  dailyIncrement: 0.01,
+  durationDays: 90,
+} as const;
+
+export const SETTLEMENT = {
+  airdropLiquidPercent: 10,
+  airdropStakedPercent: 90,
+  presaleLiquidPercent: 50,
+  presaleStakedPercent: 50,
+} as const;
+
+export const L2_DIRECTS_REQUIRED = 2;

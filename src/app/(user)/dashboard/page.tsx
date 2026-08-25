@@ -19,6 +19,7 @@ import {
 import { BanScreen } from '@/components/ui/ban-screen';
 import { useDisconnect } from 'wagmi';
 import { TokenBanner } from '@/components/ui/token-banner';
+import { CxlTokenCard } from '@/components/ui/cxl-token-card';
 import { PublicFooter } from '@/components/layout/public-footer';
 
 const cn = (...classes: (string | boolean | undefined | null)[]) => classes.filter(Boolean).join(' ');
@@ -409,6 +410,11 @@ export default function DashboardPage() {
       {/* ====== TOKEN LAUNCH BANNER ====== */}
       <div className="px-4 mb-3">
         <TokenBanner />
+      </div>
+
+      {/* ====== CXL TOKEN CARD ====== */}
+      <div className="px-4 mb-3">
+        <CxlTokenCard />
       </div>
 
       {/* ====== REFERRAL CARD ====== */}

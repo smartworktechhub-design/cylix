@@ -63,6 +63,26 @@ export async function POST(req: Request) {
     await addToMatrix(sb, sponsor.id, newUser.id);
     await updateTeamSize(sb, sponsor.id);
 
+    const { count: sponsorDirects } = await sb
+      .from('users')
+      .select('id', { count: 'exact', head: true })
+      .eq('sponsor_id', sponsor.id);
+    const l2Unlocked = (sponsorDirects || 0) >= 2;
+    await sb.from('users').update({
+      l2_directs: sponsorDirects || 0,
+      l2_unlocked: l2Unlocked,
+    }).eq('id', sponsor.id);
+
+    await sb.from('user_token_balances').insert({
+      user_id: newUser.id,
+      cxl_balance: 0,
+      cxl_earned_total: 0,
+      cxl_liquid: 0,
+      cxl_staked: 0,
+      signup_bonus_claimed: false,
+      signup_bonus_amount: 0,
+    });
+
     let slotNames: string[] = [];
     let totalInvested = 0;
     for (const sid of selectedSlots) {
