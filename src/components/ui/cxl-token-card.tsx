@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Coins, Zap, Clock, ShoppingCart, TrendingUp, Lock, ChevronRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useIsDev } from '@/hooks/use-is-dev';
+import { useAppStore } from '@/stores/app-store';
 
 const formatCxl = (n: number) =>
   n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
@@ -35,6 +37,9 @@ interface AirdropData {
 }
 
 export function CxlTokenCard() {
+  const isDev = useIsDev();
+  const { user } = useAppStore();
+  const userId = user?.id || null;
   const [data, setData] = useState<AirdropData | null>(null);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
@@ -44,17 +49,21 @@ export function CxlTokenCard() {
   const [presaleMessage, setPresaleMessage] = useState('');
 
   useEffect(() => {
-    fetch('/api/airdrop/stats')
+    fetch(`/api/airdrop/stats${userId ? `?userId=${userId}` : ''}`)
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
-  }, []);
+  }, [userId]);
 
   const handleClaimDaily = async () => {
     setClaiming(true);
     setClaimMessage('');
     try {
-      const res = await fetch('/api/airdrop/claim', { method: 'POST' });
+      const res = await fetch('/api/airdrop/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
       const json = await res.json();
       if (res.ok) {
         setClaimMessage(`+${json.totalCXL} CXL claimed! Day ${json.day}`);
@@ -72,7 +81,11 @@ export function CxlTokenCard() {
     setClaiming(true);
     setClaimMessage('');
     try {
-      const res = await fetch('/api/airdrop/signup-bonus', { method: 'POST' });
+      const res = await fetch('/api/airdrop/signup-bonus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
       const json = await res.json();
       if (res.ok) {
         setClaimMessage(`+${json.bonus} CXL signup bonus!`);
@@ -95,7 +108,7 @@ export function CxlTokenCard() {
       const res = await fetch('/api/presale/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cxlAmount: amt }),
+        body: JSON.stringify({ userId, cxlAmount: amt }),
       });
       const json = await res.json();
       if (res.ok) {
@@ -112,11 +125,13 @@ export function CxlTokenCard() {
   };
 
   const refreshData = () => {
-    fetch('/api/airdrop/stats')
+    fetch(`/api/airdrop/stats${userId ? `?userId=${userId}` : ''}`)
       .then(r => r.json())
       .then(d => setData(d))
       .catch(() => {});
   };
+
+  if (!isDev) return null;
 
   if (loading) {
     return (
@@ -128,9 +143,30 @@ export function CxlTokenCard() {
     );
   }
 
-  if (!data || !data.stats) return null;
+  const stats = data?.stats;
+  const balance = data?.balance;
+  const canClaim = data?.canClaim || { canClaim: false, reason: 'Loading...' };
 
-  const { stats, balance, canClaim } = data;
+  if (!stats) {
+    return (
+      <div className="rounded-2xl overflow-hidden border border-[rgba(0,229,255,0.08)]" style={{ background: 'linear-gradient(135deg, rgba(9,11,20,0.97), rgba(22,32,52,0.97))' }}>
+        <div className="p-4 pb-3" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.06), rgba(123,97,255,0.06))' }}>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FFB800] to-[#FF5C7A] flex items-center justify-center">
+              <Coins size={16} className="text-[#050816]" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white" style={{ fontFamily: "'Orbitron',sans-serif" }}>CXL TOKEN</h3>
+              <p className="text-xs text-[#7B8BA5]">Coming soon</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-4 text-center">
+          <p className="text-xs text-[#7B8BA5]">Airdrop data loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-2xl overflow-hidden border border-[rgba(0,229,255,0.08)]" style={{ background: 'linear-gradient(135deg, rgba(9,11,20,0.97), rgba(22,32,52,0.97))' }}>

@@ -6,10 +6,11 @@ import { cn } from '@/lib/utils';
 import { NAV_LINKS } from '@/lib/constants';
 import { useAppStore } from '@/stores/app-store';
 import { useDisconnect } from 'wagmi';
+import { useIsDev } from '@/hooks/use-is-dev';
 import {
   LayoutDashboard, Package, Orbit, GitBranch, TrendingUp,
   Vault, Wallet, ArrowLeftRight, Users, Trophy, BarChart3,
-  Bell, UserCircle, LifeBuoy, X, LogOut
+  Bell, UserCircle, LifeBuoy, X, LogOut, Coins
 } from 'lucide-react';
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -27,12 +28,16 @@ const iconMap: Record<string, React.ReactNode> = {
   Bell: <Bell size={18} />,
   UserCircle: <UserCircle size={18} />,
   LifeBuoy: <LifeBuoy size={18} />,
+  Coins: <Coins size={18} />,
 };
 
 export function UserSidebar() {
   const pathname = usePathname();
   const { sidebarOpen, setSidebarOpen, clearAll } = useAppStore();
   const { disconnect } = useDisconnect();
+  const isDev = useIsDev();
+
+  const navLinks = isDev ? NAV_LINKS : NAV_LINKS.filter(l => l.href !== '/airdrop');
 
   const handleDisconnect = () => {
     clearAll();
@@ -65,7 +70,7 @@ export function UserSidebar() {
         </div>
 
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-          {NAV_LINKS.map((link) => {
+          {navLinks.map((link) => {
             const isActive = pathname === link.href || pathname.startsWith(link.href + '/');
             return (
               <Link

@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/supabase';
 import { getAirdropStats, getUserBalance, canClaimDaily } from '@/lib/airdrop';
 
 export async function GET(req: NextRequest) {
-  const supabase = getSupabase();
-  const { data: { user }, error: authErr } = await supabase.auth.getUser();
-  if (authErr || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+  const userId = req.nextUrl.searchParams.get('userId');
   const stats = await getAirdropStats();
-  const balance = await getUserBalance(user.id);
-  const claimStatus = await canClaimDaily(user.id);
+
+  if (!userId) {
+    return NextResponse.json({
+      stats,
+      balance: null,
+      canClaim: { canClaim: false, reason: 'Not logged in' },
+    });
+  }
+
+  const balance = await getUserBalance(userId);
+  const claimStatus = await canClaimDaily(userId);
 
   return NextResponse.json({
     stats,
