@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAirdropStats, getUserBalance, canClaimDaily } from '@/lib/airdrop';
+import { PRESALE_PRICES, DEX_LAUNCH_PRICE } from '@/lib/constants';
 
 export async function GET(req: NextRequest) {
   const userId = req.nextUrl.searchParams.get('userId');
@@ -10,6 +11,8 @@ export async function GET(req: NextRequest) {
       stats,
       balance: null,
       canClaim: { canClaim: false, reason: 'Not logged in' },
+      presalePrices: [...PRESALE_PRICES],
+      dexLaunchPrice: DEX_LAUNCH_PRICE,
     });
   }
 
@@ -32,5 +35,7 @@ export async function GET(req: NextRequest) {
         }
       : null,
     canClaim: claimStatus,
+    presalePrices: [...PRESALE_PRICES],
+    dexLaunchPrice: DEX_LAUNCH_PRICE,
   });
 }

@@ -289,7 +289,7 @@ export function CxlTokenCard() {
               <div className="flex items-center gap-2 mb-1">
                 <ShoppingCart size={12} className="text-[#FFB800]" />
                 <p className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Presale</p>
-                <span className="text-xs px-1.5 py-0.5 rounded bg-[rgba(255,184,0,0.1)] text-[#FFB800] font-mono">${stats.price.toFixed(2)}/CXL</span>
+                <span className="text-xs px-1.5 py-0.5 rounded bg-[rgba(255,184,0,0.1)] text-[#FFB800] font-mono">${stats.price.toFixed(4)}/CXL</span>
               </div>
               <p className="text-[10px] text-[#7B8BA5] mb-2">Min 10 CXL, Max 100 CXL per purchase. USDT deducted from earnings.</p>
 

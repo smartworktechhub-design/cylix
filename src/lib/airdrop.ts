@@ -7,6 +7,7 @@ import {
   PRESALE,
   SETTLEMENT,
   L2_DIRECTS_REQUIRED,
+  getPresalePriceForDay,
 } from './constants';
 
 function getConfigValue(config: Record<string, string>, key: string, fallback: string = ''): string {
@@ -56,9 +57,7 @@ export async function getCurrentPhase(): Promise<number> {
 
 export async function getPresalePrice(): Promise<number> {
   const day = await getCurrentDay();
-  if (day <= 0) return PRESALE.startPrice;
-  const price = PRESALE.startPrice + (day - 1) * PRESALE.dailyIncrement;
-  return Math.min(price, PRESALE.startPrice + (PRESALE.durationDays - 1) * PRESALE.dailyIncrement);
+  return getPresalePriceForDay(day);
 }
 
 export async function ensureUserBalance(userId: string) {
@@ -353,8 +352,9 @@ export async function processDayEnd() {
     return { skipped: true, reason: `Day ${day} — outside airdrop window` };
   }
 
-  const newPrice = PRESALE.startPrice + day * PRESALE.dailyIncrement;
-  await setConfig('presale_current_price', String(Math.min(newPrice, PRESALE.startPrice + (PRESALE.durationDays - 1) * PRESALE.dailyIncrement)));
+  const nextDay = day + 1;
+  const newPrice = getPresalePriceForDay(nextDay);
+  await setConfig('presale_current_price', String(newPrice));
 
   return { success: true, day, newPrice };
 }
