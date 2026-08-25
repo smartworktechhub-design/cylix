@@ -8,7 +8,7 @@ const PUBLIC_ROUTES = [
 const USER_ROUTES = [
   '/dashboard', '/slots', '/earnings', '/transactions', '/referrals',
   '/withdrawals', '/leaderboard', '/matrix', '/my-orbit', '/notifications',
-  '/profile', '/support', '/apex-pool', '/upgrade-vault', '/airdrop',
+  '/profile', '/support', '/apex-pool', '/upgrade-vault', '/airdrop', '/presale',
 ];
 
 const ADMIN_ROUTES = [

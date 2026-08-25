@@ -65,6 +65,7 @@ export const NAV_LINKS = [
   { href: '/my-orbit', label: 'My Orbit', icon: 'Orbit' },
   { href: '/matrix', label: 'Matrix', icon: 'GitBranch' },
   { href: '/airdrop', label: 'CXL Airdrop', icon: 'Coins' },
+  { href: '/presale', label: 'CXL Presale', icon: 'ShoppingCart' },
   { href: '/earnings', label: 'Earnings', icon: 'TrendingUp' },
   { href: '/upgrade-vault', label: 'Upgrade Vault', icon: 'Vault' },
   { href: '/withdrawals', label: 'Withdrawals', icon: 'Wallet' },

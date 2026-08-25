@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Coins, Zap, Clock, ShoppingCart, TrendingUp, Lock, ChevronRight, Loader2, Gift, Flame, Shield, Info, Wallet } from 'lucide-react';
+import { Coins, Zap, Clock, ShoppingCart, TrendingUp, Lock, ChevronRight, Loader2, Gift, Flame, Shield, Info, Wallet, Users, ArrowDown } from 'lucide-react';
 import Link from 'next/link';
 import { useIsDev } from '@/hooks/use-is-dev';
 import { useAppStore } from '@/stores/app-store';
@@ -36,23 +36,38 @@ interface AirdropData {
   canClaim: { canClaim: boolean; reason?: string };
 }
 
+interface LevelData {
+  level: number;
+  label: string;
+  count: number;
+  rate: number;
+  totalEarned: number;
+  unlocked: boolean;
+  color: string;
+}
+
 export default function AirdropPage() {
   const isDev = useIsDev();
   const { user } = useAppStore();
   const userId = user?.id || null;
   const [data, setData] = useState<AirdropData | null>(null);
+  const [levels, setLevels] = useState<LevelData[]>([]);
+  const [l2Unlocked, setL2Unlocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
   const [claimMessage, setClaimMessage] = useState('');
-  const [buyingPresale, setBuyingPresale] = useState(false);
-  const [presaleAmount, setPresaleAmount] = useState('');
-  const [presaleMessage, setPresaleMessage] = useState('');
 
   const fetchData = () => {
-    fetch(`/api/airdrop/stats${userId ? `?userId=${userId}` : ''}`)
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
+    const qs = userId ? `?userId=${userId}` : '';
+    Promise.all([
+      fetch(`/api/airdrop/stats${qs}`).then(r => r.json()),
+      fetch(`/api/airdrop/levels${qs}`).then(r => r.json()),
+    ]).then(([statsData, levelsData]) => {
+      setData(statsData);
+      setLevels(levelsData.levels || []);
+      setL2Unlocked(levelsData.l2Unlocked || false);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   };
 
   useEffect(() => { fetchData(); }, [userId]);
@@ -101,31 +116,6 @@ export default function AirdropPage() {
     setClaiming(false);
   };
 
-  const handleBuyPresale = async () => {
-    const amt = parseFloat(presaleAmount);
-    if (!amt || amt <= 0) return;
-    setBuyingPresale(true);
-    setPresaleMessage('');
-    try {
-      const res = await fetch('/api/presale/purchase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, cxlAmount: amt }),
-      });
-      const json = await res.json();
-      if (res.ok) {
-        setPresaleMessage(`Bought ${json.cxlAmount} CXL for $${json.totalUSDT.toFixed(4)}`);
-        setPresaleAmount('');
-        fetchData();
-      } else {
-        setPresaleMessage(json.error || 'Purchase failed');
-      }
-    } catch {
-      setPresaleMessage('Network error');
-    }
-    setBuyingPresale(false);
-  };
-
   if (!isDev) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -163,6 +153,8 @@ export default function AirdropPage() {
 
   const dayProgress = stats.day > 0 ? Math.min((stats.day / 90) * 100, 100) : 0;
   const supplyPercent = stats.totalSupply > 0 ? ((stats.totalSupply - stats.remaining) / stats.totalSupply) * 100 : 0;
+  const totalTeam = levels.reduce((s, l) => s + l.count, 0);
+  const totalEarned = levels.reduce((s, l) => s + l.totalEarned, 0);
 
   const phaseLabels: Record<number, string> = { 1: 'Early Adopters', 2: 'Growth Phase', 3: 'Final Phase' };
 
@@ -222,9 +214,9 @@ export default function AirdropPage() {
             <p className="text-[10px] text-[#7B8BA5]">per CXL</p>
           </div>
           <div className="p-3 text-center" style={{ background: 'rgba(9,11,20,0.97)' }}>
-            <p className="text-[10px] text-[#7B8BA5] uppercase tracking-wider">Users</p>
-            <p className="text-sm font-bold font-mono text-[#00FFB2]">{stats.totalUsers}</p>
-            <p className="text-[10px] text-[#7B8BA5]">enrolled</p>
+            <p className="text-[10px] text-[#7B8BA5] uppercase tracking-wider">Team</p>
+            <p className="text-sm font-bold font-mono text-[#00FFB2]">{totalTeam}</p>
+            <p className="text-[10px] text-[#7B8BA5]">users</p>
           </div>
         </div>
 
@@ -328,72 +320,99 @@ export default function AirdropPage() {
         </div>
       )}
 
-      {/* Presale Card */}
-      {stats.day > 0 && stats.day <= 90 && (
-        <div className="rounded-2xl border border-[rgba(255,184,0,0.12)] overflow-hidden" style={{ background: 'rgba(22,32,52,0.6)' }}>
-          <div className="p-4 pb-3" style={{ background: 'rgba(255,184,0,0.04)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <ShoppingCart size={14} className="text-[#FFB800]" />
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Presale</h3>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(255,184,0,0.1)] text-[#FFB800] font-mono font-bold">${stats.price.toFixed(2)}/CXL</span>
-            </div>
-            <p className="text-[10px] text-[#7B8BA5]">Buy CXL tokens at the current day price. Min 10 CXL, Max 100 CXL per purchase. USDT deducted from earnings.</p>
+      {/* Level Breakdown */}
+      <div className="rounded-2xl border border-[rgba(0,229,255,0.08)] overflow-hidden" style={{ background: 'rgba(22,32,52,0.6)' }}>
+        <div className="p-4 pb-3" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.06), rgba(123,97,255,0.06))' }}>
+          <div className="flex items-center gap-2 mb-1">
+            <Users size={14} className="text-[#00E5FF]" />
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Airdrop Levels</h3>
           </div>
-          <div className="p-4 pt-3">
-            <div className="flex gap-2 mb-2">
-              <input
-                type="number"
-                value={presaleAmount}
-                onChange={e => setPresaleAmount(e.target.value)}
-                placeholder="CXL amount (min 10)"
-                min={10}
-                max={100}
-                className="flex-1 h-11 px-3 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(255,184,0,0.15)] text-white placeholder:text-[#7B8BA5]/50 text-sm focus:outline-none focus:border-[rgba(255,184,0,0.4)] font-mono"
-              />
-              <button
-                onClick={handleBuyPresale}
-                disabled={buyingPresale || !presaleAmount || parseFloat(presaleAmount) < 10}
-                className="h-11 px-5 rounded-xl font-bold text-sm transition-all bg-gradient-to-r from-[#FFB800] to-[#FF5C7A] text-[#050816] hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5"
-              >
-                {buyingPresale ? <Loader2 size={14} className="animate-spin" /> : <ShoppingCart size={14} />}
-                Buy
-              </button>
-            </div>
-            {presaleAmount && parseFloat(presaleAmount) >= 10 && (
-              <p className="text-xs text-[#7B8BA5] font-mono mb-1">
-                Cost: <span className="text-[#FFB800] font-bold">${(parseFloat(presaleAmount) * stats.price).toFixed(4)}</span> USDT
-              </p>
-            )}
-            {presaleMessage && (
-              <p className={`text-xs font-semibold ${presaleMessage.includes('Error') || presaleMessage.includes('failed') || presaleMessage.includes('Insufficient') ? 'text-[#FF5C7A]' : 'text-[#00FFB2]'}`}>
-                {presaleMessage}
-              </p>
-            )}
-          </div>
+          <p className="text-[10px] text-[#7B8BA5]">No daily earning cap. Earn until Day 91.</p>
         </div>
-      )}
 
-      {/* Daily Rates Info */}
-      <div className="rounded-2xl border border-[rgba(0,229,255,0.08)] p-4" style={{ background: 'rgba(22,32,52,0.4)' }}>
-        <div className="flex items-center gap-2 mb-3">
-          <Info size={14} className="text-[#00E5FF]" />
-          <h3 className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Daily Airdrop Rates</h3>
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: 'rgba(0,229,255,0.04)' }}>
-            <span className="text-xs text-[#7B8BA5]">Level 1 (You)</span>
-            <span className="text-xs font-bold font-mono text-[#00E5FF]">0.50 CXL/day</span>
+        <div className="p-3 space-y-2">
+          {levels.map((lvl) => (
+            <div
+              key={lvl.level}
+              className="rounded-xl p-3 transition-all"
+              style={{
+                background: lvl.unlocked ? `${lvl.color}08` : 'rgba(255,255,255,0.02)',
+                border: `1px solid ${lvl.unlocked ? `${lvl.color}20` : 'rgba(255,255,255,0.04)'}`,
+                opacity: lvl.unlocked ? 1 : 0.5,
+              }}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold" style={{ background: `${lvl.color}20`, color: lvl.color }}>
+                    L{lvl.level}
+                  </div>
+                  <span className="text-xs font-semibold text-white">{lvl.label}</span>
+                </div>
+                <span className="text-xs font-bold font-mono" style={{ color: lvl.color }}>
+                  {lvl.rate.toFixed(2)} CXL/day
+                </span>
+              </div>
+              <div className="flex items-center justify-between mt-1">
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-[#7B8BA5]">
+                    Users: <span className="text-white font-bold">{lvl.count}</span>
+                  </span>
+                  <span className="text-[10px] text-[#7B8BA5]">
+                    Earned: <span className="font-bold" style={{ color: lvl.color }}>{formatCxl(lvl.totalEarned)} CXL</span>
+                  </span>
+                </div>
+                {!lvl.unlocked && lvl.level > 1 && (
+                  <span className="text-[10px] text-[#FF5C7A] font-semibold flex items-center gap-0.5">
+                    <Lock size={10} /> Locked
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* L2 Unlock Status */}
+          <div className="rounded-xl p-3 mt-2" style={{ background: l2Unlocked ? 'rgba(0,255,178,0.04)' : 'rgba(255,92,122,0.04)', border: `1px solid ${l2Unlocked ? 'rgba(0,255,178,0.15)' : 'rgba(255,92,122,0.15)'}` }}>
+            <div className="flex items-center gap-2">
+              {l2Unlocked ? (
+                <Shield size={14} className="text-[#00FFB2]" />
+              ) : (
+                <Lock size={14} className="text-[#FF5C7A]" />
+              )}
+              <div>
+                <p className={`text-xs font-semibold ${l2Unlocked ? 'text-[#00FFB2]' : 'text-[#FF5C7A]'}`}>
+                  {l2Unlocked ? 'L2-L5 Unlocked!' : 'L2-L5 Locked'}
+                </p>
+                <p className="text-[10px] text-[#7B8BA5]">
+                  {l2Unlocked
+                    ? `You have ${levels[0]?.count || 0} directs. Earning ${formatCxl(levels.filter(l => l.level > 1).reduce((s, l) => s + l.rate, 0))} extra CXL/day from L2-L5`
+                    : `Invite 2 direct referrals to unlock +0.70 CXL/day (L2-L5)`
+                  }
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: 'rgba(123,97,255,0.04)' }}>
-            <span className="text-xs text-[#7B8BA5]">Level 2-5 (Unlock with 2 directs)</span>
-            <span className="text-xs font-bold font-mono text-[#7B61FF]">+0.70 CXL/day</span>
-          </div>
-          <div className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: 'rgba(0,255,178,0.04)' }}>
-            <span className="text-xs text-[#7B8BA5]">Total potential</span>
-            <span className="text-xs font-bold font-mono text-[#00FFB2]">1.20 CXL/day</span>
+
+          {/* Total */}
+          <div className="flex items-center justify-between py-2 px-3 rounded-lg" style={{ background: 'rgba(0,229,255,0.04)' }}>
+            <span className="text-xs font-semibold text-white">Total Potential</span>
+            <span className="text-sm font-bold font-mono text-[#00FFB2]">
+              {l2Unlocked ? '1.20' : '0.50'} CXL/day
+            </span>
           </div>
         </div>
       </div>
+
+      {/* Presale CTA */}
+      <Link href="/presale" className="flex items-center justify-between p-4 rounded-2xl border border-[rgba(255,184,0,0.08)] hover:border-[rgba(255,184,0,0.15)] transition-all" style={{ background: 'rgba(255,184,0,0.04)' }}>
+        <div className="flex items-center gap-2">
+          <ShoppingCart size={14} className="text-[#FFB800]" />
+          <div>
+            <span className="text-xs text-white font-semibold block">Buy CXL in Presale</span>
+            <span className="text-[10px] text-[#7B8BA5]">{formatCxl(stats.remaining)} CXL remaining @ ${stats.price.toFixed(2)}/CXL</span>
+          </div>
+        </div>
+        <ChevronRight size={14} className="text-[#7B8BA5]" />
+      </Link>
 
       {/* Earnings History Link */}
       <Link href="/earnings" className="flex items-center justify-between p-4 rounded-2xl border border-[rgba(0,229,255,0.08)] hover:border-[rgba(0,229,255,0.15)] transition-all" style={{ background: 'rgba(22,32,52,0.4)' }}>

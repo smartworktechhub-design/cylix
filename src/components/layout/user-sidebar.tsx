@@ -10,7 +10,7 @@ import { useIsDev } from '@/hooks/use-is-dev';
 import {
   LayoutDashboard, Package, Orbit, GitBranch, TrendingUp,
   Vault, Wallet, ArrowLeftRight, Users, Trophy, BarChart3,
-  Bell, UserCircle, LifeBuoy, X, LogOut, Coins
+  Bell, UserCircle, LifeBuoy, X, LogOut, Coins, ShoppingCart
 } from 'lucide-react';
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -29,6 +29,7 @@ const iconMap: Record<string, React.ReactNode> = {
   UserCircle: <UserCircle size={18} />,
   LifeBuoy: <LifeBuoy size={18} />,
   Coins: <Coins size={18} />,
+  ShoppingCart: <ShoppingCart size={18} />,
 };
 
 export function UserSidebar() {
@@ -37,7 +38,7 @@ export function UserSidebar() {
   const { disconnect } = useDisconnect();
   const isDev = useIsDev();
 
-  const navLinks = isDev ? NAV_LINKS : NAV_LINKS.filter(l => l.href !== '/airdrop');
+  const navLinks = isDev ? NAV_LINKS : NAV_LINKS.filter(l => l.href !== '/airdrop' && l.href !== '/presale');
 
   const handleDisconnect = () => {
     clearAll();
