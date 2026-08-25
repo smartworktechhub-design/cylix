@@ -1,13 +1,41 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Coins, Zap, Clock, ShoppingCart, TrendingUp, Lock, ChevronRight, Loader2 } from 'lucide-react';
+import { Coins, Zap, Clock, ShoppingCart, TrendingUp, Lock, ChevronRight, Loader2, DollarSign, Timer, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useIsDev } from '@/hooks/use-is-dev';
 import { useAppStore } from '@/stores/app-store';
 
 const formatCxl = (n: number) =>
   n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+
+const formatPrice = (n: number) => '$' + n.toFixed(4);
+
+function useCountdownToMidnightUTC() {
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    const calc = () => {
+      const now = new Date();
+      const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+      const midnight = new Date(utcMs);
+      midnight.setUTCHours(24, 0, 0, 0);
+      const diff = midnight.getTime() - utcMs;
+      if (diff <= 0) return { hours: 0, minutes: 0, seconds: 0 };
+      return {
+        hours: Math.floor(diff / 3600000),
+        minutes: Math.floor((diff % 3600000) / 60000),
+        seconds: Math.floor((diff % 60000) / 1000),
+      };
+    };
+
+    setTimeLeft(calc());
+    const id = setInterval(() => setTimeLeft(calc()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return timeLeft;
+}
 
 interface AirdropData {
   stats: {
@@ -34,6 +62,8 @@ interface AirdropData {
     last_claim_date: string;
   } | null;
   canClaim: { canClaim: boolean; reason?: string };
+  presalePrices: number[];
+  dexLaunchPrice: number;
 }
 
 export function CxlTokenCard() {
@@ -44,9 +74,8 @@ export function CxlTokenCard() {
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
   const [claimMessage, setClaimMessage] = useState('');
-  const [buyingPresale, setBuyingPresale] = useState(false);
-  const [presaleAmount, setPresaleAmount] = useState('');
-  const [presaleMessage, setPresaleMessage] = useState('');
+
+  const countdown = useCountdownToMidnightUTC();
 
   useEffect(() => {
     fetch(`/api/airdrop/stats${userId ? `?userId=${userId}` : ''}`)
@@ -99,31 +128,6 @@ export function CxlTokenCard() {
     setClaiming(false);
   };
 
-  const handleBuyPresale = async () => {
-    const amt = parseFloat(presaleAmount);
-    if (!amt || amt <= 0) return;
-    setBuyingPresale(true);
-    setPresaleMessage('');
-    try {
-      const res = await fetch('/api/presale/purchase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, cxlAmount: amt }),
-      });
-      const json = await res.json();
-      if (res.ok) {
-        setPresaleMessage(`Bought ${json.cxlAmount} CXL for $${json.totalUSDT.toFixed(4)}`);
-        setPresaleAmount('');
-        refreshData();
-      } else {
-        setPresaleMessage(json.error || 'Purchase failed');
-      }
-    } catch {
-      setPresaleMessage('Network error');
-    }
-    setBuyingPresale(false);
-  };
-
   const refreshData = () => {
     fetch(`/api/airdrop/stats${userId ? `?userId=${userId}` : ''}`)
       .then(r => r.json())
@@ -147,6 +151,7 @@ export function CxlTokenCard() {
   const stats = data?.stats;
   const balance = data?.balance;
   const canClaim = data?.canClaim || { canClaim: false, reason: 'Loading...' };
+  const prices = data?.presalePrices || [];
 
   if (!stats) {
     return (
@@ -169,6 +174,9 @@ export function CxlTokenCard() {
     );
   }
 
+  const todayPrice = stats.price;
+  const tomorrowPrice = prices[stats.day] || prices[stats.day - 1] || todayPrice;
+
   return (
     <div className="rounded-2xl overflow-hidden border border-[rgba(0,229,255,0.08)]" style={{ background: 'linear-gradient(135deg, rgba(9,11,20,0.97), rgba(22,32,52,0.97))' }}>
       {/* Header */}
@@ -187,49 +195,64 @@ export function CxlTokenCard() {
             </span>
           </div>
         </div>
+      </div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-lg p-2 text-center" style={{ background: 'rgba(0,229,255,0.05)', border: '1px solid rgba(0,229,255,0.1)' }}>
-            <p className="text-[10px] text-[#7B8BA5] uppercase">Supply</p>
-            <p className="text-xs font-bold font-mono text-white">{formatCxl(stats.remaining)}</p>
-            <p className="text-[10px] text-[#7B8BA5]">remaining</p>
+      {/* Today + Tomorrow Price + Timer */}
+      <div className="grid grid-cols-3 gap-[1px] bg-[rgba(0,229,255,0.04)]">
+        <div className="p-3 text-center" style={{ background: 'rgba(9,11,20,0.97)' }}>
+          <DollarSign size={12} className="text-[#FFB800] mx-auto mb-1" />
+          <p className="text-[9px] text-[#7B8BA5] uppercase">Today</p>
+          <p className="text-sm font-bold font-mono text-[#FFB800]">{formatPrice(todayPrice)}</p>
+          <p className="text-[9px] text-[#7B8BA5]">Day {stats.day}</p>
+        </div>
+        <div className="p-3 text-center" style={{ background: 'rgba(9,11,20,0.97)' }}>
+          <TrendingUp size={12} className="text-[#00FFB2] mx-auto mb-1" />
+          <p className="text-[9px] text-[#7B8BA5] uppercase">Tomorrow</p>
+          <p className="text-sm font-bold font-mono text-[#00FFB2]">{formatPrice(tomorrowPrice)}</p>
+          <p className="text-[9px] text-[#7B8BA5]">Day {Math.min(stats.day + 1, 90)}</p>
+        </div>
+        <div className="p-3 text-center" style={{ background: 'rgba(9,11,20,0.97)' }}>
+          <Timer size={12} className="text-[#00E5FF] mx-auto mb-1" />
+          <p className="text-[9px] text-[#7B8BA5] uppercase">Next Change</p>
+          <div className="flex items-center justify-center gap-0.5 mt-0.5">
+            <span className="text-sm font-bold font-mono text-[#00E5FF]">{String(countdown.hours).padStart(2, '0')}</span>
+            <span className="text-[10px] text-[#00E5FF]">:</span>
+            <span className="text-sm font-bold font-mono text-[#00E5FF]">{String(countdown.minutes).padStart(2, '0')}</span>
+            <span className="text-[10px] text-[#00E5FF]">:</span>
+            <span className="text-sm font-bold font-mono text-[#00E5FF]">{String(countdown.seconds).padStart(2, '0')}</span>
           </div>
-          <div className="rounded-lg p-2 text-center" style={{ background: 'rgba(123,97,255,0.05)', border: '1px solid rgba(123,97,255,0.1)' }}>
-            <p className="text-[10px] text-[#7B8BA5] uppercase">Price</p>
-            <p className="text-xs font-bold font-mono text-[#FFB800]">${stats.price.toFixed(2)}</p>
-            <p className="text-[10px] text-[#7B8BA5]">per CXL</p>
-          </div>
-          <div className="rounded-lg p-2 text-center" style={{ background: 'rgba(0,255,178,0.05)', border: '1px solid rgba(0,255,178,0.1)' }}>
-            <p className="text-[10px] text-[#7B8BA5] uppercase">Users</p>
-            <p className="text-xs font-bold font-mono text-[#00FFB2]">{stats.totalUsers}</p>
-            <p className="text-[10px] text-[#7B8BA5]">enrolled</p>
-          </div>
+          <p className="text-[9px] text-[#7B8BA5]">12 AM UTC</p>
         </div>
       </div>
 
       {/* Balance Section */}
       {balance && (
         <div className="p-4 pt-3">
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div className="rounded-xl p-3 border border-[rgba(255,184,0,0.1)]" style={{ background: 'rgba(255,184,0,0.04)' }}>
-              <p className="text-[10px] text-[#7B8BA5] uppercase tracking-wider">CXL Balance</p>
-              <p className="text-lg font-bold font-mono text-[#FFB800]">{formatCxl(balance.cxl_balance)}</p>
+          {/* Your Presale CXL Holding */}
+          <div className="rounded-xl p-3 mb-3 border border-[rgba(255,184,0,0.1)]" style={{ background: 'rgba(255,184,0,0.04)' }}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] text-[#7B8BA5] uppercase tracking-wider">Your CXL Holding</span>
+              <Coins size={12} className="text-[#FFB800]" />
             </div>
-            <div className="rounded-xl p-3 border border-[rgba(0,229,255,0.1)]" style={{ background: 'rgba(0,229,255,0.04)' }}>
-              <p className="text-[10px] text-[#7B8BA5] uppercase tracking-wider">Total Earned</p>
-              <p className="text-lg font-bold font-mono text-[#00E5FF]">{formatCxl(balance.cxl_earned_total)}</p>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div>
+                <p className="text-[9px] text-[#7B8BA5]">Balance</p>
+                <p className="text-base font-bold font-mono text-[#FFB800]">{formatCxl(balance.cxl_balance)}</p>
+              </div>
+              <div>
+                <p className="text-[9px] text-[#7B8BA5]">Total Earned</p>
+                <p className="text-base font-bold font-mono text-[#00E5FF]">{formatCxl(balance.cxl_earned_total)}</p>
+              </div>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div className="rounded-lg p-2" style={{ background: 'rgba(0,255,178,0.04)' }}>
-              <p className="text-[10px] text-[#7B8BA5] uppercase">Liquid</p>
-              <p className="text-sm font-bold font-mono text-[#00FFB2]">{formatCxl(balance.cxl_liquid)}</p>
-            </div>
-            <div className="rounded-lg p-2" style={{ background: 'rgba(123,97,255,0.04)' }}>
-              <p className="text-[10px] text-[#7B8BA5] uppercase">Staked</p>
-              <p className="text-sm font-bold font-mono text-[#7B61FF]">{formatCxl(balance.cxl_staked)}</p>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="rounded-lg px-2 py-1" style={{ background: 'rgba(0,255,178,0.04)' }}>
+                <p className="text-[9px] text-[#7B8BA5]">Liquid</p>
+                <p className="text-xs font-bold font-mono text-[#00FFB2]">{formatCxl(balance.cxl_liquid)}</p>
+              </div>
+              <div className="rounded-lg px-2 py-1" style={{ background: 'rgba(123,97,255,0.04)' }}>
+                <p className="text-[9px] text-[#7B8BA5]">Staked</p>
+                <p className="text-xs font-bold font-mono text-[#7B61FF]">{formatCxl(balance.cxl_staked)}</p>
+              </div>
             </div>
           </div>
 
@@ -284,47 +307,15 @@ export function CxlTokenCard() {
             </p>
           )}
 
-          {/* Presale Section */}
-          {stats.day > 0 && stats.day <= 90 && (
-            <div className="mt-3 pt-3 border-t border-[rgba(0,229,255,0.06)]">
-              <div className="flex items-center gap-2 mb-1">
-                <ShoppingCart size={12} className="text-[#FFB800]" />
-                <p className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Presale</p>
-                <span className="text-xs px-1.5 py-0.5 rounded bg-[rgba(255,184,0,0.1)] text-[#FFB800] font-mono">${stats.price.toFixed(4)}/CXL</span>
-              </div>
-              <p className="text-[10px] text-[#7B8BA5] mb-2">Min 10 CXL, Max 100 CXL per purchase. USDT deducted from earnings.</p>
-
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  value={presaleAmount}
-                  onChange={e => setPresaleAmount(e.target.value)}
-                  placeholder="CXL amount"
-                  min={10}
-                  max={100}
-                  className="flex-1 h-10 px-3 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(255,184,0,0.1)] text-white placeholder:text-[#7B8BA5]/50 text-sm focus:outline-none focus:border-[rgba(255,184,0,0.3)] font-mono"
-                />
-                <button
-                  onClick={handleBuyPresale}
-                  disabled={buyingPresale || !presaleAmount || parseFloat(presaleAmount) < 10}
-                  className="h-10 px-4 rounded-xl font-semibold text-sm transition-all bg-gradient-to-r from-[#FFB800] to-[#FF5C7A] text-[#050816] hover:opacity-90 disabled:opacity-50 flex items-center gap-1"
-                >
-                  {buyingPresale ? <Loader2 size={12} className="animate-spin" /> : <ShoppingCart size={12} />}
-                  Buy
-                </button>
-              </div>
-              {presaleAmount && parseFloat(presaleAmount) >= 10 && (
-                <p className="text-xs text-[#7B8BA5] mt-1 font-mono">
-                  Cost: <span className="text-[#FFB800] font-bold">${(parseFloat(presaleAmount) * stats.price).toFixed(4)}</span> USDT
-                </p>
-              )}
-              {presaleMessage && (
-                <p className={`text-xs mt-1 font-semibold ${presaleMessage.includes('Error') || presaleMessage.includes('failed') || presaleMessage.includes('Insufficient') ? 'text-[#FF5C7A]' : 'text-[#00FFB2]'}`}>
-                  {presaleMessage}
-                </p>
-              )}
-            </div>
-          )}
+          {/* Buy CXL Button */}
+          <Link
+            href="/presale"
+            className="w-full h-11 rounded-xl font-bold text-sm transition-all bg-gradient-to-r from-[#FFB800] to-[#FF5C7A] text-[#050816] hover:opacity-90 flex items-center justify-center gap-2 mt-2"
+          >
+            <ShoppingCart size={16} />
+            Buy CXL Tokens
+            <ArrowRight size={14} />
+          </Link>
 
           {/* View More */}
           <div className="mt-3 pt-3 border-t border-[rgba(0,229,255,0.06)]">
