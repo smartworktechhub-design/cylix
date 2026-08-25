@@ -290,29 +290,48 @@ export default function PresalePage() {
           <p className="text-[10px] text-[#7B8BA5]">Day 1: {formatPrice(prices[0])} → Day 90: {formatPrice(prices[89])}</p>
         </div>
 
-        {/* Timeline Bars - all same height */}
+        {/* Timeline Bars - candle style with phase colors */}
         <div className="px-4 pb-3 pt-2">
-          <div className="flex items-end gap-[2px] h-28 relative">
-            {prices.map((price, i) => {
+          <div className="flex items-end gap-[3px] h-32 relative">
+            {(() => {
+              const minP = Math.min(...prices);
+              const maxP = Math.max(...prices);
+              return prices.map((price, i) => {
               const day = i + 1;
               const isPast = day < stats.day;
               const isCurrent = day === stats.day;
               const isHovered = hoveredDay === day;
               const isSelected = selectedDay === day;
 
-              let barColor = 'rgba(255,184,0,0.25)';
-              if (isPast) barColor = 'rgba(0,229,255,0.35)';
-              if (isCurrent) barColor = '#FFB800';
-              if (isHovered || isSelected) barColor = '#FFB800';
+              // Candle height based on price (small to large)
+              const heightPct = maxP > minP ? ((price - minP) / (maxP - minP)) * 80 + 20 : 50;
+
+              // Phase-based colors
+              let baseColor: string;
+              let glowColor: string;
+              if (day <= 30) {
+                baseColor = 'rgba(0,229,255,0.5)';   // Phase 1 - Cyan
+                glowColor = 'rgba(0,229,255,0.15)';
+              } else if (day <= 60) {
+                baseColor = 'rgba(123,97,255,0.5)';   // Phase 2 - Purple
+                glowColor = 'rgba(123,97,255,0.15)';
+              } else {
+                baseColor = 'rgba(255,92,122,0.5)';   // Phase 3 - Pink
+                glowColor = 'rgba(255,92,122,0.15)';
+              }
+
+              if (isCurrent) baseColor = '#FFB800';
+              if (isHovered || isSelected) baseColor = '#FFB800';
 
               return (
                 <div
                   key={day}
                   className="flex-1 cursor-pointer transition-all duration-150 rounded-t-sm relative"
                   style={{
-                    height: '100%',
-                    background: barColor,
-                    opacity: isSelected ? 1 : isHovered ? 0.9 : isPast ? 0.5 : 0.6,
+                    height: `${heightPct}%`,
+                    background: baseColor,
+                    boxShadow: (isHovered || isSelected || isCurrent) ? `0 0 8px ${glowColor}` : 'none',
+                    opacity: isSelected ? 1 : isHovered ? 0.95 : isPast ? 0.65 : 0.75,
                     minWidth: 0,
                   }}
                   onMouseEnter={() => setHoveredDay(day)}
@@ -320,7 +339,8 @@ export default function PresalePage() {
                   onClick={() => setSelectedDay(selectedDay === day ? null : day)}
                 />
               );
-            })}
+            });
+            })()}
           </div>
 
           {/* Day labels */}
