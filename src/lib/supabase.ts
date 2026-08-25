@@ -1,5 +1,10 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+const APP_ENV = process.env.NEXT_PUBLIC_APP_ENV || 'production';
+if (APP_ENV === 'development') {
+  console.log('[DEV] Running in development environment');
+}
+
 let supabaseInstance: SupabaseClient | null = null;
 
 function qb(): any {
