@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Coins, ShoppingCart, Loader2, TrendingUp, Clock, ChevronRight, Zap, AlertCircle, DollarSign, Rocket } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Coins, ShoppingCart, Loader2, TrendingUp, Clock, ChevronRight, Zap, AlertCircle, DollarSign, Rocket, Timer } from 'lucide-react';
 import Link from 'next/link';
 import { useIsDev } from '@/hooks/use-is-dev';
 import { useAppStore } from '@/stores/app-store';
@@ -10,6 +10,32 @@ const formatCxl = (n: number) =>
   n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 
 const formatPrice = (n: number) => '$' + n.toFixed(4);
+
+function useCountdownToMidnightUTC() {
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    const calc = () => {
+      const now = new Date();
+      const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+      const midnight = new Date(utcMs);
+      midnight.setUTCHours(24, 0, 0, 0);
+      const diff = midnight.getTime() - utcMs;
+      if (diff <= 0) return { hours: 0, minutes: 0, seconds: 0 };
+      return {
+        hours: Math.floor(diff / 3600000),
+        minutes: Math.floor((diff % 3600000) / 60000),
+        seconds: Math.floor((diff % 60000) / 1000),
+      };
+    };
+
+    setTimeLeft(calc());
+    const id = setInterval(() => setTimeLeft(calc()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return timeLeft;
+}
 
 interface PresaleData {
   stats: {
@@ -45,7 +71,8 @@ export default function PresalePage() {
   const [message, setMessage] = useState('');
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const timelineRef = useRef<HTMLDivElement>(null);
+
+  const countdown = useCountdownToMidnightUTC();
 
   const fetchData = () => {
     fetch(`/api/airdrop/stats${userId ? `?userId=${userId}` : ''}`)
@@ -132,9 +159,6 @@ export default function PresalePage() {
   const displayDay = selectedDay || hoveredDay || stats.day;
   const displayPrice = prices[displayDay - 1] || prices[0];
 
-  const maxPrice = Math.max(...prices);
-  const minPrice = Math.min(...prices);
-
   return (
     <div className="max-w-lg mx-auto space-y-4">
       {/* Hero Header */}
@@ -153,15 +177,6 @@ export default function PresalePage() {
             <span className={`text-xs px-3 py-1 rounded-full font-bold ${stats.isActive ? 'bg-[rgba(0,255,178,0.12)] text-[#00FFB2] border border-[rgba(0,255,178,0.2)]' : 'bg-[rgba(255,92,122,0.12)] text-[#FF5C7A] border border-[rgba(255,92,122,0.2)]'}`}>
               {stats.isActive ? 'ACTIVE' : 'PAUSED'}
             </span>
-          </div>
-
-          {/* Current Price Display */}
-          <div className="rounded-xl p-4 mb-3" style={{ background: 'rgba(255,184,0,0.06)', border: '1px solid rgba(255,184,0,0.15)' }}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-[#7B8BA5]">Current Price (Day {stats.day})</span>
-              <span className="text-[10px] text-[#FFB800] font-bold">+~$0.001/day</span>
-            </div>
-            <p className="text-3xl font-bold font-mono text-[#FFB800]">{formatPrice(stats.price)}<span className="text-sm text-[#7B8BA5]"> / CXL</span></p>
           </div>
 
           {/* Day Progress */}
@@ -204,6 +219,64 @@ export default function PresalePage() {
         </div>
       </div>
 
+      {/* Today's Price + Countdown Timer */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Today's Price */}
+        <div className="rounded-2xl border border-[rgba(255,184,0,0.12)] overflow-hidden" style={{ background: 'rgba(22,32,52,0.6)' }}>
+          <div className="p-4" style={{ background: 'rgba(255,184,0,0.04)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <DollarSign size={14} className="text-[#FFB800]" />
+              <h3 className="text-[10px] font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Today's Price</h3>
+            </div>
+            <p className="text-2xl font-bold font-mono text-[#FFB800]">{formatPrice(stats.price)}</p>
+            <p className="text-[10px] text-[#7B8BA5] mt-1">Day {stats.day} of 90</p>
+          </div>
+        </div>
+
+        {/* Countdown Timer */}
+        <div className="rounded-2xl border border-[rgba(0,229,255,0.12)] overflow-hidden" style={{ background: 'rgba(22,32,52,0.6)' }}>
+          <div className="p-4" style={{ background: 'rgba(0,229,255,0.04)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Timer size={14} className="text-[#00E5FF]" />
+              <h3 className="text-[10px] font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Next Price In</h3>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="text-center">
+                <p className="text-2xl font-bold font-mono text-[#00E5FF]">{String(countdown.hours).padStart(2, '0')}</p>
+                <p className="text-[8px] text-[#7B8BA5]">HRS</p>
+              </div>
+              <span className="text-lg font-bold text-[#00E5FF] mt-[-12px]">:</span>
+              <div className="text-center">
+                <p className="text-2xl font-bold font-mono text-[#00E5FF]">{String(countdown.minutes).padStart(2, '0')}</p>
+                <p className="text-[8px] text-[#7B8BA5]">MIN</p>
+              </div>
+              <span className="text-lg font-bold text-[#00E5FF] mt-[-12px]">:</span>
+              <div className="text-center">
+                <p className="text-2xl font-bold font-mono text-[#00E5FF]">{String(countdown.seconds).padStart(2, '0')}</p>
+                <p className="text-[8px] text-[#7B8BA5]">SEC</p>
+              </div>
+            </div>
+            <p className="text-[10px] text-[#7B8BA5] mt-1">Changes at 12:00 AM UTC</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Price Tooltip (shows when hovering/selecting bar) */}
+      {displayDay && (hoveredDay || selectedDay) && (
+        <div className="rounded-2xl p-4 flex items-center justify-between border border-[rgba(255,184,0,0.12)]" style={{ background: 'rgba(255,184,0,0.06)' }}>
+          <div>
+            <p className="text-[10px] text-[#7B8BA5]">Day {displayDay} Price</p>
+            <p className="text-2xl font-bold font-mono text-[#FFB800]">{formatPrice(displayPrice)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-[#7B8BA5]">Per CXL</p>
+            {displayDay < stats.day && <span className="text-xs px-2 py-0.5 rounded-full bg-[rgba(255,92,122,0.1)] text-[#FF5C7A] font-semibold">PAST</span>}
+            {displayDay === stats.day && <span className="text-xs px-2 py-0.5 rounded-full bg-[rgba(0,255,178,0.1)] text-[#00FFB2] font-semibold">TODAY</span>}
+            {displayDay > stats.day && <span className="text-xs px-2 py-0.5 rounded-full bg-[rgba(123,97,255,0.1)] text-[#7B61FF] font-semibold">UPCOMING</span>}
+          </div>
+        </div>
+      )}
+
       {/* Interactive Price Timeline Card */}
       <div className="rounded-2xl border border-[rgba(255,184,0,0.12)] overflow-hidden" style={{ background: 'rgba(22,32,52,0.6)' }}>
         <div className="p-4 pb-2" style={{ background: 'rgba(255,184,0,0.04)' }}>
@@ -212,72 +285,46 @@ export default function PresalePage() {
               <TrendingUp size={14} className="text-[#FFB800]" />
               <h3 className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Price Timeline</h3>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-[#7B8BA5]">Tap a bar for price</span>
-            </div>
+            <span className="text-[10px] text-[#7B8BA5]">Tap a bar for price</span>
           </div>
-          <p className="text-[10px] text-[#7B8BA5] mb-1">Day 1: {formatPrice(prices[0])} → Day 90: {formatPrice(prices[89])}</p>
+          <p className="text-[10px] text-[#7B8BA5]">Day 1: {formatPrice(prices[0])} → Day 90: {formatPrice(prices[89])}</p>
         </div>
 
-        {/* Price Tooltip */}
-        {displayDay && (
-          <div className="mx-4 mb-2 rounded-xl p-3 flex items-center justify-between" style={{ background: 'rgba(255,184,0,0.08)', border: '1px solid rgba(255,184,0,0.2)' }}>
-            <div>
-              <p className="text-[10px] text-[#7B8BA5]">Day {displayDay}</p>
-              <p className="text-lg font-bold font-mono text-[#FFB800]">{formatPrice(displayPrice)}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] text-[#7B8BA5]">Per CXL</p>
-              {displayDay < stats.day && <span className="text-[10px] text-[#FF5C7A] font-semibold">PAST</span>}
-              {displayDay === stats.day && <span className="text-[10px] text-[#00FFB2] font-semibold">NOW</span>}
-              {displayDay > stats.day && <span className="text-[10px] text-[#7B61FF] font-semibold">UPCOMING</span>}
-            </div>
-          </div>
-        )}
-
-        {/* Timeline Bars */}
-        <div className="px-4 pb-3">
-          <div ref={timelineRef} className="flex items-end gap-[2px] h-32 relative">
+        {/* Timeline Bars - all same height */}
+        <div className="px-4 pb-3 pt-2">
+          <div className="flex items-end gap-[2px] h-28 relative">
             {prices.map((price, i) => {
               const day = i + 1;
-              const height = maxPrice > minPrice ? ((price - minPrice) / (maxPrice - minPrice)) * 100 : 50;
               const isPast = day < stats.day;
               const isCurrent = day === stats.day;
-              const isFuture = day > stats.day;
               const isHovered = hoveredDay === day;
               const isSelected = selectedDay === day;
 
-              let barColor = 'rgba(255,184,0,0.3)';
-              if (isPast) barColor = 'rgba(0,229,255,0.4)';
+              let barColor = 'rgba(255,184,0,0.25)';
+              if (isPast) barColor = 'rgba(0,229,255,0.35)';
               if (isCurrent) barColor = '#FFB800';
               if (isHovered || isSelected) barColor = '#FFB800';
-              if (isFuture && !isHovered && !isSelected) barColor = 'rgba(255,184,0,0.25)';
 
               return (
                 <div
                   key={day}
-                  className="flex-1 cursor-pointer transition-all duration-150 rounded-t-sm group relative"
+                  className="flex-1 cursor-pointer transition-all duration-150 rounded-t-sm relative"
                   style={{
-                    height: `${Math.max(height, 4)}%`,
+                    height: '100%',
                     background: barColor,
-                    opacity: isSelected ? 1 : isHovered ? 0.9 : isPast ? 0.6 : 0.7,
+                    opacity: isSelected ? 1 : isHovered ? 0.9 : isPast ? 0.5 : 0.6,
                     minWidth: 0,
                   }}
                   onMouseEnter={() => setHoveredDay(day)}
                   onMouseLeave={() => setHoveredDay(null)}
                   onClick={() => setSelectedDay(selectedDay === day ? null : day)}
-                >
-                  {/* Phase markers */}
-                  {(day === 30 || day === 60) && (
-                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#7B61FF]" />
-                  )}
-                </div>
+                />
               );
             })}
           </div>
 
           {/* Day labels */}
-          <div className="flex justify-between mt-1 px-0">
+          <div className="flex justify-between mt-1">
             {[1, 10, 20, 30, 40, 50, 60, 70, 80, 90].map(d => (
               <span key={d} className="text-[8px] text-[#7B8BA5] font-mono">{d}</span>
             ))}
@@ -391,37 +438,6 @@ export default function PresalePage() {
           </div>
           <p className="text-[10px] text-[#7B8BA5]">CXL token will be listed on PancakeSwap at <span className="text-[#00E5FF] font-bold">{formatPrice(dexPrice)}</span> per token on Day 91.</p>
         </div>
-      </div>
-
-      {/* Pricing Logic Info */}
-      <div className="rounded-2xl border border-[rgba(0,229,255,0.08)] p-4" style={{ background: 'rgba(22,32,52,0.4)' }}>
-        <div className="flex items-center gap-2 mb-3">
-          <Zap size={14} className="text-[#FFB800]" />
-          <h3 className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Pricing Logic</h3>
-        </div>
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: 'rgba(255,184,0,0.04)' }}>
-            <span className="text-xs text-[#7B8BA5]">Day 1 Price</span>
-            <span className="text-xs font-bold font-mono text-[#00E5FF]">{formatPrice(prices[0])}</span>
-          </div>
-          <div className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: 'rgba(255,184,0,0.04)' }}>
-            <span className="text-xs text-[#7B8BA5]">Day 30 Price</span>
-            <span className="text-xs font-bold font-mono text-[#7B61FF]">{formatPrice(prices[29])}</span>
-          </div>
-          <div className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: 'rgba(255,184,0,0.04)' }}>
-            <span className="text-xs text-[#7B8BA5]">Day 60 Price</span>
-            <span className="text-xs font-bold font-mono text-[#FF5C7A]">{formatPrice(prices[59])}</span>
-          </div>
-          <div className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: 'rgba(255,184,0,0.04)' }}>
-            <span className="text-xs text-[#7B8BA5]">Day 90 Price</span>
-            <span className="text-xs font-bold font-mono text-[#FFB800]">{formatPrice(prices[89])}</span>
-          </div>
-          <div className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: 'rgba(0,229,255,0.04)' }}>
-            <span className="text-xs text-[#7B8BA5]">DEX Launch (Day 91)</span>
-            <span className="text-xs font-bold font-mono text-[#00E5FF]">{formatPrice(dexPrice)}</span>
-          </div>
-        </div>
-        <p className="text-[10px] text-[#7B8BA5] mt-2 text-center">Linear micro-increment: ~$0.0010-$0.0011 per day with phase jumps</p>
       </div>
 
       {/* Settlement Info */}
