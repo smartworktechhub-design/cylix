@@ -349,7 +349,7 @@ export default function AirdropPage() {
                   <span className="text-xs font-semibold text-white">{lvl.label}</span>
                 </div>
                 <span className="text-xs font-bold font-mono" style={{ color: lvl.color }}>
-                  {lvl.rate.toFixed(2)} CXL/day
+                  {lvl.rate.toFixed(2)} CXL per referral
                 </span>
               </div>
               <div className="flex items-center justify-between mt-1">
@@ -384,21 +384,14 @@ export default function AirdropPage() {
                 </p>
                 <p className="text-[10px] text-[#7B8BA5]">
                   {l2Unlocked
-                    ? `You have ${levels[0]?.count || 0} directs. Earning ${formatCxl(levels.filter(l => l.level > 1).reduce((s, l) => s + l.rate, 0))} extra CXL/day from L2-L5`
-                    : `Invite 2 direct referrals to unlock +0.70 CXL/day (L2-L5)`
+                    ? `You have ${levels[0]?.count || 0} directs. Earning extra CXL from L2-L5 referrals`
+                    : `Invite 2 direct referrals to unlock L2-L5 earnings`
                   }
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Total */}
-          <div className="flex items-center justify-between py-2 px-3 rounded-lg" style={{ background: 'rgba(0,229,255,0.04)' }}>
-            <span className="text-xs font-semibold text-white">Total Potential</span>
-            <span className="text-sm font-bold font-mono text-[#00FFB2]">
-              {l2Unlocked ? '1.20' : '0.50'} CXL/day
-            </span>
-          </div>
         </div>
       </div>
 
