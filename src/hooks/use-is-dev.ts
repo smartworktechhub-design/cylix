@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 
-export function useIsDev() {
-  const [isDev, setIsDev] = useState(false);
+export function useIsDev(): boolean | null {
+  const [isDev, setIsDev] = useState<boolean | null>(null);
 
   useEffect(() => {
     const host = window.location.hostname;

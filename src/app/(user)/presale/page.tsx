@@ -81,6 +81,14 @@ export default function PresalePage() {
     setBuying(false);
   };
 
+  if (isDev === null) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 size={24} className="animate-spin text-[#FFB800]" />
+      </div>
+    );
+  }
+
   if (!isDev) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -171,7 +179,7 @@ export default function PresalePage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-[1px] bg-[rgba(255,184,0,0.04)]">
+        <div className="grid grid-cols-2 gap-[1px] bg-[rgba(255,184,0,0.04)]">
           <div className="p-3 text-center" style={{ background: 'rgba(9,11,20,0.97)' }}>
             <p className="text-[10px] text-[#7B8BA5] uppercase tracking-wider">Supply</p>
             <p className="text-sm font-bold font-mono text-white">{formatCxl(stats.remaining)}</p>
@@ -181,11 +189,6 @@ export default function PresalePage() {
             <p className="text-[10px] text-[#7B8BA5] uppercase tracking-wider">Sold</p>
             <p className="text-sm font-bold font-mono text-[#FFB800]">{formatCxl(stats.sold)}</p>
             <p className="text-[10px] text-[#7B8BA5]">CXL</p>
-          </div>
-          <div className="p-3 text-center" style={{ background: 'rgba(9,11,20,0.97)' }}>
-            <p className="text-[10px] text-[#7B8BA5] uppercase tracking-wider">Users</p>
-            <p className="text-sm font-bold font-mono text-[#00FFB2]">{stats.totalUsers}</p>
-            <p className="text-[10px] text-[#7B8BA5]">enrolled</p>
           </div>
         </div>
 

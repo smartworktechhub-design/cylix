@@ -116,6 +116,14 @@ export default function AirdropPage() {
     setClaiming(false);
   };
 
+  if (isDev === null) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 size={24} className="animate-spin text-[#00E5FF]" />
+      </div>
+    );
+  }
+
   if (!isDev) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -202,7 +210,7 @@ export default function AirdropPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-[1px] bg-[rgba(0,229,255,0.04)]">
+        <div className="grid grid-cols-2 gap-[1px] bg-[rgba(0,229,255,0.04)]">
           <div className="p-3 text-center" style={{ background: 'rgba(9,11,20,0.97)' }}>
             <p className="text-[10px] text-[#7B8BA5] uppercase tracking-wider">Supply</p>
             <p className="text-sm font-bold font-mono text-white">{formatCxl(stats.remaining)}</p>
@@ -210,13 +218,8 @@ export default function AirdropPage() {
           </div>
           <div className="p-3 text-center" style={{ background: 'rgba(9,11,20,0.97)' }}>
             <p className="text-[10px] text-[#7B8BA5] uppercase tracking-wider">Price</p>
-            <p className="text-sm font-bold font-mono text-[#FFB800]">${stats.price.toFixed(2)}</p>
+            <p className="text-sm font-bold font-mono text-[#FFB800]">${stats.price.toFixed(4)}</p>
             <p className="text-[10px] text-[#7B8BA5]">per CXL</p>
-          </div>
-          <div className="p-3 text-center" style={{ background: 'rgba(9,11,20,0.97)' }}>
-            <p className="text-[10px] text-[#7B8BA5] uppercase tracking-wider">Team</p>
-            <p className="text-sm font-bold font-mono text-[#00FFB2]">{totalTeam}</p>
-            <p className="text-[10px] text-[#7B8BA5]">users</p>
           </div>
         </div>
 

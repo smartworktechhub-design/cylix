@@ -131,6 +131,7 @@ export function CxlTokenCard() {
       .catch(() => {});
   };
 
+  if (isDev === null) return null;
   if (!isDev) return null;
 
   if (loading) {
