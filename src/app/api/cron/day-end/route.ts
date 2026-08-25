@@ -1,12 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processDayEnd, processDay91Settlement } from '@/lib/airdrop';
 
-export async function POST(req: NextRequest) {
+async function verifyCronAuth(req: NextRequest): Promise<boolean> {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.replace('Bearer ', '');
-  const validToken = process.env.CRON_SECRET || process.env.ADMIN_TOKEN_SECRET;
+  const cronSecret = process.env.CRON_SECRET;
+  const adminToken = process.env.ADMIN_TOKEN_SECRET;
+  
+  if (cronSecret && token === cronSecret) return true;
+  if (adminToken && token === adminToken) return true;
+  
+  const url = new URL(req.url);
+  const keyParam = url.searchParams.get('key');
+  if (cronSecret && keyParam === cronSecret) return true;
+  
+  return false;
+}
 
-  if (!validToken || token !== validToken) {
+export async function GET(req: NextRequest) {
+  const authorized = await verifyCronAuth(req);
+  if (!authorized) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const dayEndResult = await processDayEnd();
+  const settlementResult = await processDay91Settlement();
+
+  return NextResponse.json({
+    dayEnd: dayEndResult,
+    settlement: settlementResult,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export async function POST(req: NextRequest) {
+  const authorized = await verifyCronAuth(req);
+  if (!authorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -19,21 +48,4 @@ export async function POST(req: NextRequest) {
 
   const result = await processDayEnd();
   return NextResponse.json(result);
-}
-
-export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.replace('Bearer ', '');
-  const validToken = process.env.CRON_SECRET || process.env.ADMIN_TOKEN_SECRET;
-
-  if (!validToken || token !== validToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const { getCurrentDay, getPresalePrice, getConfig } = await import('@/lib/airdrop');
-  const day = await getCurrentDay();
-  const price = await getPresalePrice();
-  const config = await getConfig();
-
-  return NextResponse.json({ day, price, config });
 }
