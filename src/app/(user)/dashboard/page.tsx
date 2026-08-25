@@ -20,6 +20,7 @@ import { BanScreen } from '@/components/ui/ban-screen';
 import { useDisconnect } from 'wagmi';
 import { TokenBanner } from '@/components/ui/token-banner';
 import { CxlTokenCard } from '@/components/ui/cxl-token-card';
+import { CxlLaunchCountdown } from '@/components/ui/cxl-launch-countdown';
 import { PublicFooter } from '@/components/layout/public-footer';
 
 const cn = (...classes: (string | boolean | undefined | null)[]) => classes.filter(Boolean).join(' ');
@@ -411,6 +412,9 @@ export default function DashboardPage() {
       <div className="px-4 mb-3">
         <TokenBanner />
       </div>
+
+      {/* ====== CXL LAUNCH COUNTDOWN ====== */}
+      <CxlLaunchCountdown />
 
       {/* ====== CXL TOKEN CARD ====== */}
       <div className="px-4 mb-3">
