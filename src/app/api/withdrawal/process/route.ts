@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server';
 import { processHeldWithdrawals } from '@/lib/withdrawal-engine';
-
-function verifyAdmin(req: Request): boolean {
-  const auth = req.headers.get('authorization');
-  if (!auth) return false;
-  const token = auth.replace('Bearer ', '');
-  return token === process.env.ADMIN_TOKEN_SECRET || token === process.env.CRON_SECRET;
-}
+import { validateAdminToken } from '@/app/api/admin/auth/route';
 
 export async function POST(req: Request) {
-  if (!verifyAdmin(req)) {
+  const auth = req.headers.get('authorization');
+  const token = auth?.replace('Bearer ', '') || '';
+  const isAdmin = await validateAdminToken(token);
+  if (!isAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
