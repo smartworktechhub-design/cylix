@@ -117,7 +117,7 @@ export default function AdminWithdrawals() {
     try {
       const res = await fetch('/api/withdrawal/process', {
         method: 'POST',
-        headers: { authorization: `Bearer ${localStorage.getItem('admin_token') || ''}` },
+        headers: { authorization: `Bearer ${sessionStorage.getItem('cx_admin_token') || ''}` },
       });
       const data = await res.json();
       if (res.ok) {
