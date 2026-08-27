@@ -34,6 +34,7 @@ const typeConfig: Record<string, { icon: typeof ArrowUpRight; color: string; lab
   referral: { icon: TrendingUp, color: '#00E5FF', label: 'Referral' },
   ascension_credit: { icon: TrendingUp, color: '#7B61FF', label: 'Ascension' },
   presale_purchase: { icon: Coins, color: '#FFB800', label: 'Presale' },
+  presale_referral: { icon: TrendingUp, color: '#FFB800', label: 'Presale Referral' },
 };
 
 const levelColors: Record<string, string> = {
@@ -52,6 +53,7 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [cxlEarnings, setCxlEarnings] = useState<any[]>([]);
   const [cxlBalance, setCxlBalance] = useState<any>(null);
+  const [presaleReferrals, setPresaleReferrals] = useState<any[]>([]);
   const [summaryStats, setSummaryStats] = useState([
     { label: 'Total Transactions', value: 0, icon: RefreshCw, color: '#00E5FF' },
     { label: 'Total Volume', value: 0, icon: DollarSign, color: '#7B61FF' },
@@ -88,6 +90,10 @@ export default function TransactionsPage() {
         if (balanceRes?.balance) {
           setCxlBalance(balanceRes.balance);
         }
+
+        // Load presale referral + purchase transactions
+        const presaleTxs = txs.filter((t: any) => t.type === 'presale_referral' || t.type === 'presale_purchase');
+        setPresaleReferrals(presaleTxs);
       } finally {
         setLoading(false);
       }
@@ -103,7 +109,7 @@ export default function TransactionsPage() {
           const typeMap: Record<string, string[]> = {
             Purchases: ['slot_purchase', 'upgrade', 'recycle', 'presale_purchase'],
             Withdrawals: ['withdraw', 'withdrawal'],
-            Earnings: ['daily_earning', 'matrix_earning', 'pool_earning', 'referral', 'ascension_credit'],
+            Earnings: ['daily_earning', 'matrix_earning', 'pool_earning', 'referral', 'ascension_credit', 'presale_referral'],
           };
           const targets = typeMap[activeTab] || [];
           return targets.includes(t.type);
@@ -221,6 +227,34 @@ export default function TransactionsPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Presale Referral Earnings */}
+              {presaleReferrals.length > 0 && (
+                <div>
+                  <p className="text-xs text-[#7B8BA5] uppercase tracking-wider font-semibold mb-2">Presale Activity</p>
+                  <div className="space-y-2">
+                    {presaleReferrals.map((tx: any) => (
+                      <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: tx.type === 'presale_referral' ? 'rgba(255,184,0,0.06)' : 'rgba(0,229,255,0.06)', border: `1px solid ${tx.type === 'presale_referral' ? 'rgba(255,184,0,0.15)' : 'rgba(0,229,255,0.15)'}` }}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: tx.type === 'presale_referral' ? 'rgba(255,184,0,0.15)' : 'rgba(0,229,255,0.15)' }}>
+                            {tx.type === 'presale_referral' ? <TrendingUp size={14} className="text-[#FFB800]" /> : <Coins size={14} className="text-[#00E5FF]" />}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-white">{tx.type === 'presale_referral' ? 'Presale Referral' : 'Presale Purchase'}</p>
+                            <p className="text-[10px] text-[#7B8BA5]">{tx.description}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-sm font-bold font-mono ${tx.amount > 0 ? 'text-[#FFB800]' : 'text-[#FF5C7A]'}`}>
+                            {tx.amount > 0 ? '+' : ''}${Math.abs(tx.amount).toFixed(4)}
+                          </p>
+                          <p className="text-[10px] text-[#7B8BA5]">{new Date(tx.created_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <Table>

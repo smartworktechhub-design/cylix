@@ -353,6 +353,8 @@ export async function purchasePresale(userId: string, usdtAmount: number) {
       .from('user_token_balances')
       .update({
         presale_vested_locked: (Number(balanceRow.presale_vested_locked) || 0) + cxlAmount,
+        cxl_staked: (Number(balanceRow.cxl_staked) || 0) + stakedCxl,
+        cxl_balance: (Number(balanceRow.cxl_balance) || 0) + cxlAmount,
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', userId);
