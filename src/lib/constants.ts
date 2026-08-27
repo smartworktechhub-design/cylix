@@ -109,7 +109,7 @@ export const REBUY_MAX = 2;
 export const APP_VERSION = '1.0.0';
 
 export const USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955';
-export const TREASURY_WALLET = '0xb0bf2a92b33caa2de9c4a24836eadb137fe77373';
+export const TREASURY_WALLET = '0x1496A6bdD616DA866661cEF70E84B1115C654c72';
 export const BSC_RPC_URL = 'https://bsc-dataseed.binance.org/';
 export const BSC_CHAIN_ID = 56;
 export const USDT_DECIMALS = 18;
