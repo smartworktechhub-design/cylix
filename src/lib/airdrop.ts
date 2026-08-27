@@ -292,17 +292,6 @@ export async function purchasePresale(userId: string, usdtAmount: number) {
 
   if (userErr || !userProfile) return { error: 'User not found' };
 
-  const balance = Number(userProfile.total_earned) || 0;
-  if (balance < totalUSDT) return { error: `Insufficient USDT balance. Need $${totalUSDT.toFixed(4)}, you have $${balance.toFixed(4)}` };
-
-  const newBalance = Math.round((balance - totalUSDT) * 100) / 100;
-  const { error: deductErr } = await supabase
-    .from('users')
-    .update({ total_earned: newBalance })
-    .eq('id', userId);
-
-  if (deductErr) return { error: 'Failed to deduct USDT balance' };
-
   const { data: purchase, error: insertErr } = await supabase.from('presale_purchases').insert({
     user_id: userId,
     cxl_amount: cxlAmount,
@@ -370,7 +359,7 @@ export async function purchasePresale(userId: string, usdtAmount: number) {
     data: { type: 'presale_purchase', cxlAmount, price, totalUSDT, day, stakedCxl, streamedCxl },
   });
 
-  return { success: true, cxlAmount, price, totalUSDT, day, newUSDTBalance: newBalance, stakedCxl, streamedCxl };
+  return { success: true, cxlAmount, price, totalUSDT, day, stakedCxl, streamedCxl };
 }
 
 async function distributePresaleReferralCommission(userId: string, purchaseUSDT: number, day: number) {
