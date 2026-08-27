@@ -5,6 +5,7 @@ import {
   AIRDROP_DAILY_RATES,
   AIRDROP_DURATION_DAYS,
   PRESALE,
+  PRESALE_SUPPLY_LIMIT,
   SETTLEMENT,
   L2_DIRECTS_REQUIRED,
   getPresalePriceForDay,
@@ -260,7 +261,7 @@ export async function claimDailyAirdrop(userId: string) {
   };
 }
 
-export async function purchasePresale(userId: string, cxlAmount: number) {
+export async function purchasePresale(userId: string, usdtAmount: number) {
   const supabase = getServiceSupabase();
   const config = await getConfig();
   const isActive = getConfigValue(config, 'is_active', 'true');
@@ -270,15 +271,16 @@ export async function purchasePresale(userId: string, cxlAmount: number) {
   if (day <= 0) return { error: 'Presale not started' };
   if (day > AIRDROP_DURATION_DAYS) return { error: 'Presale ended (Day 91+)' };
 
-  if (cxlAmount < PRESALE.minCXL) return { error: `Minimum purchase is ${PRESALE.minCXL} CXL` };
-  if (cxlAmount > PRESALE.maxCXL) return { error: `Maximum purchase is ${PRESALE.maxCXL} CXL` };
-
-  const totalSupply = getConfigNumber(config, 'cxl_total_supply', CXL_SUPPLY);
-  const sold = getConfigNumber(config, 'cxl_sold', 0);
-  if (sold + cxlAmount > totalSupply) return { error: 'Insufficient CXL supply remaining' };
+  if (usdtAmount < PRESALE.minUSDT) return { error: `Minimum purchase is $${PRESALE.minUSDT}` };
+  if (usdtAmount > PRESALE.maxUSDT) return { error: `Maximum purchase is $${PRESALE.maxUSDT}` };
 
   const price = await getPresalePrice();
-  const totalUSDT = Math.round(cxlAmount * price * 10000) / 10000;
+  const cxlAmount = Math.floor((usdtAmount / price) * 100) / 100;
+
+  const sold = getConfigNumber(config, 'cxl_sold', 0);
+  if (sold + cxlAmount > PRESALE_SUPPLY_LIMIT) return { error: `Presale supply limit reached. Only ${(PRESALE_SUPPLY_LIMIT - sold).toFixed(2)} CXL remaining.` };
+
+  const totalUSDT = Math.round(usdtAmount * 100) / 100;
 
   const { data: userProfile, error: userErr } = await supabase
     .from('users')
@@ -313,7 +315,7 @@ export async function purchasePresale(userId: string, cxlAmount: number) {
     user_id: userId,
     type: 'presale_purchase',
     amount: -totalUSDT,
-    description: `Presale: ${cxlAmount} CXL @ $${price.toFixed(4)}/CXL (Day ${day})`,
+    description: `Presale: ${cxlAmount.toFixed(2)} CXL @ $${price.toFixed(4)}/CXL (Day ${day})`,
   });
 
   await setConfig('cxl_sold', String(sold + cxlAmount));
@@ -335,7 +337,7 @@ export async function purchasePresale(userId: string, cxlAmount: number) {
     user_id: userId,
     type: 'earnings',
     title: 'CXL Presale Purchase',
-    message: `Purchased ${cxlAmount} CXL for $${totalUSDT.toFixed(4)} at $${price.toFixed(4)}/CXL on Day ${day}`,
+    message: `Purchased ${cxlAmount.toFixed(2)} CXL for $${totalUSDT.toFixed(4)} at $${price.toFixed(4)}/CXL on Day ${day}`,
     data: { type: 'presale_purchase', cxlAmount, price, totalUSDT, day },
   });
 

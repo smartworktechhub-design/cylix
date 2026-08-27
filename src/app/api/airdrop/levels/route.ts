@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     levels: [
-      { level: 1, label: 'You (Direct)', count: 1, rate: AIRDROP_DAILY_RATES.L1, totalEarned: totalEarned.L1, unlocked: true, color: '#00E5FF' },
+      { level: 1, label: 'Direct Referrals', count: l1Count, rate: AIRDROP_DAILY_RATES.L1, totalEarned: totalEarned.L1, unlocked: true, color: '#00E5FF' },
       { level: 2, label: 'Level 2', count: l2Count, rate: AIRDROP_DAILY_RATES.L2, totalEarned: totalEarned.L2, unlocked: l2Unlocked, color: '#7B61FF' },
       { level: 3, label: 'Level 3', count: l3Count, rate: AIRDROP_DAILY_RATES.L3, totalEarned: totalEarned.L3, unlocked: l2Unlocked, color: '#00FFB2' },
       { level: 4, label: 'Level 4', count: l4Count, rate: AIRDROP_DAILY_RATES.L4, totalEarned: totalEarned.L4, unlocked: l2Unlocked, color: '#FFB800' },

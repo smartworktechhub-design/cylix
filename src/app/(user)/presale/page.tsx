@@ -85,18 +85,18 @@ export default function PresalePage() {
 
   const handleBuy = async () => {
     const amt = parseFloat(amount);
-    if (!amt || amt < 10 || amt > 100) return;
+    if (!amt || amt < 1 || amt > 100) return;
     setBuying(true);
     setMessage('');
     try {
       const res = await fetch('/api/presale/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, cxlAmount: amt }),
+        body: JSON.stringify({ userId, usdtAmount: amt }),
       });
       const json = await res.json();
       if (res.ok) {
-        setMessage(`Bought ${json.cxlAmount} CXL for $${json.totalUSDT.toFixed(4)}!`);
+        setMessage(`Bought ${json.cxlAmount.toFixed(2)} CXL for $${json.totalUSDT.toFixed(4)}!`);
         setAmount('');
         fetchData();
       } else {
@@ -153,8 +153,11 @@ export default function PresalePage() {
   }
 
   const dayProgress = stats.day > 0 ? Math.min((stats.day / 90) * 100, 100) : 0;
-  const supplyPercent = stats.totalSupply > 0 ? ((stats.totalSupply - stats.remaining) / stats.totalSupply) * 100 : 0;
-  const totalCost = amount && parseFloat(amount) >= 10 ? parseFloat(amount) * stats.price : 0;
+  const presaleLimit = (stats as any).presaleSupplyLimit || 110000;
+  const presaleRemaining = (stats as any).presaleRemaining || presaleLimit - stats.sold;
+  const presaleSoldPercent = presaleLimit > 0 ? (stats.sold / presaleLimit) * 100 : 0;
+  const totalCost = amount && parseFloat(amount) >= 1 ? parseFloat(amount) : 0;
+  const cxlYouGet = totalCost > 0 ? Math.floor((totalCost / stats.price) * 100) / 100 : 0;
 
   const displayDay = selectedDay || hoveredDay || stats.day;
   const displayPrice = prices[displayDay - 1] || prices[0];
@@ -207,14 +210,18 @@ export default function PresalePage() {
           </div>
         </div>
 
-        {/* Supply bar */}
+        {/* Presale Supply */}
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-[#7B8BA5]">Sold: {formatCxl(stats.sold)} / {formatCxl(stats.totalSupply)}</span>
-            <span className="text-[10px] text-[#FFB800] font-bold">{supplyPercent.toFixed(1)}%</span>
+            <span className="text-[10px] text-[#7B8BA5]">Presale: {formatCxl(stats.sold)} / {formatCxl(presaleLimit)} CXL (10% of supply)</span>
+            <span className="text-[10px] text-[#FFB800] font-bold">{presaleSoldPercent.toFixed(1)}%</span>
           </div>
           <div className="h-1.5 rounded-full bg-[rgba(255,184,0,0.1)] overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-[#FFB800] to-[#FF5C7A]" style={{ width: `${supplyPercent}%` }} />
+            <div className="h-full rounded-full bg-gradient-to-r from-[#FFB800] to-[#FF5C7A]" style={{ width: `${presaleSoldPercent}%` }} />
+          </div>
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-[10px] text-[#00FFB2] font-semibold">{formatCxl(presaleRemaining)} CXL remaining</span>
+            <span className="text-[10px] text-[#7B8BA5]">Total supply: {formatCxl(stats.totalSupply)} CXL</span>
           </div>
         </div>
       </div>
@@ -366,7 +373,7 @@ export default function PresalePage() {
             <DollarSign size={14} className="text-[#FFB800]" />
             <h3 className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Buy CXL Tokens</h3>
           </div>
-          <p className="text-[10px] text-[#7B8BA5]">Min 10 CXL, Max 100 CXL per purchase. USDT deducted from earnings.</p>
+          <p className="text-[10px] text-[#7B8BA5]">Spend $1-$100 USDT. USDT deducted from earnings.</p>
         </div>
         <div className="p-4 pt-3">
           {balance && (
@@ -381,14 +388,14 @@ export default function PresalePage() {
               type="number"
               value={amount}
               onChange={e => setAmount(e.target.value)}
-              placeholder="CXL amount (10-100)"
-              min={10}
+              placeholder="USDT amount ($1-$100)"
+              min={1}
               max={100}
               className="flex-1 h-12 px-4 rounded-xl bg-[rgba(11,16,32,0.8)] border border-[rgba(255,184,0,0.15)] text-white placeholder:text-[#7B8BA5]/50 text-sm focus:outline-none focus:border-[rgba(255,184,0,0.4)] font-mono"
             />
             <button
               onClick={handleBuy}
-              disabled={buying || !amount || parseFloat(amount) < 10 || parseFloat(amount) > 100}
+              disabled={buying || !amount || parseFloat(amount) < 1 || parseFloat(amount) > 100}
               className="h-12 px-6 rounded-xl font-bold text-sm transition-all bg-gradient-to-r from-[#FFB800] to-[#FF5C7A] text-[#050816] hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5"
             >
               {buying ? <Loader2 size={14} className="animate-spin" /> : <ShoppingCart size={14} />}
@@ -398,7 +405,7 @@ export default function PresalePage() {
 
           {/* Quick amounts */}
           <div className="flex gap-2 mb-3">
-            {[10, 25, 50, 75, 100].map(qty => (
+            {[5, 10, 25, 50, 100].map(qty => (
               <button
                 key={qty}
                 onClick={() => setAmount(String(qty))}
@@ -408,12 +415,12 @@ export default function PresalePage() {
                     : 'bg-[rgba(255,184,0,0.04)] text-[#7B8BA5] border border-[rgba(255,184,0,0.08)] hover:border-[rgba(255,184,0,0.2)]'
                 }`}
               >
-                {qty}
+                ${qty}
               </button>
             ))}
           </div>
 
-          {amount && parseFloat(amount) >= 10 && parseFloat(amount) <= 100 && (
+          {amount && parseFloat(amount) >= 1 && parseFloat(amount) <= 100 && (
             <div className="rounded-xl p-3 mb-3" style={{ background: 'rgba(255,184,0,0.04)', border: '1px solid rgba(255,184,0,0.1)' }}>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-[#7B8BA5]">You Pay</span>
@@ -421,7 +428,7 @@ export default function PresalePage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-[#7B8BA5]">You Get</span>
-                <span className="text-lg font-bold font-mono text-[#00FFB2]">{formatCxl(parseFloat(amount))} CXL</span>
+                <span className="text-lg font-bold font-mono text-[#00FFB2]">{formatCxl(cxlYouGet)} CXL</span>
               </div>
               <div className="flex items-center justify-between mt-1 pt-1 border-t border-[rgba(255,184,0,0.08)]">
                 <span className="text-[10px] text-[#7B8BA5]">Rate</span>
@@ -430,10 +437,10 @@ export default function PresalePage() {
             </div>
           )}
 
-          {amount && (parseFloat(amount) < 10 || parseFloat(amount) > 100) && (
+          {amount && (parseFloat(amount) < 1 || parseFloat(amount) > 100) && (
             <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,92,122,0.06)', border: '1px solid rgba(255,92,122,0.1)' }}>
               <AlertCircle size={12} className="text-[#FF5C7A]" />
-              <span className="text-[10px] text-[#FF5C7A]">Enter amount between 10-100 CXL</span>
+              <span className="text-[10px] text-[#FF5C7A]">Enter amount between $1-$100 USDT</span>
             </div>
           )}
 

@@ -158,9 +158,11 @@ export function getPresalePriceForDay(day: number): number {
 
 export const DEX_LAUNCH_PRICE = 0.15;
 
+export const PRESALE_SUPPLY_LIMIT = 110000; // 10% of 1.1M total supply
+
 export const PRESALE = {
-  minCXL: 10,
-  maxCXL: 100,
+  minUSDT: 1,
+  maxUSDT: 100,
   startPrice: 0.01,
   dailyIncrement: 0.01,
   durationDays: 90,

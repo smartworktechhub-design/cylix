@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Coins, Zap, Clock, ShoppingCart, TrendingUp, Lock, ChevronRight, Loader2, DollarSign, Timer, ArrowRight } from 'lucide-react';
+import { Coins, ShoppingCart, TrendingUp, ChevronRight, Loader2, DollarSign, Timer, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useIsDev } from '@/hooks/use-is-dev';
 import { useAppStore } from '@/stores/app-store';
@@ -83,28 +83,6 @@ export function CxlTokenCard() {
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
   }, [userId]);
-
-  const handleClaimDaily = async () => {
-    setClaiming(true);
-    setClaimMessage('');
-    try {
-      const res = await fetch('/api/airdrop/claim', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      });
-      const json = await res.json();
-      if (res.ok) {
-        setClaimMessage(`+${json.totalCXL} CXL claimed! Day ${json.day}`);
-        refreshData();
-      } else {
-        setClaimMessage(json.error || 'Claim failed');
-      }
-    } catch {
-      setClaimMessage('Network error');
-    }
-    setClaiming(false);
-  };
 
   const handleClaimBonus = async () => {
     setClaiming(true);
@@ -256,49 +234,30 @@ export function CxlTokenCard() {
             </div>
           </div>
 
-          {/* Streak */}
-          <div className="flex items-center gap-3 mb-3 px-1">
-            <div className="flex items-center gap-1">
-              <Clock size={12} className="text-[#00E5FF]" />
-              <span className="text-xs text-[#7B8BA5]">Streak: <span className="text-white font-bold">{balance.consecutive_claim_days}d</span></span>
+          {/* Referral Earnings Info */}
+          <div className="rounded-xl p-3 mb-3 border border-[rgba(0,229,255,0.1)]" style={{ background: 'rgba(0,229,255,0.04)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp size={12} className="text-[#00E5FF]" />
+              <span className="text-[10px] text-[#7B8BA5] uppercase tracking-wider">Referral Earnings</span>
             </div>
-            <div className="flex items-center gap-1">
-              <TrendingUp size={12} className="text-[#00FFB2]" />
-              <span className="text-xs text-[#7B8BA5]">Total: <span className="text-white font-bold">{balance.total_claim_days}d</span></span>
-            </div>
+            <p className="text-[10px] text-[#7B8BA5]">CXL earned automatically from your referrals at each level.</p>
           </div>
 
           {/* Signup Bonus */}
-          {!balance.signup_bonus_claimed && (
+          {!balance.signup_bonus_claimed ? (
             <button
               onClick={handleClaimBonus}
               disabled={claiming}
               className="w-full h-10 rounded-xl font-semibold text-sm mb-2 transition-all bg-gradient-to-r from-[#FFB800] to-[#FF5C7A] text-[#050816] hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {claiming ? <Loader2 size={14} className="animate-spin" /> : <Coins size={14} />}
-              Claim Signup Bonus
+              Claim Signup Bonus (10 CXL)
             </button>
-          )}
-
-          {/* Daily Claim */}
-          {balance.signup_bonus_claimed && (
-            <button
-              onClick={handleClaimDaily}
-              disabled={claiming || !canClaim.canClaim}
-              className={`w-full h-10 rounded-xl font-semibold text-sm mb-2 transition-all flex items-center justify-center gap-2 ${
-                canClaim.canClaim && !claiming
-                  ? 'bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] hover:opacity-90'
-                  : 'bg-[rgba(0,229,255,0.05)] text-[#7B8BA5] cursor-not-allowed'
-              }`}
-            >
-              {claiming ? (
-                <><Loader2 size={14} className="animate-spin" /> Claiming...</>
-              ) : canClaim.canClaim ? (
-                <><Zap size={14} /> Claim Daily Airdrop</>
-              ) : (
-                <><Lock size={14} /> {canClaim.reason || 'Already claimed today'}</>
-              )}
-            </button>
+          ) : (
+            <div className="rounded-xl p-3 mb-2 text-center" style={{ background: 'rgba(0,255,178,0.06)', border: '1px solid rgba(0,255,178,0.1)' }}>
+              <p className="text-xs text-[#00FFB2] font-semibold">Signup Bonus Claimed</p>
+              <p className="text-[10px] text-[#7B8BA5] mt-0.5">Earn CXL from your referral levels</p>
+            </div>
           )}
 
           {claimMessage && (
