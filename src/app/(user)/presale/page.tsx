@@ -5,7 +5,7 @@ import { Coins, ShoppingCart, Loader2, TrendingUp, Clock, ChevronRight, Zap, Ale
 import Link from 'next/link';
 import { useIsDev } from '@/hooks/use-is-dev';
 import { useAppStore } from '@/stores/app-store';
-import { TREASURY_WALLET, USDT_ADDRESS, USDT_DECIMALS } from '@/lib/constants';
+import { PRESALE_WALLET, USDT_ADDRESS, USDT_DECIMALS } from '@/lib/constants';
 import { useAccount, useSwitchChain } from 'wagmi';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { bsc } from 'wagmi/chains';
@@ -190,7 +190,7 @@ export default function PresalePage() {
         address: USDT_ADDRESS,
         abi: USDT_ABI,
         functionName: 'transfer',
-        args: [TREASURY_WALLET, value],
+        args: [PRESALE_WALLET, value],
       });
     } catch (err: any) {
       setPurchaseStatus('error');
