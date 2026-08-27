@@ -293,27 +293,6 @@ export default function AirdropPage() {
               </button>
             )}
 
-            {/* Daily Claim */}
-            {balance.signup_bonus_claimed && (
-              <button
-                onClick={handleClaimDaily}
-                disabled={claiming || !canClaim.canClaim}
-                className={`w-full h-12 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg ${
-                  canClaim.canClaim && !claiming
-                    ? 'bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] hover:opacity-90 shadow-[rgba(0,229,255,0.15)]'
-                    : 'bg-[rgba(0,229,255,0.05)] text-[#7B8BA5] cursor-not-allowed'
-                }`}
-              >
-                {claiming ? (
-                  <><Loader2 size={16} className="animate-spin" /> Claiming...</>
-                ) : canClaim.canClaim ? (
-                  <><Zap size={16} /> Claim Daily Airdrop</>
-                ) : (
-                  <><Lock size={16} /> {canClaim.reason || 'Already claimed today'}</>
-                )}
-              </button>
-            )}
-
             {claimMessage && (
               <p className={`text-xs text-center font-semibold py-1 ${claimMessage.includes('Error') || claimMessage.includes('failed') ? 'text-[#FF5C7A]' : 'text-[#00FFB2]'}`}>
                 {claimMessage}

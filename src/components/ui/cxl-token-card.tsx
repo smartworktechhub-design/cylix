@@ -206,44 +206,33 @@ export function CxlTokenCard() {
       {/* Balance Section */}
       {balance && (
         <div className="p-4 pt-3">
-          {/* Your Presale CXL Holding */}
-          <div className="rounded-xl p-3 mb-3 border border-[rgba(255,184,0,0.1)]" style={{ background: 'rgba(255,184,0,0.04)' }}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] text-[#7B8BA5] uppercase tracking-wider">Your CXL Holding</span>
-              <Coins size={12} className="text-[#FFB800]" />
+          {/* Total Earned + Total Balance */}
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="rounded-xl p-3 border border-[rgba(0,229,255,0.1)]" style={{ background: 'rgba(0,229,255,0.04)' }}>
+              <p className="text-[9px] text-[#7B8BA5] uppercase">Total Earned</p>
+              <p className="text-base font-bold font-mono text-[#00E5FF]">{formatCxl(balance.cxl_earned_total)}</p>
+              <p className="text-[9px] text-[#7B8BA5]">Signup + Airdrop</p>
             </div>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <div>
-                <p className="text-[9px] text-[#7B8BA5]">Balance</p>
-                <p className="text-base font-bold font-mono text-[#FFB800]">{formatCxl(balance.cxl_balance)}</p>
-              </div>
-              <div>
-                <p className="text-[9px] text-[#7B8BA5]">Total Earned</p>
-                <p className="text-base font-bold font-mono text-[#00E5FF]">{formatCxl(balance.cxl_earned_total)}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <div className="rounded-lg px-2 py-1" style={{ background: 'rgba(0,255,178,0.04)' }}>
-                <p className="text-[9px] text-[#7B8BA5]">Liquid</p>
-                <p className="text-xs font-bold font-mono text-[#00FFB2]">{formatCxl(balance.cxl_liquid)}</p>
-              </div>
-              <div className="rounded-lg px-2 py-1" style={{ background: 'rgba(123,97,255,0.04)' }}>
-                <p className="text-[9px] text-[#7B8BA5]">Staked</p>
-                <p className="text-xs font-bold font-mono text-[#7B61FF]">{formatCxl(balance.cxl_staked)}</p>
-              </div>
+            <div className="rounded-xl p-3 border border-[rgba(255,184,0,0.1)]" style={{ background: 'rgba(255,184,0,0.04)' }}>
+              <p className="text-[9px] text-[#7B8BA5] uppercase">Total Balance</p>
+              <p className="text-base font-bold font-mono text-[#FFB800]">{formatCxl(balance.cxl_balance)}</p>
+              <p className="text-[9px] text-[#7B8BA5]">Available CXL</p>
             </div>
           </div>
 
-          {/* Referral Earnings Info */}
-          <div className="rounded-xl p-3 mb-3 border border-[rgba(0,229,255,0.1)]" style={{ background: 'rgba(0,229,255,0.04)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp size={12} className="text-[#00E5FF]" />
-              <span className="text-[10px] text-[#7B8BA5] uppercase tracking-wider">Referral Earnings</span>
+          {/* Liquid + Staked */}
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="rounded-xl p-3 border border-[rgba(0,255,178,0.1)]" style={{ background: 'rgba(0,255,178,0.04)' }}>
+              <p className="text-[9px] text-[#7B8BA5] uppercase">Liquid</p>
+              <p className="text-sm font-bold font-mono text-[#00FFB2]">{formatCxl(balance.cxl_liquid)}</p>
             </div>
-            <p className="text-[10px] text-[#7B8BA5]">CXL earned automatically from your referrals at each level.</p>
+            <div className="rounded-xl p-3 border border-[rgba(123,97,255,0.1)]" style={{ background: 'rgba(123,97,255,0.04)' }}>
+              <p className="text-[9px] text-[#7B8BA5] uppercase">Staked</p>
+              <p className="text-sm font-bold font-mono text-[#7B61FF]">{formatCxl(balance.cxl_staked)}</p>
+            </div>
           </div>
 
-          {/* Presale Vesting Info */}
+          {/* Presale Vesting */}
           {(balance as any).presale_vested_locked > 0 && (
             <div className="rounded-xl p-3 mb-3 border border-[rgba(255,184,0,0.1)]" style={{ background: 'rgba(255,184,0,0.04)' }}>
               <div className="flex items-center justify-between mb-1">

@@ -38,6 +38,8 @@ export async function GET(req: NextRequest) {
           consecutive_claim_days: balance.consecutive_claim_days,
           total_claim_days: balance.total_claim_days,
           last_claim_date: balance.last_claim_date,
+          presale_vested_locked: (balance as any).presale_vested_locked || 0,
+          presale_vested_claimed: (balance as any).presale_vested_claimed || 0,
         }
       : null,
     canClaim: claimStatus,

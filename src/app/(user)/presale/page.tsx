@@ -427,7 +427,7 @@ export default function PresalePage() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-[10px] text-[#7B8BA5] mb-1">
-                    <span>Installment {s.current_installment}/{s.total_installments}</span>
+                    <span>Month {s.current_installment}/{s.total_installments}</span>
                     <span>{formatCxl(s.monthly_amount)} CXL/month</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-[rgba(255,184,0,0.1)] overflow-hidden mb-2">
@@ -672,7 +672,7 @@ export default function PresalePage() {
           </div>
         </div>
         <div className="mt-2 pt-2 border-t border-[rgba(123,97,255,0.08)]">
-          <p className="text-[10px] text-[#7B8BA5]">Vesting unlocks monthly. Each installment you can claim to liquid wallet or compound back to staking.</p>
+          <p className="text-[10px] text-[#7B8BA5]">Vesting unlocks monthly. Each month you can claim to liquid wallet or compound back to staking.</p>
         </div>
       </div>
 
@@ -706,7 +706,7 @@ export default function PresalePage() {
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
           <div className="w-full max-w-sm rounded-2xl overflow-hidden border border-[rgba(255,184,0,0.15)]" style={{ background: 'linear-gradient(135deg, #0D1117, #161B22)' }}>
             <div className="p-5 text-center">
-              <h3 className="text-lg font-bold text-white mb-2" style={{ fontFamily: "'Orbitron',sans-serif" }}>Claim Vesting Installment</h3>
+              <h3 className="text-lg font-bold text-white mb-2" style={{ fontFamily: "'Orbitron',sans-serif" }}>Claim Monthly Vesting</h3>
               <p className="text-xs text-[#7B8BA5] mb-4">Choose where to receive your unlocked CXL:</p>
               <div className="space-y-2 mb-4">
                 <button
