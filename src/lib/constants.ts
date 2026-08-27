@@ -175,4 +175,22 @@ export const SETTLEMENT = {
   presaleStakedPercent: 50,
 } as const;
 
+export const PRESALE_VESTING = {
+  stakedPercent: 50,
+  streamedPercent: 50,
+  totalInstallments: 11,
+  installmentIntervalDays: 30,
+} as const;
+
+export const PRESALE_REFERRAL = {
+  totalPercent: 12,
+  levels: [
+    { level: 1, percent: 5, requiresDirects: 0 },
+    { level: 2, percent: 3, requiresDirects: 2 },
+    { level: 3, percent: 2, requiresDirects: 2 },
+    { level: 4, percent: 1, requiresDirects: 2 },
+    { level: 5, percent: 1, requiresDirects: 2 },
+  ],
+} as const;
+
 export const L2_DIRECTS_REQUIRED = 2;

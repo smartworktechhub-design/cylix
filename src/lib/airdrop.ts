@@ -6,6 +6,8 @@ import {
   AIRDROP_DURATION_DAYS,
   PRESALE,
   PRESALE_SUPPLY_LIMIT,
+  PRESALE_VESTING,
+  PRESALE_REFERRAL,
   SETTLEMENT,
   L2_DIRECTS_REQUIRED,
   getPresalePriceForDay,
@@ -284,7 +286,7 @@ export async function purchasePresale(userId: string, usdtAmount: number) {
 
   const { data: userProfile, error: userErr } = await supabase
     .from('users')
-    .select('id, total_earned')
+    .select('id, total_earned, sponsor_id')
     .eq('id', userId)
     .single();
 
@@ -301,13 +303,13 @@ export async function purchasePresale(userId: string, usdtAmount: number) {
 
   if (deductErr) return { error: 'Failed to deduct USDT balance' };
 
-  const { error: insertErr } = await supabase.from('presale_purchases').insert({
+  const { data: purchase, error: insertErr } = await supabase.from('presale_purchases').insert({
     user_id: userId,
     cxl_amount: cxlAmount,
     price_per_cxl: price,
     total_usdt: totalUSDT,
     day_number: day,
-  });
+  }).select('id').single();
 
   if (insertErr) return { error: insertErr.message };
 
@@ -320,28 +322,125 @@ export async function purchasePresale(userId: string, usdtAmount: number) {
 
   await setConfig('cxl_sold', String(sold + cxlAmount));
 
-  const tokenBalance = await getUserBalance(userId);
-  if (tokenBalance) {
+  const stakedCxl = cxlAmount * (PRESALE_VESTING.stakedPercent / 100);
+  const streamedCxl = cxlAmount * (PRESALE_VESTING.streamedPercent / 100);
+  const monthlyAmount = streamedCxl / PRESALE_VESTING.totalInstallments;
+
+  await supabase.from('presale_vesting_schedule').insert({
+    user_id: userId,
+    presale_purchase_id: purchase?.id,
+    total_cxl: cxlAmount,
+    staked_cxl: stakedCxl,
+    vested_cxl: 0,
+    monthly_amount: monthlyAmount,
+    current_installment: 0,
+    total_installments: PRESALE_VESTING.totalInstallments,
+    next_unlock_at: null,
+    status: 'locked',
+  });
+
+  await supabase
+    .from('user_token_balances')
+    .update({
+      presale_vested_locked: (await getUserBalance(userId))?.presale_vested_locked || 0,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', userId);
+
+  const balanceRow = await getUserBalance(userId);
+  if (balanceRow) {
     await supabase
       .from('user_token_balances')
       .update({
-        cxl_balance: tokenBalance.cxl_balance + cxlAmount,
-        cxl_earned_total: tokenBalance.cxl_earned_total + cxlAmount,
-        cxl_liquid: tokenBalance.cxl_liquid + cxlAmount,
+        presale_vested_locked: (Number(balanceRow.presale_vested_locked) || 0) + cxlAmount,
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', userId);
   }
 
+  await distributePresaleReferralCommission(userId, totalUSDT, day);
+
   await supabase.from('notifications').insert({
     user_id: userId,
     type: 'earnings',
     title: 'CXL Presale Purchase',
-    message: `Purchased ${cxlAmount.toFixed(2)} CXL for $${totalUSDT.toFixed(4)} at $${price.toFixed(4)}/CXL on Day ${day}`,
-    data: { type: 'presale_purchase', cxlAmount, price, totalUSDT, day },
+    message: `Purchased ${cxlAmount.toFixed(2)} CXL for $${totalUSDT.toFixed(4)} at $${price.toFixed(4)}/CXL on Day ${day}. 50% staked at launch, 50% vested over 11 months.`,
+    data: { type: 'presale_purchase', cxlAmount, price, totalUSDT, day, stakedCxl, streamedCxl },
   });
 
-  return { success: true, cxlAmount, price, totalUSDT, day, newUSDTBalance: newBalance };
+  return { success: true, cxlAmount, price, totalUSDT, day, newUSDTBalance: newBalance, stakedCxl, streamedCxl };
+}
+
+async function distributePresaleReferralCommission(userId: string, purchaseUSDT: number, day: number) {
+  const supabase = getServiceSupabase();
+  const commissionPool = purchaseUSDT * (PRESALE_REFERRAL.totalPercent / 100);
+
+  let currentUserId = userId;
+  let directCount = 0;
+
+  const { data: currentUser } = await supabase
+    .from('users')
+    .select('sponsor_id')
+    .eq('id', userId)
+    .single();
+
+  if (!currentUser?.sponsor_id) return;
+
+  currentUserId = currentUser.sponsor_id;
+
+  for (const levelConfig of PRESALE_REFERRAL.levels) {
+    if (!currentUserId) break;
+
+    if (levelConfig.level > 1) {
+      const { count } = await supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .eq('sponsor_id', currentUserId);
+
+      directCount = count || 0;
+      if (directCount < levelConfig.requiresDirects) {
+        const { data: parent } = await supabase
+          .from('users')
+          .select('sponsor_id')
+          .eq('id', currentUserId)
+          .single();
+        currentUserId = parent?.sponsor_id || null;
+        continue;
+      }
+    }
+
+    const commission = Math.round(commissionPool * (levelConfig.percent / 100) * 100) / 100;
+
+    if (commission > 0) {
+      const { data: upline } = await supabase
+        .from('users')
+        .select('id, total_earned')
+        .eq('id', currentUserId)
+        .single();
+
+      if (upline) {
+        const newUplineBalance = Math.round((Number(upline.total_earned) + commission) * 100) / 100;
+        await supabase
+          .from('users')
+          .update({ total_earned: newUplineBalance })
+          .eq('id', currentUserId);
+
+        await supabase.from('transactions').insert({
+          user_id: currentUserId,
+          type: 'presale_referral',
+          amount: commission,
+          description: `L${levelConfig.level} presale referral commission from direct`,
+        });
+      }
+    }
+
+    const { data: parent } = await supabase
+      .from('users')
+      .select('sponsor_id')
+      .eq('id', currentUserId)
+      .single();
+    currentUserId = parent?.sponsor_id || null;
+  }
 }
 
 export async function processDayEnd() {
@@ -401,6 +500,48 @@ export async function processDay91Settlement() {
     settled++;
   }
 
+  const { data: vestingSchedules } = await supabase
+    .from('presale_vesting_schedule')
+    .select('id, user_id, total_cxl, staked_cxl')
+    .eq('status', 'locked');
+
+  if (vestingSchedules && vestingSchedules.length > 0) {
+    const day91 = new Date();
+    const firstUnlock = new Date(day91);
+    firstUnlock.setDate(firstUnlock.getDate() + PRESALE_VESTING.installmentIntervalDays);
+
+    for (const vs of vestingSchedules) {
+      await supabase
+        .from('presale_vesting_schedule')
+        .update({
+          status: 'streaming',
+          next_unlock_at: firstUnlock.toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', vs.id);
+
+      const userBalance = await getUserBalance(vs.user_id);
+      if (userBalance) {
+        await supabase
+          .from('user_token_balances')
+          .update({
+            cxl_staked: Number(userBalance.cxl_staked) + Number(vs.staked_cxl),
+            presale_vested_locked: Number(userBalance.presale_vested_locked) - Number(vs.total_cxl),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', vs.user_id);
+      }
+
+      await supabase.from('notifications').insert({
+        user_id: vs.user_id,
+        type: 'earnings',
+        title: 'Presale Vesting Activated',
+        message: `${Number(vs.staked_cxl).toFixed(2)} CXL staked at 3% daily yield. ${Number(vs.total_cxl - vs.staked_cxl).toFixed(2)} CXL locked for 11-month vesting.`,
+        data: { type: 'presale_vesting_activated', stakedCxl: vs.staked_cxl, totalCxl: vs.total_cxl },
+      });
+    }
+  }
+
   await setConfig('is_active', 'false');
 
   return { success: true, settled };
@@ -444,4 +585,117 @@ export async function getAirdropStats() {
     todayTotalCXL,
     isActive: getConfigValue(config, 'is_active', 'true') === 'true',
   };
+}
+
+export async function getVestingSchedule(userId: string) {
+  const supabase = getServiceSupabase();
+  const { data } = await supabase
+    .from('presale_vesting_schedule')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (!data) return { schedules: [], totalLocked: 0, totalClaimed: 0, totalStaked: 0 };
+
+  let totalLocked = 0;
+  let totalClaimed = 0;
+  let totalStaked = 0;
+
+  for (const s of data) {
+    if (s.status === 'streaming' || s.status === 'locked') {
+      totalLocked += Number(s.total_cxl) - Number(s.staked_cxl) - Number(s.vested_cxl);
+    }
+    totalClaimed += Number(s.vested_cxl);
+    totalStaked += Number(s.staked_cxl);
+  }
+
+  return { schedules: data, totalLocked, totalClaimed, totalStaked };
+}
+
+export async function claimVestingInstallment(userId: string, vestingId: string, action: 'liquid' | 'compound') {
+  const supabase = getServiceSupabase();
+
+  const { data: schedule, error: fetchErr } = await supabase
+    .from('presale_vesting_schedule')
+    .select('*')
+    .eq('id', vestingId)
+    .eq('user_id', userId)
+    .single();
+
+  if (fetchErr || !schedule) return { error: 'Vesting schedule not found' };
+  if (schedule.status !== 'streaming') return { error: 'Vesting not yet active' };
+  if (schedule.current_installment >= schedule.total_installments) return { error: 'All installments claimed' };
+
+  const now = new Date();
+  if (schedule.next_unlock_at && new Date(schedule.next_unlock_at) > now) {
+    const unlockTime = new Date(schedule.next_unlock_at);
+    const diffMs = unlockTime.getTime() - now.getTime();
+    const days = Math.floor(diffMs / 86400000);
+    const hours = Math.floor((diffMs % 86400000) / 3600000);
+    return { error: `Next unlock in ${days}d ${hours}h` };
+  }
+
+  const claimable = Number(schedule.monthly_amount);
+  const newInstallment = schedule.current_installment + 1;
+  const isLast = newInstallment >= schedule.total_installments;
+
+  const nextUnlock = new Date(now);
+  nextUnlock.setDate(nextUnlock.getDate() + PRESALE_VESTING.installmentIntervalDays);
+
+  const { error: updateErr } = await supabase
+    .from('presale_vesting_schedule')
+    .update({
+      current_installment: newInstallment,
+      vested_cxl: Number(schedule.vested_cxl) + claimable,
+      next_unlock_at: isLast ? null : nextUnlock.toISOString(),
+      status: isLast ? 'completed' : 'streaming',
+      updated_at: now.toISOString(),
+    })
+    .eq('id', vestingId);
+
+  if (updateErr) return { error: updateErr.message };
+
+  const userBalance = await getUserBalance(userId);
+  if (!userBalance) return { error: 'User balance not found' };
+
+  if (action === 'liquid') {
+    await supabase
+      .from('user_token_balances')
+      .update({
+        cxl_liquid: Number(userBalance.cxl_liquid) + claimable,
+        cxl_balance: Number(userBalance.cxl_balance) + claimable,
+        cxl_earned_total: Number(userBalance.cxl_earned_total) + claimable,
+        presale_vested_claimed: Number(userBalance.presale_vested_claimed) + claimable,
+        updated_at: now.toISOString(),
+      })
+      .eq('user_id', userId);
+  } else {
+    await supabase
+      .from('user_token_balances')
+      .update({
+        cxl_staked: Number(userBalance.cxl_staked) + claimable,
+        cxl_balance: Number(userBalance.cxl_balance) + claimable,
+        cxl_earned_total: Number(userBalance.cxl_earned_total) + claimable,
+        presale_vested_claimed: Number(userBalance.presale_vested_claimed) + claimable,
+        updated_at: now.toISOString(),
+      })
+      .eq('user_id', userId);
+  }
+
+  await supabase.from('transactions').insert({
+    user_id: userId,
+    type: action === 'liquid' ? 'vesting_claim_liquid' : 'vesting_claim_compound',
+    amount: claimable,
+    description: `Vesting installment ${newInstallment}/${schedule.total_installments}: ${claimable.toFixed(2)} CXL ${action === 'liquid' ? 'claimed to liquid' : 'compounded to staking'}`,
+  });
+
+  await supabase.from('notifications').insert({
+    user_id: userId,
+    type: 'earnings',
+    title: `Vesting Installment ${newInstallment}/${schedule.total_installments}`,
+    message: `${claimable.toFixed(2)} CXL ${action === 'liquid' ? 'claimed to liquid wallet' : 'compounded to staking vault (3% daily yield)'}`,
+    data: { type: 'vesting_claim', amount: claimable, action, installment: newInstallment },
+  });
+
+  return { success: true, claimed: claimable, action, installment: newInstallment, isLast };
 }

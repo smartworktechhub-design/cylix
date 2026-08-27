@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Coins, ShoppingCart, Loader2, TrendingUp, Clock, ChevronRight, Zap, AlertCircle, DollarSign, Rocket, Timer } from 'lucide-react';
+import { Coins, ShoppingCart, Loader2, TrendingUp, Clock, ChevronRight, Zap, AlertCircle, DollarSign, Rocket, Timer, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useIsDev } from '@/hooks/use-is-dev';
 import { useAppStore } from '@/stores/app-store';
@@ -47,6 +47,8 @@ interface PresaleData {
     phase: number;
     totalUsers: number;
     isActive: boolean;
+    presaleSupplyLimit: number;
+    presaleRemaining: number;
   };
   balance: {
     cxl_balance: number;
@@ -71,6 +73,10 @@ export default function PresalePage() {
   const [message, setMessage] = useState('');
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [vestingData, setVestingData] = useState<any>(null);
+  const [claimingVesting, setClaimingVesting] = useState<string | null>(null);
+  const [claimAction, setClaimAction] = useState<'liquid' | 'compound'>('liquid');
+  const [showClaimModal, setShowClaimModal] = useState<string | null>(null);
 
   const countdown = useCountdownToMidnightUTC();
 
@@ -79,9 +85,38 @@ export default function PresalePage() {
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
+
+    if (userId) {
+      fetch(`/api/presale/vesting?userId=${userId}`)
+        .then(r => r.json())
+        .then(d => setVestingData(d))
+        .catch(() => {});
+    }
   };
 
   useEffect(() => { fetchData(); }, [userId]);
+
+  const handleClaimVesting = async (vestingId: string) => {
+    setClaimingVesting(vestingId);
+    try {
+      const res = await fetch('/api/presale/vesting/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, vestingId, action: claimAction }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setMessage(`Claimed ${json.claimed.toFixed(2)} CXL to ${claimAction === 'liquid' ? 'liquid wallet' : 'staking vault'}!`);
+        setShowClaimModal(null);
+        fetchData();
+      } else {
+        setMessage(json.error || 'Claim failed');
+      }
+    } catch {
+      setMessage('Network error');
+    }
+    setClaimingVesting(null);
+  };
 
   const handleBuy = async () => {
     const amt = parseFloat(amount);
@@ -471,20 +506,158 @@ export default function PresalePage() {
       <div className="rounded-2xl border border-[rgba(123,97,255,0.08)] p-4" style={{ background: 'rgba(22,32,52,0.4)' }}>
         <div className="flex items-center gap-2 mb-2">
           <Coins size={14} className="text-[#7B61FF]" />
-          <h3 className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Day 91 Settlement</h3>
+          <h3 className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Day 91 Settlement & Vesting</h3>
         </div>
-        <p className="text-[10px] text-[#7B8BA5] mb-2">After presale ends, your tokens split:</p>
+        <p className="text-[10px] text-[#7B8BA5] mb-2">After presale ends, your tokens are split:</p>
         <div className="space-y-1">
           <div className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: 'rgba(123,97,255,0.04)' }}>
-            <span className="text-xs text-[#7B8BA5]">50% Staked (locked)</span>
+            <span className="text-xs text-[#7B8BA5]">50% Staked (3% daily yield)</span>
             <span className="text-xs font-bold font-mono text-[#7B61FF]">50%</span>
           </div>
-          <div className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: 'rgba(0,255,178,0.04)' }}>
-            <span className="text-xs text-[#7B8BA5]">50% Liquid (tradeable)</span>
-            <span className="text-xs font-bold font-mono text-[#00FFB2]">50%</span>
+          <div className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: 'rgba(255,184,0,0.04)' }}>
+            <span className="text-xs text-[#7B8BA5]">50% Vesting (11 months)</span>
+            <span className="text-xs font-bold font-mono text-[#FFB800]">50%</span>
           </div>
         </div>
+        <div className="mt-2 pt-2 border-t border-[rgba(123,97,255,0.08)]">
+          <p className="text-[10px] text-[#7B8BA5]">Vesting unlocks monthly. Each installment you can claim to liquid wallet or compound back to staking.</p>
+        </div>
       </div>
+
+      {/* Referral Commission Info */}
+      <div className="rounded-2xl border border-[rgba(0,229,255,0.08)] p-4" style={{ background: 'rgba(22,32,52,0.4)' }}>
+        <div className="flex items-center gap-2 mb-2">
+          <TrendingUp size={14} className="text-[#00E5FF]" />
+          <h3 className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Presale Referral Commission</h3>
+        </div>
+        <p className="text-[10px] text-[#7B8BA5] mb-2">12% of each purchase is distributed to your 5-level upline:</p>
+        <div className="space-y-1">
+          {[
+            { level: 'L1 Direct', percent: 5, color: '#00E5FF', req: 'Auto' },
+            { level: 'L2', percent: 3, color: '#7B61FF', req: '2 directs' },
+            { level: 'L3', percent: 2, color: '#00FFB2', req: '2 directs' },
+            { level: 'L4', percent: 1, color: '#FFB800', req: '2 directs' },
+            { level: 'L5', percent: 1, color: '#FF5C7A', req: '2 directs' },
+          ].map(l => (
+            <div key={l.level} className="flex items-center justify-between py-1 px-2 rounded-lg" style={{ background: `${l.color}08` }}>
+              <span className="text-xs font-semibold" style={{ color: l.color }}>{l.level}</span>
+              <span className="text-[10px] text-[#7B8BA5]">{l.req}</span>
+              <span className="text-xs font-bold font-mono text-white">{l.percent}%</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-[10px] text-[#7B8BA5] mt-2">Commission paid in USDT to your wallet balance.</p>
+      </div>
+
+      {/* Your Vesting Schedule */}
+      {vestingData && vestingData.schedules && vestingData.schedules.length > 0 && (
+        <div className="rounded-2xl border border-[rgba(255,184,0,0.12)] overflow-hidden" style={{ background: 'rgba(22,32,52,0.6)' }}>
+          <div className="p-4 pb-3" style={{ background: 'rgba(255,184,0,0.04)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <Lock size={14} className="text-[#FFB800]" />
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Your Vesting Schedule</h3>
+            </div>
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(123,97,255,0.06)' }}>
+                <p className="text-[10px] text-[#7B8BA5]">Staked</p>
+                <p className="text-sm font-bold font-mono text-[#7B61FF]">{formatCxl(vestingData.totalStaked)}</p>
+              </div>
+              <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(255,184,0,0.06)' }}>
+                <p className="text-[10px] text-[#7B8BA5]">Locked</p>
+                <p className="text-sm font-bold font-mono text-[#FFB800]">{formatCxl(vestingData.totalLocked)}</p>
+              </div>
+              <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(0,255,178,0.06)' }}>
+                <p className="text-[10px] text-[#7B8BA5]">Claimed</p>
+                <p className="text-sm font-bold font-mono text-[#00FFB2]">{formatCxl(vestingData.totalClaimed)}</p>
+              </div>
+            </div>
+          </div>
+          <div className="px-4 pb-3 space-y-2">
+            {vestingData.schedules.map((s: any) => {
+              const unlockable = s.status === 'streaming' && s.next_unlock_at && new Date(s.next_unlock_at) <= new Date();
+              const nextUnlock = s.next_unlock_at ? new Date(s.next_unlock_at) : null;
+              const progress = s.total_installments > 0 ? (s.current_installment / s.total_installments) * 100 : 0;
+
+              return (
+                <div key={s.id} className="rounded-xl p-3 border border-[rgba(255,184,0,0.08)]" style={{ background: 'rgba(255,184,0,0.03)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-[#7B8BA5]">Purchase: {formatCxl(s.total_cxl)} CXL</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${s.status === 'completed' ? 'bg-[rgba(0,255,178,0.1)] text-[#00FFB2]' : s.status === 'streaming' ? 'bg-[rgba(255,184,0,0.1)] text-[#FFB800]' : 'bg-[rgba(123,97,255,0.1)] text-[#7B61FF]'}`}>
+                      {s.status === 'completed' ? 'DONE' : s.status === 'streaming' ? 'STREAMING' : 'LOCKED'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-[#7B8BA5] mb-1">
+                    <span>Installment {s.current_installment}/{s.total_installments}</span>
+                    <span>{formatCxl(s.monthly_amount)} CXL/month</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-[rgba(255,184,0,0.1)] overflow-hidden mb-2">
+                    <div className="h-full rounded-full bg-gradient-to-r from-[#FFB800] to-[#FF5C7A]" style={{ width: `${progress}%` }} />
+                  </div>
+                  {s.status === 'streaming' && nextUnlock && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-[#7B8BA5]">
+                        {unlockable ? 'Ready to claim!' : `Next unlock: ${nextUnlock.toLocaleDateString()}`}
+                      </span>
+                      {unlockable && (
+                        <button
+                          onClick={() => setShowClaimModal(s.id)}
+                          className="px-3 py-1 rounded-lg text-[10px] font-bold bg-gradient-to-r from-[#FFB800] to-[#FF5C7A] text-[#050816] hover:opacity-90"
+                        >
+                          Claim
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Claim Modal */}
+      {showClaimModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden border border-[rgba(255,184,0,0.15)]" style={{ background: 'linear-gradient(135deg, #0D1117, #161B22)' }}>
+            <div className="p-5 text-center">
+              <h3 className="text-lg font-bold text-white mb-2" style={{ fontFamily: "'Orbitron',sans-serif" }}>Claim Vesting Installment</h3>
+              <p className="text-xs text-[#7B8BA5] mb-4">Choose where to receive your unlocked CXL:</p>
+              <div className="space-y-2 mb-4">
+                <button
+                  onClick={() => setClaimAction('liquid')}
+                  className={`w-full p-3 rounded-xl text-left transition-all ${claimAction === 'liquid' ? 'border-2 border-[#00FFB2] bg-[rgba(0,255,178,0.06)]' : 'border border-[rgba(0,229,255,0.1)] bg-[rgba(0,229,255,0.03)]'}`}
+                >
+                  <p className="text-sm font-bold text-white">Claim to Liquid Wallet</p>
+                  <p className="text-[10px] text-[#7B8BA5]">Available to trade or withdraw immediately</p>
+                </button>
+                <button
+                  onClick={() => setClaimAction('compound')}
+                  className={`w-full p-3 rounded-xl text-left transition-all ${claimAction === 'compound' ? 'border-2 border-[#7B61FF] bg-[rgba(123,97,255,0.06)]' : 'border border-[rgba(123,97,255,0.1)] bg-[rgba(123,97,255,0.03)]'}`}
+                >
+                  <p className="text-sm font-bold text-white">Compound to Staking</p>
+                  <p className="text-[10px] text-[#7B8BA5]">Earn 3% daily compound yield</p>
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowClaimModal(null)}
+                  className="flex-1 h-10 rounded-xl font-semibold text-sm bg-[rgba(255,255,255,0.05)] text-[#7B8BA5] hover:text-white transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleClaimVesting(showClaimModal)}
+                  disabled={claimingVesting !== null}
+                  className="flex-1 h-10 rounded-xl font-bold text-sm bg-gradient-to-r from-[#FFB800] to-[#FF5C7A] text-[#050816] hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1"
+                >
+                  {claimingVesting ? <Loader2 size={12} className="animate-spin" /> : null}
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Back to Airdrop */}
       <Link href="/airdrop" className="flex items-center justify-between p-4 rounded-2xl border border-[rgba(255,184,0,0.08)] hover:border-[rgba(255,184,0,0.15)] transition-all" style={{ background: 'rgba(22,32,52,0.4)' }}>

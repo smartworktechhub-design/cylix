@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Coins, ShoppingCart, TrendingUp, ChevronRight, Loader2, DollarSign, Timer, ArrowRight } from 'lucide-react';
+import { Coins, ShoppingCart, TrendingUp, ChevronRight, Loader2, DollarSign, Timer, ArrowRight, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useIsDev } from '@/hooks/use-is-dev';
 import { useAppStore } from '@/stores/app-store';
@@ -242,6 +242,29 @@ export function CxlTokenCard() {
             </div>
             <p className="text-[10px] text-[#7B8BA5]">CXL earned automatically from your referrals at each level.</p>
           </div>
+
+          {/* Presale Vesting Info */}
+          {(balance as any).presale_vested_locked > 0 && (
+            <div className="rounded-xl p-3 mb-3 border border-[rgba(255,184,0,0.1)]" style={{ background: 'rgba(255,184,0,0.04)' }}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] text-[#7B8BA5] uppercase tracking-wider">Presale Vesting</span>
+                <Lock size={12} className="text-[#FFB800]" />
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <div>
+                  <p className="text-[9px] text-[#7B8BA5]">Locked</p>
+                  <p className="text-xs font-bold font-mono text-[#FFB800]">{formatCxl((balance as any).presale_vested_locked || 0)}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] text-[#7B8BA5]">Claimed</p>
+                  <p className="text-xs font-bold font-mono text-[#00FFB2]">{formatCxl((balance as any).presale_vested_claimed || 0)}</p>
+                </div>
+              </div>
+              <Link href="/presale" className="mt-2 block text-center text-[10px] text-[#FFB800] font-semibold hover:underline">
+                View Vesting Schedule →
+              </Link>
+            </div>
+          )}
 
           {/* Signup Bonus */}
           {!balance.signup_bonus_claimed ? (
