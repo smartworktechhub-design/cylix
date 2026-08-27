@@ -104,7 +104,7 @@ export default function TransactionsPage() {
   const filtered = activeTab === 'All'
     ? transactions
     : activeTab === 'CXL'
-      ? []
+      ? transactions.filter((t) => ['presale_purchase', 'presale_referral'].includes(t.type))
       : transactions.filter((t) => {
           const typeMap: Record<string, string[]> = {
             Purchases: ['slot_purchase', 'upgrade', 'recycle', 'presale_purchase'],
