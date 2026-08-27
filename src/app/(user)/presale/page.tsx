@@ -1,10 +1,16 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Coins, ShoppingCart, Loader2, TrendingUp, Clock, ChevronRight, Zap, AlertCircle, DollarSign, Rocket, Timer, Lock } from 'lucide-react';
+import { Coins, ShoppingCart, Loader2, TrendingUp, Clock, ChevronRight, Zap, AlertCircle, DollarSign, Rocket, Timer, Lock, CheckCircle2, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useIsDev } from '@/hooks/use-is-dev';
 import { useAppStore } from '@/stores/app-store';
+import { TREASURY_WALLET, USDT_ADDRESS, USDT_DECIMALS } from '@/lib/constants';
+import { useAccount, useSwitchChain } from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { bsc } from 'wagmi/chains';
+import { parseUnits } from 'viem';
+import { USDT_ABI } from '@/lib/usdt';
 
 const formatCxl = (n: number) =>
   n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
@@ -66,6 +72,10 @@ export default function PresalePage() {
   const isDev = useIsDev();
   const { user } = useAppStore();
   const userId = user?.id || null;
+  const { address } = useAccount();
+  const { switchChainAsync } = useSwitchChain();
+  const { writeContract, isPending: isTxPending, data: txHash } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isTxConfirmed, isError: isTxError } = useWaitForTransactionReceipt({ hash: txHash });
   const [data, setData] = useState<PresaleData | null>(null);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState(false);
@@ -77,6 +87,9 @@ export default function PresalePage() {
   const [claimingVesting, setClaimingVesting] = useState<string | null>(null);
   const [claimAction, setClaimAction] = useState<'liquid' | 'compound'>('liquid');
   const [showClaimModal, setShowClaimModal] = useState<string | null>(null);
+  const [purchaseStatus, setPurchaseStatus] = useState<'idle' | 'approve' | 'confirm' | 'success' | 'error'>('idle');
+  const [purchaseError, setPurchaseError] = useState('');
+  const [pendingAmount, setPendingAmount] = useState<number | 0>(0);
 
   const countdown = useCountdownToMidnightUTC();
 
@@ -95,6 +108,48 @@ export default function PresalePage() {
   };
 
   useEffect(() => { fetchData(); }, [userId]);
+
+  // When tx confirmed, record purchase in DB
+  useEffect(() => {
+    if (isTxConfirmed && pendingAmount && userId) {
+      fetch('/api/presale/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, usdtAmount: pendingAmount, txHash }),
+      })
+        .then(r => r.json())
+        .then(json => {
+          if (json.error) {
+            setPurchaseStatus('error');
+            setPurchaseError(json.error);
+          } else {
+            setPurchaseStatus('success');
+            setMessage(`Bought ${json.cxlAmount.toFixed(2)} CXL for $${json.totalUSDT.toFixed(4)}!`);
+            fetchData();
+          }
+          setPendingAmount(0);
+        })
+        .catch(() => {
+          setPurchaseStatus('error');
+          setPurchaseError('Failed to record purchase');
+          setPendingAmount(0);
+        });
+    }
+  }, [isTxConfirmed, pendingAmount, userId, txHash]);
+
+  useEffect(() => {
+    if (isTxError) {
+      setPurchaseStatus('error');
+      setPurchaseError('Transaction failed on blockchain');
+      setPendingAmount(0);
+    }
+  }, [isTxError]);
+
+  useEffect(() => {
+    if (txHash && pendingAmount) {
+      setPurchaseStatus('confirm');
+    }
+  }, [txHash, pendingAmount]);
 
   const handleClaimVesting = async (vestingId: string) => {
     setClaimingVesting(vestingId);
@@ -121,46 +176,28 @@ export default function PresalePage() {
   const handleBuy = async () => {
     const amt = parseFloat(amount);
     if (!amt || amt < 1 || amt > 100) return;
-    setBuying(true);
-    setMessage('');
-    try {
-      const res = await fetch('/api/presale/purchase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, usdtAmount: amt }),
-      });
-      const json = await res.json();
-      if (res.ok) {
-        setMessage(`Bought ${json.cxlAmount.toFixed(2)} CXL for $${json.totalUSDT.toFixed(4)}!`);
-        setAmount('');
-        fetchData();
-      } else {
-        setMessage(json.error || 'Purchase failed');
-      }
-    } catch {
-      setMessage('Network error');
+    if (!address) {
+      setMessage('Please connect your wallet first');
+      return;
     }
-    setBuying(false);
+    setPurchaseStatus('approve');
+    setPurchaseError('');
+    setPendingAmount(amt);
+    try {
+      await switchChainAsync({ chainId: bsc.id });
+      const value = parseUnits(amt.toFixed(2), USDT_DECIMALS);
+      await writeContract({
+        address: USDT_ADDRESS,
+        abi: USDT_ABI,
+        functionName: 'transfer',
+        args: [TREASURY_WALLET, value],
+      });
+    } catch (err: any) {
+      setPurchaseStatus('error');
+      setPurchaseError(err?.message || err?.shortMessage || 'Transaction rejected');
+      setPendingAmount(0);
+    }
   };
-
-  if (isDev === null) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 size={24} className="animate-spin text-[#FFB800]" />
-      </div>
-    );
-  }
-
-  if (!isDev) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <Coins size={32} className="text-[#7B8BA5] mx-auto mb-3 opacity-30" />
-          <p className="text-sm text-[#7B8BA5]">This feature is available on the development environment only.</p>
-        </div>
-      </div>
-    );
-  }
 
   if (loading) {
     return (
@@ -199,6 +236,55 @@ export default function PresalePage() {
 
   return (
     <div className="max-w-lg mx-auto space-y-4">
+      {/* Purchase Status Modal */}
+      {purchaseStatus !== 'idle' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="rounded-2xl p-6 w-80 border border-[rgba(0,229,255,0.12)]" style={{ background: 'rgba(11,16,32,0.95)' }}>
+            <div className="text-center">
+              {purchaseStatus === 'approve' && (
+                <>
+                  <Clock size={40} className="text-[#FFB800] mx-auto mb-3 animate-pulse" />
+                  <p className="text-white font-semibold">Approve in Wallet</p>
+                  <p className="text-xs text-[#A8B8D0] mt-1">Confirm the USDT transfer in your wallet</p>
+                </>
+              )}
+              {purchaseStatus === 'confirm' && (
+                <>
+                  <Loader2 size={40} className="text-[#00E5FF] mx-auto mb-3 animate-spin" />
+                  <p className="text-white font-semibold">Confirming Transaction</p>
+                  <p className="text-xs text-[#A8B8D0] mt-1">Waiting for blockchain confirmation...</p>
+                  {txHash && (
+                    <a href={`https://bscscan.com/tx/${txHash}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[#00E5FF] mt-2 inline-block hover:underline">
+                      View on BSCScan
+                    </a>
+                  )}
+                </>
+              )}
+              {purchaseStatus === 'success' && (
+                <>
+                  <CheckCircle2 size={40} className="text-[#00FFB2] mx-auto mb-3" />
+                  <p className="text-white font-semibold">CXL Purchased!</p>
+                  <p className="text-xs text-[#A8B8D0] mt-1">{message}</p>
+                </>
+              )}
+              {purchaseStatus === 'error' && (
+                <>
+                  <XCircle size={40} className="text-[#FF5C7A] mx-auto mb-3" />
+                  <p className="text-white font-semibold">Transaction Failed</p>
+                  <p className="text-xs text-[#A8B8D0] mt-1">{purchaseError || 'Please try again.'}</p>
+                </>
+              )}
+              <button
+                onClick={() => { setPurchaseStatus('idle'); setPurchaseError(''); setMessage(''); }}
+                className="mt-4 w-full h-10 rounded-xl font-semibold text-sm transition-all bg-gradient-to-r from-[#00E5FF] to-[#7B61FF] text-[#050816] hover:opacity-90"
+              >
+                {purchaseStatus === 'success' || purchaseStatus === 'error' ? 'Close' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Header */}
       <div className="rounded-2xl overflow-hidden border border-[rgba(255,184,0,0.12)]" style={{ background: 'linear-gradient(135deg, rgba(9,11,20,0.97), rgba(30,20,10,0.97))' }}>
         <div className="p-5 pb-4" style={{ background: 'linear-gradient(135deg, rgba(255,184,0,0.08), rgba(255,92,122,0.08))' }}>
@@ -430,11 +516,11 @@ export default function PresalePage() {
             />
             <button
               onClick={handleBuy}
-              disabled={buying || !amount || parseFloat(amount) < 1 || parseFloat(amount) > 100}
+              disabled={purchaseStatus !== 'idle' || !amount || parseFloat(amount) < 1 || parseFloat(amount) > 100 || !address}
               className="h-12 px-6 rounded-xl font-bold text-sm transition-all bg-gradient-to-r from-[#FFB800] to-[#FF5C7A] text-[#050816] hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5"
             >
-              {buying ? <Loader2 size={14} className="animate-spin" /> : <ShoppingCart size={14} />}
-              Buy
+              {purchaseStatus !== 'idle' ? <Loader2 size={14} className="animate-spin" /> : <ShoppingCart size={14} />}
+              {!address ? 'Connect Wallet' : purchaseStatus === 'approve' ? 'Approving...' : purchaseStatus === 'confirm' ? 'Confirming...' : 'Buy'}
             </button>
           </div>
 
