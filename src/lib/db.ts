@@ -101,6 +101,9 @@ function mapTransaction(t: any): Transaction {
     daily_earning: 'daily_earning', matrix_earning: 'matrix_earning',
     pool_earning: 'pool_earning', ascension_credit: 'ascension_credit',
     upgrade: 'upgrade', recycle: 'recycle',
+    presale_purchase: 'presale_purchase', presale_referral: 'presale_referral',
+    signup_bonus: 'signup_bonus', signup_commission: 'signup_commission',
+    vesting_claim_liquid: 'signup_commission', vesting_claim_compound: 'signup_commission',
   };
   return {
     id: t.id, type: typeMap[t.type] || 'slot_purchase',
