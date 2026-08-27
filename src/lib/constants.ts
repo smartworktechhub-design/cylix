@@ -66,6 +66,7 @@ export const NAV_LINKS = [
   { href: '/matrix', label: 'Matrix', icon: 'GitBranch' },
   { href: '/airdrop', label: 'CXL Airdrop', icon: 'Coins' },
   { href: '/presale', label: 'CXL Presale', icon: 'ShoppingCart' },
+  { href: '/cxl-transactions', label: 'CXL Transactions', icon: 'TrendingUp' },
   { href: '/earnings', label: 'Earnings', icon: 'TrendingUp' },
   { href: '/upgrade-vault', label: 'Upgrade Vault', icon: 'Vault' },
   { href: '/withdrawals', label: 'Withdrawals', icon: 'Wallet' },
@@ -127,15 +128,13 @@ export const CXL_PHASES = {
   3: { name: 'Phase 3 (Public)', bonus: 5, startDay: 61, endDay: 90 },
 } as const;
 
-export const AIRDROP_DAILY_RATES = {
+export const SIGNUP_COMMISSION_RATES = {
   L1: 0.50,
   L2: 0.30,
   L3: 0.20,
   L4: 0.10,
   L5: 0.10,
 } as const;
-
-export const AIRDROP_MAX_DAILY = Object.values(AIRDROP_DAILY_RATES).reduce((s, v) => s + v, 0);
 
 export const AIRDROP_DURATION_DAYS = 90;
 

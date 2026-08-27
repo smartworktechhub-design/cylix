@@ -35,6 +35,8 @@ const typeConfig: Record<string, { icon: typeof ArrowUpRight; color: string; lab
   ascension_credit: { icon: TrendingUp, color: '#7B61FF', label: 'Ascension' },
   presale_purchase: { icon: Coins, color: '#FFB800', label: 'Presale' },
   presale_referral: { icon: TrendingUp, color: '#FFB800', label: 'Presale Referral' },
+  signup_bonus: { icon: Coins, color: '#FFB800', label: 'Signup Bonus' },
+  signup_commission: { icon: TrendingUp, color: '#00E5FF', label: 'Signup Commission' },
 };
 
 const levelColors: Record<string, string> = {
@@ -104,12 +106,12 @@ export default function TransactionsPage() {
   const filtered = activeTab === 'All'
     ? transactions
     : activeTab === 'CXL'
-      ? transactions.filter((t) => ['presale_purchase', 'presale_referral'].includes(t.type))
+      ? transactions.filter((t) => ['presale_purchase', 'presale_referral', 'signup_bonus', 'signup_commission'].includes(t.type))
       : transactions.filter((t) => {
           const typeMap: Record<string, string[]> = {
             Purchases: ['slot_purchase', 'upgrade', 'recycle', 'presale_purchase'],
             Withdrawals: ['withdraw', 'withdrawal'],
-            Earnings: ['daily_earning', 'matrix_earning', 'pool_earning', 'referral', 'ascension_credit', 'presale_referral'],
+            Earnings: ['daily_earning', 'matrix_earning', 'pool_earning', 'referral', 'ascension_credit', 'presale_referral', 'signup_commission'],
           };
           const targets = typeMap[activeTab] || [];
           return targets.includes(t.type);

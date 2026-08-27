@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
-import { AIRDROP_DAILY_RATES } from '@/lib/constants';
+import { SIGNUP_COMMISSION_RATES } from '@/lib/constants';
 
 export async function GET(req: NextRequest) {
   const userId = req.nextUrl.searchParams.get('userId');
@@ -64,31 +64,29 @@ export async function GET(req: NextRequest) {
   const totalTeam = l1Count + l2Count + l3Count + l4Count + l5Count;
   const l2Unlocked = l1Count >= 2;
 
-  // Get user's airdrop earnings by level from airdrop_earnings
-  const { data: earnings } = await supabase
-    .from('airdrop_earnings')
-    .select('level_1_cxl, level_2_cxl, level_3_cxl, level_4_cxl, level_5_cxl')
-    .eq('user_id', userId);
+  // Get user's signup commission earnings from transactions
+  const { data: commissionTxs } = await supabase
+    .from('transactions')
+    .select('amount, description')
+    .eq('user_id', userId)
+    .eq('type', 'signup_commission');
 
-  const totalEarned = {
-    L1: 0, L2: 0, L3: 0, L4: 0, L5: 0,
-  };
-
-  for (const e of earnings || []) {
-    totalEarned.L1 += Number(e.level_1_cxl) || 0;
-    totalEarned.L2 += Number(e.level_2_cxl) || 0;
-    totalEarned.L3 += Number(e.level_3_cxl) || 0;
-    totalEarned.L4 += Number(e.level_4_cxl) || 0;
-    totalEarned.L5 += Number(e.level_5_cxl) || 0;
+  const totalEarned = { L1: 0, L2: 0, L3: 0, L4: 0, L5: 0 };
+  for (const tx of commissionTxs || []) {
+    const match = tx.description?.match(/^L(\d)/);
+    if (match) {
+      const level = `L${match[1]}` as keyof typeof totalEarned;
+      totalEarned[level] += Number(tx.amount) || 0;
+    }
   }
 
   return NextResponse.json({
     levels: [
-      { level: 1, label: 'Direct Referrals', count: l1Count, rate: AIRDROP_DAILY_RATES.L1, totalEarned: totalEarned.L1, unlocked: true, color: '#00E5FF' },
-      { level: 2, label: 'Level 2', count: l2Count, rate: AIRDROP_DAILY_RATES.L2, totalEarned: totalEarned.L2, unlocked: l2Unlocked, color: '#7B61FF' },
-      { level: 3, label: 'Level 3', count: l3Count, rate: AIRDROP_DAILY_RATES.L3, totalEarned: totalEarned.L3, unlocked: l2Unlocked, color: '#00FFB2' },
-      { level: 4, label: 'Level 4', count: l4Count, rate: AIRDROP_DAILY_RATES.L4, totalEarned: totalEarned.L4, unlocked: l2Unlocked, color: '#FFB800' },
-      { level: 5, label: 'Level 5', count: l5Count, rate: AIRDROP_DAILY_RATES.L5, totalEarned: totalEarned.L5, unlocked: l2Unlocked, color: '#FF5C7A' },
+      { level: 1, label: 'Direct Referrals', count: l1Count, rate: SIGNUP_COMMISSION_RATES.L1, totalEarned: totalEarned.L1, unlocked: true, color: '#00E5FF' },
+      { level: 2, label: 'Level 2', count: l2Count, rate: SIGNUP_COMMISSION_RATES.L2, totalEarned: totalEarned.L2, unlocked: l2Unlocked, color: '#7B61FF' },
+      { level: 3, label: 'Level 3', count: l3Count, rate: SIGNUP_COMMISSION_RATES.L3, totalEarned: totalEarned.L3, unlocked: l2Unlocked, color: '#00FFB2' },
+      { level: 4, label: 'Level 4', count: l4Count, rate: SIGNUP_COMMISSION_RATES.L4, totalEarned: totalEarned.L4, unlocked: l2Unlocked, color: '#FFB800' },
+      { level: 5, label: 'Level 5', count: l5Count, rate: SIGNUP_COMMISSION_RATES.L5, totalEarned: totalEarned.L5, unlocked: l2Unlocked, color: '#FF5C7A' },
     ],
     l1Count,
     totalTeam,

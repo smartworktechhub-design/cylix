@@ -57,11 +57,7 @@ interface AirdropData {
     cxl_staked: number;
     signup_bonus_claimed: boolean;
     signup_bonus_amount: number;
-    consecutive_claim_days: number;
-    total_claim_days: number;
-    last_claim_date: string;
   } | null;
-  canClaim: { canClaim: boolean; reason?: string };
   presalePrices: number[];
   dexLaunchPrice: number;
 }
@@ -128,7 +124,6 @@ export function CxlTokenCard() {
 
   const stats = data?.stats;
   const balance = data?.balance;
-  const canClaim = data?.canClaim || { canClaim: false, reason: 'Loading...' };
   const prices = data?.presalePrices || [];
 
   if (!stats) {

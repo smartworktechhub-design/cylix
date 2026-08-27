@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Coins, Zap, Clock, ShoppingCart, TrendingUp, Lock, ChevronRight, Loader2, Gift, Flame, Shield, Info, Wallet, Users, ArrowDown } from 'lucide-react';
+import { Coins, ShoppingCart, TrendingUp, ChevronRight, Loader2, Shield, Lock, Wallet, Users, Gift } from 'lucide-react';
 import Link from 'next/link';
 import { useIsDev } from '@/hooks/use-is-dev';
 import { useAppStore } from '@/stores/app-store';
@@ -29,11 +29,7 @@ interface AirdropData {
     cxl_staked: number;
     signup_bonus_claimed: boolean;
     signup_bonus_amount: number;
-    consecutive_claim_days: number;
-    total_claim_days: number;
-    last_claim_date: string;
   } | null;
-  canClaim: { canClaim: boolean; reason?: string };
 }
 
 interface LevelData {
@@ -71,28 +67,6 @@ export default function AirdropPage() {
   };
 
   useEffect(() => { fetchData(); }, [userId]);
-
-  const handleClaimDaily = async () => {
-    setClaiming(true);
-    setClaimMessage('');
-    try {
-      const res = await fetch('/api/airdrop/claim', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      });
-      const json = await res.json();
-      if (res.ok) {
-        setClaimMessage(`+${json.totalCXL} CXL claimed! Day ${json.day}`);
-        fetchData();
-      } else {
-        setClaimMessage(json.error || 'Claim failed');
-      }
-    } catch {
-      setClaimMessage('Network error');
-    }
-    setClaiming(false);
-  };
 
   const handleClaimBonus = async () => {
     setClaiming(true);
@@ -145,7 +119,6 @@ export default function AirdropPage() {
 
   const stats = data?.stats;
   const balance = data?.balance;
-  const canClaim = data?.canClaim || { canClaim: false, reason: 'Loading...' };
 
   if (!stats) {
     return (
@@ -162,7 +135,6 @@ export default function AirdropPage() {
   const dayProgress = stats.day > 0 ? Math.min((stats.day / 90) * 100, 100) : 0;
   const supplyPercent = stats.totalSupply > 0 ? ((stats.totalSupply - stats.remaining) / stats.totalSupply) * 100 : 0;
   const totalTeam = levels.reduce((s, l) => s + l.count, 0);
-  const totalEarned = levels.reduce((s, l) => s + l.totalEarned, 0);
 
   const phaseLabels: Record<number, string> = { 1: 'Early Adopters', 2: 'Growth Phase', 3: 'Final Phase' };
 
@@ -265,23 +237,10 @@ export default function AirdropPage() {
                 <p className="text-base font-bold font-mono text-[#7B61FF]">{formatCxl(balance.cxl_staked)}</p>
               </div>
             </div>
-
-            {/* Streak */}
-            <div className="flex items-center gap-4 mb-3 px-1">
-              <div className="flex items-center gap-1.5">
-                <Flame size={14} className="text-[#FF5C7A]" />
-                <span className="text-xs text-[#7B8BA5]">Streak: <span className="text-white font-bold">{balance.consecutive_claim_days}d</span></span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <TrendingUp size={14} className="text-[#00FFB2]" />
-                <span className="text-xs text-[#7B8BA5]">Total Claims: <span className="text-white font-bold">{balance.total_claim_days}d</span></span>
-              </div>
-            </div>
           </div>
 
           {/* Action Buttons */}
           <div className="px-4 pb-4 space-y-2">
-            {/* Signup Bonus */}
             {!balance.signup_bonus_claimed && (
               <button
                 onClick={handleClaimBonus}
@@ -309,7 +268,7 @@ export default function AirdropPage() {
             <Users size={14} className="text-[#00E5FF]" />
             <h3 className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Airdrop Levels</h3>
           </div>
-          <p className="text-[10px] text-[#7B8BA5]">No daily earning cap. Earn until Day 91.</p>
+          <p className="text-[10px] text-[#7B8BA5]">Earn commission when your referrals claim signup bonus</p>
         </div>
 
         <div className="p-3 space-y-2">
@@ -366,8 +325,8 @@ export default function AirdropPage() {
                 </p>
                 <p className="text-[10px] text-[#7B8BA5]">
                   {l2Unlocked
-                    ? `You have ${levels[0]?.count || 0} directs. Earning extra CXL from L2-L5 referrals`
-                    : `Invite 2 direct referrals to unlock L2-L5 earnings`
+                    ? `You have ${levels[0]?.count || 0} directs. Earning commission from L2-L5 referrals`
+                    : `Invite 2 direct referrals to unlock L2-L5 commission`
                   }
                 </p>
               </div>
@@ -389,11 +348,11 @@ export default function AirdropPage() {
         <ChevronRight size={14} className="text-[#7B8BA5]" />
       </Link>
 
-      {/* Earnings History Link */}
-      <Link href="/earnings" className="flex items-center justify-between p-4 rounded-2xl border border-[rgba(0,229,255,0.08)] hover:border-[rgba(0,229,255,0.15)] transition-all" style={{ background: 'rgba(22,32,52,0.4)' }}>
+      {/* CXL Transactions Link */}
+      <Link href="/cxl-transactions" className="flex items-center justify-between p-4 rounded-2xl border border-[rgba(0,229,255,0.08)] hover:border-[rgba(0,229,255,0.15)] transition-all" style={{ background: 'rgba(22,32,52,0.4)' }}>
         <div className="flex items-center gap-2">
           <TrendingUp size={14} className="text-[#00E5FF]" />
-          <span className="text-xs text-white font-semibold">View Full Earnings History</span>
+          <span className="text-xs text-white font-semibold">CXL Transactions</span>
         </div>
         <ChevronRight size={14} className="text-[#7B8BA5]" />
       </Link>

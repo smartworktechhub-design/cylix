@@ -2,7 +2,7 @@ import { getServiceSupabase } from './supabase';
 import {
   CXL_SUPPLY,
   CXL_PHASES,
-  AIRDROP_DAILY_RATES,
+  SIGNUP_COMMISSION_RATES,
   AIRDROP_DURATION_DAYS,
   PRESALE,
   PRESALE_SUPPLY_LIMIT,
@@ -80,8 +80,6 @@ export async function ensureUserBalance(userId: string) {
       cxl_staked: 0,
       signup_bonus_claimed: false,
       signup_bonus_amount: 0,
-      consecutive_claim_days: 0,
-      total_claim_days: 0,
     });
   }
 }
@@ -112,13 +110,16 @@ export async function claimSignupBonus(userId: string) {
   if (!phaseConfig) return { error: 'Invalid phase' };
 
   const bonus = phaseConfig.bonus;
+  const stakedBonus = Math.round(bonus * 0.9 * 100) / 100;
+  const liquidBonus = Math.round(bonus * 0.1 * 100) / 100;
 
   const { error: updateErr } = await supabase
     .from('user_token_balances')
     .update({
       cxl_balance: balance.cxl_balance + bonus,
       cxl_earned_total: balance.cxl_earned_total + bonus,
-      cxl_liquid: balance.cxl_liquid + bonus,
+      cxl_liquid: (Number(balance.cxl_liquid) || 0) + liquidBonus,
+      cxl_staked: (Number(balance.cxl_staked) || 0) + stakedBonus,
       signup_bonus_claimed: true,
       signup_bonus_amount: bonus,
       updated_at: new Date().toISOString(),
@@ -134,34 +135,24 @@ export async function claimSignupBonus(userId: string) {
     claimed_at: new Date().toISOString(),
   });
 
+  await supabase.from('transactions').insert({
+    user_id: userId,
+    type: 'signup_bonus',
+    amount: bonus,
+    description: `Phase ${phase} signup bonus: ${stakedBonus} CXL staked + ${liquidBonus} CXL liquid`,
+  });
+
   await supabase.from('notifications').insert({
     user_id: userId,
     type: 'earnings',
     title: 'CXL Signup Bonus!',
-    message: `You received ${bonus} CXL tokens as Phase ${phase} signup bonus!`,
-    data: { type: 'signup_bonus', amount: bonus, phase },
+    message: `You received ${bonus} CXL tokens as Phase ${phase} signup bonus! (${stakedBonus} staked + ${liquidBonus} liquid)`,
+    data: { type: 'signup_bonus', amount: bonus, phase, stakedBonus, liquidBonus },
   });
 
-  return { success: true, bonus, phase };
-}
+  await distributeSignupCommission(userId, bonus);
 
-export async function canClaimDaily(userId: string): Promise<{ canClaim: boolean; reason?: string }> {
-  const config = await getConfig();
-  const isActive = getConfigValue(config, 'is_active', 'true');
-  if (isActive !== 'true') return { canClaim: false, reason: 'Airdrop is paused' };
-
-  const day = await getCurrentDay();
-  if (day <= 0) return { canClaim: false, reason: 'Airdrop not started' };
-  if (day > AIRDROP_DURATION_DAYS) return { canClaim: false, reason: 'Airdrop period ended (Day 91+)' };
-
-  const balance = await getUserBalance(userId);
-  if (!balance) return { canClaim: false, reason: 'User not enrolled' };
-  if (!balance.is_active) return { canClaim: false, reason: 'Account inactive' };
-
-  const today = new Date().toISOString().split('T')[0];
-  if (balance.last_claim_date === today) return { canClaim: false, reason: 'Already claimed today' };
-
-  return { canClaim: true };
+  return { success: true, bonus, phase, stakedBonus, liquidBonus };
 }
 
 export async function countDirectReferrals(userId: string): Promise<number> {
@@ -173,94 +164,83 @@ export async function countDirectReferrals(userId: string): Promise<number> {
   return count || 0;
 }
 
-export async function getL2Directs(userId: string): Promise<number> {
+async function distributeSignupCommission(userId: string, bonusAmount: number) {
   const supabase = getServiceSupabase();
-  const { count } = await supabase
+
+  const { data: userProfile } = await supabase
     .from('users')
-    .select('id', { count: 'exact', head: true })
-    .eq('sponsor_id', userId);
-  return count || 0;
-}
+    .select('sponsor_id')
+    .eq('id', userId)
+    .single();
 
-export async function claimDailyAirdrop(userId: string) {
-  const supabase = getServiceSupabase();
+  if (!userProfile?.sponsor_id) return;
 
-  const check = await canClaimDaily(userId);
-  if (!check.canClaim) return { error: check.reason };
+  let currentUserId = userProfile.sponsor_id;
+  const levels = [
+    { level: 1, cxl: SIGNUP_COMMISSION_RATES.L1 },
+    { level: 2, cxl: SIGNUP_COMMISSION_RATES.L2 },
+    { level: 3, cxl: SIGNUP_COMMISSION_RATES.L3 },
+    { level: 4, cxl: SIGNUP_COMMISSION_RATES.L4 },
+    { level: 5, cxl: SIGNUP_COMMISSION_RATES.L5 },
+  ];
 
-  const day = await getCurrentDay();
-  const balance = await getUserBalance(userId);
-  if (!balance) return { error: 'User balance not found' };
+  for (const lvl of levels) {
+    if (!currentUserId) break;
 
-  const directCount = await getL2Directs(userId);
-  const l2Unlocked = directCount >= L2_DIRECTS_REQUIRED;
+    if (lvl.level > 1) {
+      const { count } = await supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .eq('sponsor_id', currentUserId);
+      const directCount = count || 0;
+      if (directCount < L2_DIRECTS_REQUIRED) {
+        const { data: parent } = await supabase
+          .from('users')
+          .select('sponsor_id')
+          .eq('id', currentUserId)
+          .single();
+        currentUserId = parent?.sponsor_id || null;
+        continue;
+      }
+    }
 
-  let totalCXL = 0;
-  const earnings: Record<string, number> = {
-    level_1_cxl: AIRDROP_DAILY_RATES.L1,
-    level_2_cxl: 0,
-    level_3_cxl: 0,
-    level_4_cxl: 0,
-    level_5_cxl: 0,
-  };
+    const commissionCXL = lvl.cxl;
+    const stakedCXL = Math.round(commissionCXL * 0.9 * 100) / 100;
+    const liquidCXL = Math.round(commissionCXL * 0.1 * 100) / 100;
 
-  totalCXL += earnings.level_1_cxl;
+    const { data: upline } = await supabase
+      .from('user_token_balances')
+      .select('cxl_balance, cxl_staked, cxl_liquid, cxl_earned_total')
+      .eq('user_id', currentUserId)
+      .single();
 
-  if (l2Unlocked) {
-    earnings.level_2_cxl = AIRDROP_DAILY_RATES.L2;
-    earnings.level_3_cxl = AIRDROP_DAILY_RATES.L3;
-    earnings.level_4_cxl = AIRDROP_DAILY_RATES.L4;
-    earnings.level_5_cxl = AIRDROP_DAILY_RATES.L5;
-    totalCXL += earnings.level_2_cxl + earnings.level_3_cxl + earnings.level_4_cxl + earnings.level_5_cxl;
+    if (upline) {
+      await supabase
+        .from('user_token_balances')
+        .update({
+          cxl_balance: (Number(upline.cxl_balance) || 0) + commissionCXL,
+          cxl_earned_total: (Number(upline.cxl_earned_total) || 0) + commissionCXL,
+          cxl_staked: (Number(upline.cxl_staked) || 0) + stakedCXL,
+          cxl_liquid: (Number(upline.cxl_liquid) || 0) + liquidCXL,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', currentUserId);
+    }
+
+    await supabase.from('transactions').insert({
+      user_id: currentUserId,
+      type: 'signup_commission',
+      amount: commissionCXL,
+      description: `L${lvl.level} signup commission: ${stakedCXL} CXL staked + ${liquidCXL} CXL liquid`,
+    });
+
+    const { data: parent } = await supabase
+      .from('users')
+      .select('sponsor_id')
+      .eq('id', currentUserId)
+      .single();
+    currentUserId = parent?.sponsor_id || null;
   }
-
-  const today = new Date().toISOString().split('T')[0];
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-  const isConsecutive = balance.last_claim_date === yesterday;
-  const newStreak = isConsecutive ? balance.consecutive_claim_days + 1 : 1;
-
-  const { error: updateErr } = await supabase
-    .from('user_token_balances')
-    .update({
-      cxl_balance: balance.cxl_balance + totalCXL,
-      cxl_earned_total: balance.cxl_earned_total + totalCXL,
-      cxl_liquid: balance.cxl_liquid + totalCXL,
-      last_claim_date: today,
-      consecutive_claim_days: newStreak,
-      total_claim_days: balance.total_claim_days + 1,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('user_id', userId);
-
-  if (updateErr) return { error: updateErr.message };
-
-  await supabase.from('airdrop_earnings').insert({
-    user_id: userId,
-    day_number: day,
-    ...earnings,
-    total_cxl: totalCXL,
-  });
-
-  const levelText = l2Unlocked
-    ? `L1-L5 full matrix (${totalCXL} CXL)`
-    : `L1 only (${totalCXL} CXL) — invite ${L2_DIRECTS_REQUIRED} directs to unlock L2-L5`;
-
-  await supabase.from('notifications').insert({
-    user_id: userId,
-    type: 'earnings',
-    title: `Day ${day} Airdrop Claimed`,
-    message: `You earned ${totalCXL} CXL. ${levelText}`,
-    data: { type: 'daily_airdrop', amount: totalCXL, day, earnings },
-  });
-
-  return {
-    success: true,
-    totalCXL,
-    earnings,
-    day,
-    l2Unlocked,
-    streak: newStreak,
-  };
 }
 
 export async function purchasePresale(userId: string, usdtAmount: number) {

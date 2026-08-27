@@ -62,7 +62,7 @@ export interface Earnings {
 
 export interface Transaction {
   id: string;
-  type: 'slot_purchase' | 'withdraw' | 'referral' | 'daily_earning' | 'matrix_earning' | 'pool_earning' | 'ascension_credit' | 'upgrade' | 'recycle';
+  type: 'slot_purchase' | 'withdraw' | 'referral' | 'daily_earning' | 'matrix_earning' | 'pool_earning' | 'ascension_credit' | 'upgrade' | 'recycle' | 'presale_purchase' | 'presale_referral' | 'signup_bonus' | 'signup_commission';
   amount: number;
   status: 'completed' | 'pending' | 'failed';
   timestamp: string;
@@ -205,7 +205,7 @@ export interface SupportTicket {
 
 export interface Activity {
   id: string;
-  type: 'slot_purchase' | 'daily_earning' | 'matrix_earning' | 'pool_earning' | 'referral' | 'upgrade' | 'recycle' | 'withdrawal' | 'ascension_credit';
+  type: 'slot_purchase' | 'daily_earning' | 'matrix_earning' | 'pool_earning' | 'referral' | 'upgrade' | 'recycle' | 'withdrawal' | 'ascension_credit' | 'presale_purchase' | 'presale_referral' | 'signup_bonus' | 'signup_commission';
   description: string;
   amount: number;
   timestamp: string;

@@ -207,11 +207,6 @@ export default function AdminCxlAirdropPage() {
               { key: 'phase1_bonus', label: 'Phase 1 Bonus (CXL)', type: 'number' },
               { key: 'phase2_bonus', label: 'Phase 2 Bonus (CXL)', type: 'number' },
               { key: 'phase3_bonus', label: 'Phase 3 Bonus (CXL)', type: 'number' },
-              { key: 'l1_rate', label: 'L1 Daily Rate (CXL)', type: 'number' },
-              { key: 'l2_rate', label: 'L2 Daily Rate (CXL)', type: 'number' },
-              { key: 'l3_rate', label: 'L3 Daily Rate (CXL)', type: 'number' },
-              { key: 'l4_rate', label: 'L4 Daily Rate (CXL)', type: 'number' },
-              { key: 'l5_rate', label: 'L5 Daily Rate (CXL)', type: 'number' },
               { key: 'presale_min_cxl', label: 'Presale Min CXL', type: 'number' },
               { key: 'presale_max_cxl', label: 'Presale Max CXL', type: 'number' },
               { key: 'presale_start_price', label: 'Presale Start Price', type: 'number' },
@@ -267,7 +262,6 @@ export default function AdminCxlAirdropPage() {
                 <div><span className="text-[#7B8BA5]">Earned:</span> <span className="text-[#00E5FF] font-mono">{userBalance.balance?.cxl_earned_total} CXL</span></div>
                 <div><span className="text-[#7B8BA5]">Liquid:</span> <span className="text-[#00FFB2] font-mono">{userBalance.balance?.cxl_liquid} CXL</span></div>
                 <div><span className="text-[#7B8BA5]">Staked:</span> <span className="text-[#7B61FF] font-mono">{userBalance.balance?.cxl_staked} CXL</span></div>
-                <div><span className="text-[#7B8BA5]">Claims:</span> <span className="text-white">{userBalance.balance?.total_claim_days} days</span></div>
                 <div><span className="text-[#7B8BA5]">Bonus:</span> <span className="text-white">{userBalance.balance?.signup_bonus_claimed ? `Yes (${userBalance.balance?.signup_bonus_amount} CXL)` : 'No'}</span></div>
               </div>
             </div>

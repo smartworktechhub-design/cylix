@@ -62,7 +62,6 @@ interface PresaleData {
     cxl_liquid: number;
     cxl_staked: number;
     signup_bonus_claimed: boolean;
-    total_claim_days: number;
   } | null;
   presalePrices: number[];
   dexLaunchPrice: number;

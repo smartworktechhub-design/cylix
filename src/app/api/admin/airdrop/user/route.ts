@@ -47,8 +47,6 @@ export async function GET(req: NextRequest) {
       cxl_staked: balance.cxl_staked,
       signup_bonus_claimed: balance.signup_bonus_claimed,
       signup_bonus_amount: balance.signup_bonus_amount,
-      total_claim_days: balance.total_claim_days,
-      consecutive_claim_days: balance.consecutive_claim_days,
       is_active: balance.is_active,
     },
     recentEarnings: earnings,
