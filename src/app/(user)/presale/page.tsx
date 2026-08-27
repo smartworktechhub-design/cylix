@@ -389,6 +389,72 @@ export default function PresalePage() {
         </div>
       </div>
 
+      {/* Your Vesting Schedule */}
+      {vestingData && vestingData.schedules && vestingData.schedules.length > 0 && (
+        <div className="rounded-2xl border border-[rgba(255,184,0,0.12)] overflow-hidden" style={{ background: 'rgba(22,32,52,0.6)' }}>
+          <div className="p-4 pb-3" style={{ background: 'rgba(255,184,0,0.04)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <Lock size={14} className="text-[#FFB800]" />
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Your Vesting Schedule</h3>
+            </div>
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(123,97,255,0.06)' }}>
+                <p className="text-[10px] text-[#7B8BA5]">Staked</p>
+                <p className="text-sm font-bold font-mono text-[#7B61FF]">{formatCxl(vestingData.totalStaked)}</p>
+              </div>
+              <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(255,184,0,0.06)' }}>
+                <p className="text-[10px] text-[#7B8BA5]">Locked</p>
+                <p className="text-sm font-bold font-mono text-[#FFB800]">{formatCxl(vestingData.totalLocked)}</p>
+              </div>
+              <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(0,255,178,0.06)' }}>
+                <p className="text-[10px] text-[#7B8BA5]">Claimed</p>
+                <p className="text-sm font-bold font-mono text-[#00FFB2]">{formatCxl(vestingData.totalClaimed)}</p>
+              </div>
+            </div>
+          </div>
+          <div className="px-4 pb-3 space-y-2">
+            {vestingData.schedules.map((s: any) => {
+              const unlockable = s.status === 'streaming' && s.next_unlock_at && new Date(s.next_unlock_at) <= new Date();
+              const nextUnlock = s.next_unlock_at ? new Date(s.next_unlock_at) : null;
+              const progress = s.total_installments > 0 ? (s.current_installment / s.total_installments) * 100 : 0;
+
+              return (
+                <div key={s.id} className="rounded-xl p-3 border border-[rgba(255,184,0,0.08)]" style={{ background: 'rgba(255,184,0,0.03)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-[#7B8BA5]">Purchase: {formatCxl(s.total_cxl)} CXL</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${s.status === 'completed' ? 'bg-[rgba(0,255,178,0.1)] text-[#00FFB2]' : s.status === 'streaming' ? 'bg-[rgba(255,184,0,0.1)] text-[#FFB800]' : 'bg-[rgba(123,97,255,0.1)] text-[#7B61FF]'}`}>
+                      {s.status === 'completed' ? 'DONE' : s.status === 'streaming' ? 'STREAMING' : 'LOCKED'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-[#7B8BA5] mb-1">
+                    <span>Installment {s.current_installment}/{s.total_installments}</span>
+                    <span>{formatCxl(s.monthly_amount)} CXL/month</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-[rgba(255,184,0,0.1)] overflow-hidden mb-2">
+                    <div className="h-full rounded-full bg-gradient-to-r from-[#FFB800] to-[#FF5C7A]" style={{ width: `${progress}%` }} />
+                  </div>
+                  {s.status === 'streaming' && nextUnlock && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-[#7B8BA5]">
+                        {unlockable ? 'Ready to claim!' : `Next unlock: ${nextUnlock.toLocaleDateString()}`}
+                      </span>
+                      {unlockable && (
+                        <button
+                          onClick={() => setShowClaimModal(s.id)}
+                          className="px-3 py-1 rounded-lg text-[10px] font-bold bg-gradient-to-r from-[#FFB800] to-[#FF5C7A] text-[#050816] hover:opacity-90"
+                        >
+                          Claim
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Price Tooltip (shows when hovering/selecting bar) */}
       {displayDay && (hoveredDay || selectedDay) && (
         <div className="rounded-2xl p-4 flex items-center justify-between border border-[rgba(255,184,0,0.12)]" style={{ background: 'rgba(255,184,0,0.06)' }}>
@@ -634,72 +700,6 @@ export default function PresalePage() {
         </div>
         <p className="text-[10px] text-[#7B8BA5] mt-2">Commission paid in USDT to your wallet balance.</p>
       </div>
-
-      {/* Your Vesting Schedule */}
-      {vestingData && vestingData.schedules && vestingData.schedules.length > 0 && (
-        <div className="rounded-2xl border border-[rgba(255,184,0,0.12)] overflow-hidden" style={{ background: 'rgba(22,32,52,0.6)' }}>
-          <div className="p-4 pb-3" style={{ background: 'rgba(255,184,0,0.04)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <Lock size={14} className="text-[#FFB800]" />
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider" style={{ fontFamily: "'Orbitron',sans-serif" }}>Your Vesting Schedule</h3>
-            </div>
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(123,97,255,0.06)' }}>
-                <p className="text-[10px] text-[#7B8BA5]">Staked</p>
-                <p className="text-sm font-bold font-mono text-[#7B61FF]">{formatCxl(vestingData.totalStaked)}</p>
-              </div>
-              <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(255,184,0,0.06)' }}>
-                <p className="text-[10px] text-[#7B8BA5]">Locked</p>
-                <p className="text-sm font-bold font-mono text-[#FFB800]">{formatCxl(vestingData.totalLocked)}</p>
-              </div>
-              <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(0,255,178,0.06)' }}>
-                <p className="text-[10px] text-[#7B8BA5]">Claimed</p>
-                <p className="text-sm font-bold font-mono text-[#00FFB2]">{formatCxl(vestingData.totalClaimed)}</p>
-              </div>
-            </div>
-          </div>
-          <div className="px-4 pb-3 space-y-2">
-            {vestingData.schedules.map((s: any) => {
-              const unlockable = s.status === 'streaming' && s.next_unlock_at && new Date(s.next_unlock_at) <= new Date();
-              const nextUnlock = s.next_unlock_at ? new Date(s.next_unlock_at) : null;
-              const progress = s.total_installments > 0 ? (s.current_installment / s.total_installments) * 100 : 0;
-
-              return (
-                <div key={s.id} className="rounded-xl p-3 border border-[rgba(255,184,0,0.08)]" style={{ background: 'rgba(255,184,0,0.03)' }}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-[#7B8BA5]">Purchase: {formatCxl(s.total_cxl)} CXL</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${s.status === 'completed' ? 'bg-[rgba(0,255,178,0.1)] text-[#00FFB2]' : s.status === 'streaming' ? 'bg-[rgba(255,184,0,0.1)] text-[#FFB800]' : 'bg-[rgba(123,97,255,0.1)] text-[#7B61FF]'}`}>
-                      {s.status === 'completed' ? 'DONE' : s.status === 'streaming' ? 'STREAMING' : 'LOCKED'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] text-[#7B8BA5] mb-1">
-                    <span>Installment {s.current_installment}/{s.total_installments}</span>
-                    <span>{formatCxl(s.monthly_amount)} CXL/month</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-[rgba(255,184,0,0.1)] overflow-hidden mb-2">
-                    <div className="h-full rounded-full bg-gradient-to-r from-[#FFB800] to-[#FF5C7A]" style={{ width: `${progress}%` }} />
-                  </div>
-                  {s.status === 'streaming' && nextUnlock && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-[#7B8BA5]">
-                        {unlockable ? 'Ready to claim!' : `Next unlock: ${nextUnlock.toLocaleDateString()}`}
-                      </span>
-                      {unlockable && (
-                        <button
-                          onClick={() => setShowClaimModal(s.id)}
-                          className="px-3 py-1 rounded-lg text-[10px] font-bold bg-gradient-to-r from-[#FFB800] to-[#FF5C7A] text-[#050816] hover:opacity-90"
-                        >
-                          Claim
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Claim Modal */}
       {showClaimModal && (
